@@ -1,0 +1,1669 @@
+
+<!doctype html>
+<html>
+<head>
+	<title>Nexgen Redux</title>
+	<script type="text/javascript" src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
+	<style>
+		* {
+			box-sizing: border-box;
+		}
+		body {
+			font-family: Helvetica;
+			font-size: 12pt;
+			background-color: #1e1e1e;
+			color: #f1f1f1;
+			margin: 0;
+			padding: 0;
+			display: grid;
+			grid-template-columns: 300px 1fr;
+			grid-template-rows: auto 1fr;
+			height: 100vh;
+			overflow: hidden;
+		}
+		#header {
+			font-size: 200%;
+			font-weight: bold;
+			background-color: #2d2d30;
+			color: #f1f1f1;
+			border-bottom: 2px solid #337AB7;
+			padding: 20px;
+			display: grid;
+			grid-template-columns: auto 1fr;
+			grid-area: 1/1/span 1/span 2;
+		}
+		#header #namecontainer {
+			display: grid;
+			grid-template-columns: auto 1fr;
+			align-items: center;
+		}
+		#header #namecontainer img {
+			padding-right: 10px;
+		}
+		#header #searchbox {
+			align-self: center;
+		}
+		#header #searchbox > input {
+			float: right;
+			width: 400px;
+		}
+		#summary {
+			border-right: 2px solid #337AB7;
+			padding: 20px;
+			overflow: auto;
+			grid-area: 2/1/span 1/span 1;
+		}
+		#content {
+			padding: 20px;
+			overflow: auto;
+			grid-area: 2/2/span 1/span 1;
+		}
+		h1 {
+			font-size: 150%;
+			font-weight: bold;
+			color: #337AB7;
+			margin: 0 0 5px 0;
+		}
+		h2 {
+			font-size: 120%;
+			text-decoration: underline;
+			color: #337AB7;
+		}
+		a, a:hover, a:visited {
+			color: #C0FFFF;
+		}
+		.api {
+			font-family: Consolas, Courier New, Courier;
+			font-size: 11pt;
+			white-space: pre;
+			tab-size: 20px;
+		}
+		.AS-keyword {
+			font-weight: bold;
+			color: #337AB7;
+		}
+		.AS-number {
+			font-weight: bold;
+			color: #F0AD4E;
+		}
+		.AS-valuetype {
+			font-weight: bold;
+			color: #5BC0DE;
+		}
+		.AS-classtype {
+			font-weight: bold;
+			color: #5CB85C;
+		}
+		.block {
+			margin: 0px 10px 10px 20px;
+			padding: 10px;
+			border: 1px solid #b1b1b1;
+			background-color: #222222;
+		}
+		.documentation {
+			width: 500px;
+			padding: 10px 40px;
+			font-style: italic;
+		}
+		.indented {
+			padding-left: 20px;
+		}
+		.hidden {
+			display: none;
+		}
+		.link {
+			cursor: pointer;
+			color: #C0FFFF;
+		}
+		.link:hover {
+			text-decoration: underline;
+			color: #C0FFFF;
+		}
+		.generated_on {
+			padding-top: 10px;
+			font-size: 80%;
+			color: #666666;
+		}
+
+		
+	</style>
+	<script type="text/javascript">
+		$(document).ready(() => {
+			// handle search shortcut
+			$(document).keydown((ev) => {
+				if (ev.key == 'F4' || ev.code == 'F4')
+					$('#searchbox input').focus();
+			});
+
+			// handle search, need to set same handler to multiple events, so wrap in 
+			// anonymous function so we don't litter the global namespace
+			(() => {
+				
+				let handler = (ev) => {
+					const 
+						v = ev.target.value.toLowerCase(),
+						m = '[name' + (v.length ? '*=' + v : '') + ']',
+						s = '#content '+m, 
+						h = '#content [name]:not('+m+')';
+					$(h).hide();
+					$(s).show().parents('[name]').show();
+				};
+				$('#searchbox input').keyup(handler);
+				$('#searchbox input').change(handler);
+			})();
+
+			// handle collapsing/expanding the summary
+			$('#summary div.expandable').click((ev)=>{
+				let s = $(ev.target).parents('div.expandable').first(),
+					t = s.siblings('div.indented');
+				t.toggleClass('hidden');
+				s.find('span').first().html(t.hasClass('hidden') ? '+' : '-');
+			});
+
+			// handle anchor jumps
+			$('span[targetname]').click((ev)=>{
+				let targetName = $(ev.target).attr('targetname'),
+					target = $('a[name=' + targetName + ']').first();
+				$('#content').animate({
+					scrollTop: $('#content').scrollTop() + target.position().top - $('#header').innerHeight() - 5,
+				}, 250);
+			});
+
+			// any additional javascript
+			
+		});
+	</script>
+</head>
+<body>
+	<div id="header">
+		<div id="namecontainer">
+			
+			<span>Nexgen Redux - AngelScript Interface v1</span>
+		</div>
+		<div id="searchbox"><input type="text" class="api" placeholder="Search the documentation, hit F4 to focus..."></div>
+	</div>
+<div id="summary"><div class="summary"><div class="api expandable link" targetname="___valuetypes"><span>+</span> <span>Value Types</span></div><div class="indented hidden"><div class="summary"><span class="api link" targetname="color3f">Color3F</span></div><div class="summary"><span class="api link" targetname="color4f">Color4F</span></div><div class="summary"><span class="api link" targetname="joystickaxisstates">JoystickAxisStates</span></div><div class="summary"><span class="api link" targetname="joystickbuttonstates">JoystickButtonStates</span></div><div class="summary"><span class="api link" targetname="monitorvideomode">MonitorVideoMode</span></div><div class="summary"><span class="api link" targetname="rectf">RectF</span></div><div class="summary"><span class="api link" targetname="recti">RectI</span></div><div class="summary"><span class="api link" targetname="sizef">SizeF</span></div><div class="summary"><span class="api link" targetname="sizei">SizeI</span></div><div class="summary"><span class="api link" targetname="time">Time</span></div><div class="summary"><span class="api link" targetname="vec2d">Vec2D</span></div><div class="summary"><span class="api link" targetname="vec2f">Vec2F</span></div><div class="summary"><span class="api link" targetname="vec3f">Vec3F</span></div><div class="summary"><span class="api link" targetname="vec4f">Vec4F</span></div><div class="summary"><span class="api link" targetname="dictionaryvalue">dictionaryValue</span></div><div class="summary"><span class="api link" targetname="string">string</span></div></div></div><div class="summary"><div class="api expandable link" targetname="___classes"><span>+</span> <span>Classes</span></div><div class="indented hidden"><div class="summary"><span class="api link" targetname="fog">Fog</span></div><div class="summary"><span class="api link" targetname="lighting">Lighting</span></div><div class="summary"><span class="api link" targetname="node">Node</span></div><div class="summary"><span class="api link" targetname="orthocamera">OrthoCamera</span></div><div class="summary"><span class="api link" targetname="sprite">Sprite</span></div><div class="summary"><span class="api link" targetname="text">Text</span></div><div class="summary"><span class="api link" targetname="array">array</span></div><div class="summary"><span class="api link" targetname="dictionary">dictionary</span></div></div></div><div class="summary"><div class="api expandable link" targetname="___globalfunctions"><span>+</span> <span>Global Functions</span></div><div class="indented hidden"><div class="summary"><span class="api link" targetname="assignnode">AssignNode</span></div><div class="summary"><span class="api link" targetname="assignnodeat">AssignNodeAt</span></div><div class="summary"><span class="api link" targetname="calculateframespersecond">CalculateFramesPerSecond</span></div><div class="summary"><span class="api link" targetname="checkfororphans">CheckForOrphans</span></div><div class="summary"><span class="api link" targetname="createfog">CreateFog</span></div><div class="summary"><span class="api link" targetname="createlighting">CreateLighting</span></div><div class="summary"><span class="api link" targetname="createorthocamera">CreateOrthoCamera</span></div><div class="summary"><span class="api link" targetname="createscene">CreateScene</span></div><div class="summary"><span class="api link" targetname="createsprite">CreateSprite</span></div><div class="summary"><span class="api link" targetname="createtext">CreateText</span></div><div class="summary"><span class="api link" targetname="debugprint">DebugPrint</span></div><div class="summary"><span class="api link" targetname="debugprintif">DebugPrintIf</span></div><div class="summary"><span class="api link" targetname="deletenode">DeleteNode</span></div><div class="summary"><span class="api link" targetname="getavailablemonitorcount">GetAvailableMonitorCount</span></div><div class="summary"><span class="api link" targetname="getclipboardstring">GetClipboardString</span></div><div class="summary"><span class="api link" targetname="getdurationseconds">GetDurationSeconds</span></div><div class="summary"><span class="api link" targetname="getfreephysicalmemory">GetFreePhysicalMemory</span></div><div class="summary"><span class="api link" targetname="getfreevirtualmemory">GetFreeVirtualMemory</span></div><div class="summary"><span class="api link" targetname="getjoystickaxisstates">GetJoystickAxisStates</span></div><div class="summary"><span class="api link" targetname="getjoystickbuttonstates">GetJoystickButtonStates</span></div><div class="summary"><span class="api link" targetname="getjoystickhatcount">GetJoystickHatCount</span></div><div class="summary"><span class="api link" targetname="getjoystickhatdirection">GetJoystickHatDirection</span></div><div class="summary"><span class="api link" targetname="getkeypressed">GetKeyPressed</span></div><div class="summary"><span class="api link" targetname="getmillisecondsnow">GetMillisecondsNow</span></div><div class="summary"><span class="api link" targetname="getmonitorvideomode">GetMonitorVideoMode</span></div><div class="summary"><span class="api link" targetname="getmonitorvideomodes">GetMonitorVideoModes</span></div><div class="summary"><span class="api link" targetname="getmousebuttonpressed">GetMouseButtonPressed</span></div><div class="summary"><span class="api link" targetname="getmousecursorposition">GetMouseCursorPosition</span></div><div class="summary"><span class="api link" targetname="getnode">GetNode</span></div><div class="summary"><span class="api link" targetname="getrandomdouble">GetRandomDouble</span></div><div class="summary"><span class="api link" targetname="getrandomintinrange">GetRandomIntInRange</span></div><div class="summary"><span class="api link" targetname="gettimenow">GetTimeNow</span></div><div class="summary"><span class="api link" targetname="gettotalphysicalmemory">GetTotalPhysicalMemory</span></div><div class="summary"><span class="api link" targetname="gettotalvirtualmemory">GetTotalVirtualMemory</span></div><div class="summary"><span class="api link" targetname="getwindowsize">GetWindowSize</span></div><div class="summary"><span class="api link" targetname="joystickisgamepad">JoystickIsGamepad</span></div><div class="summary"><span class="api link" targetname="joystickispresent">JoystickIsPresent</span></div><div class="summary"><span class="api link" targetname="loadfont">LoadFont</span></div><div class="summary"><span class="api link" targetname="purgenodes">PurgeNodes</span></div><div class="summary"><span class="api link" targetname="render">Render</span></div><div class="summary"><span class="api link" targetname="seedrandom">SeedRandom</span></div><div class="summary"><span class="api link" targetname="seedrandomwithvalue">SeedRandomWithValue</span></div><div class="summary"><span class="api link" targetname="setclipboardstring">SetClipboardString</span></div><div class="summary"><span class="api link" targetname="setcurrentscene">SetCurrentScene</span></div><div class="summary"><span class="api link" targetname="setcursormode">SetCursorMode</span></div><div class="summary"><span class="api link" targetname="setjoystickconnectcallback">SetJoystickConnectCallback</span></div><div class="summary"><span class="api link" targetname="setmousecursorposition">SetMouseCursorPosition</span></div><div class="summary"><span class="api link" targetname="setwindowdropcallback">SetWindowDropCallback</span></div><div class="summary"><span class="api link" targetname="setwindowfocuscallback">SetWindowFocusCallback</span></div><div class="summary"><span class="api link" targetname="setwindowiconifycallback">SetWindowIconifyCallback</span></div><div class="summary"><span class="api link" targetname="setwindowkeyboardcharactercallback">SetWindowKeyboardCharacterCallback</span></div><div class="summary"><span class="api link" targetname="setwindowkeyboardkeycallback">SetWindowKeyboardKeyCallback</span></div><div class="summary"><span class="api link" targetname="setwindowmaximizecallback">SetWindowMaximizeCallback</span></div><div class="summary"><span class="api link" targetname="setwindowmousebuttoncallback">SetWindowMouseButtonCallback</span></div><div class="summary"><span class="api link" targetname="setwindowmousecursorentercallback">SetWindowMouseCursorEnterCallback</span></div><div class="summary"><span class="api link" targetname="setwindowmousecursorpositioncallback">SetWindowMouseCursorPositionCallback</span></div><div class="summary"><span class="api link" targetname="setwindowmousescrollcallback">SetWindowMouseScrollCallback</span></div><div class="summary"><span class="api link" targetname="setwindowsizecallback">SetWindowSizeCallback</span></div><div class="summary"><span class="api link" targetname="sleepmilliseconds">SleepMilliseconds</span></div><div class="summary"><span class="api link" targetname="update">Update</span></div><div class="summary"><span class="api link" targetname="windowclose">WindowClose</span></div><div class="summary"><span class="api link" targetname="windowcreatewithsize">WindowCreateWithSize</span></div><div class="summary"><span class="api link" targetname="windowcreatewithvideomode">WindowCreateWithVideoMode</span></div><div class="summary"><span class="api link" targetname="abs">abs</span></div><div class="summary"><span class="api link" targetname="acos">acos</span></div><div class="summary"><span class="api link" targetname="asin">asin</span></div><div class="summary"><span class="api link" targetname="atan">atan</span></div><div class="summary"><span class="api link" targetname="atan2">atan2</span></div><div class="summary"><span class="api link" targetname="ceil">ceil</span></div><div class="summary"><span class="api link" targetname="closeto">closeTo</span></div><div class="summary"><span class="api link" targetname="cos">cos</span></div><div class="summary"><span class="api link" targetname="cosh">cosh</span></div><div class="summary"><span class="api link" targetname="floor">floor</span></div><div class="summary"><span class="api link" targetname="formatfloat">formatFloat</span></div><div class="summary"><span class="api link" targetname="formatint">formatInt</span></div><div class="summary"><span class="api link" targetname="formatuint">formatUInt</span></div><div class="summary"><span class="api link" targetname="fpfromieee">fpFromIEEE</span></div><div class="summary"><span class="api link" targetname="fptoieee">fpToIEEE</span></div><div class="summary"><span class="api link" targetname="fraction">fraction</span></div><div class="summary"><span class="api link" targetname="log">log</span></div><div class="summary"><span class="api link" targetname="log10">log10</span></div><div class="summary"><span class="api link" targetname="parsefloat">parseFloat</span></div><div class="summary"><span class="api link" targetname="parseint">parseInt</span></div><div class="summary"><span class="api link" targetname="parseuint">parseUInt</span></div><div class="summary"><span class="api link" targetname="pow">pow</span></div><div class="summary"><span class="api link" targetname="sin">sin</span></div><div class="summary"><span class="api link" targetname="sinh">sinh</span></div><div class="summary"><span class="api link" targetname="sqrt">sqrt</span></div><div class="summary"><span class="api link" targetname="tan">tan</span></div><div class="summary"><span class="api link" targetname="tanh">tanh</span></div></div></div><div class="generated_on">Generated on 05-04-2023 10:35:13</div></div><div id="content"><a name="___valuetypes"></a><h1 name="value types">Value Types</h1>
+<div name="___valuetypes"><a name="color3f"></a><h2 name="color3f">Color3F</h2>
+<div name="color3f"><a name="color3f"></a><div class="block" name="color3f">
+<div class="api"><span class="AS-keyword">class</span> <span class="AS-valuetype">Color3F</span> {
+	<span class="AS-valuetype">Color3F</span>();
+	<span class="AS-valuetype">Color3F</span>(<span class="AS-keyword">float</span>, <span class="AS-keyword">float</span>, <span class="AS-keyword">float</span>);
+	<span class="AS-valuetype">Color3F</span>(<span class="AS-valuetype">Color3F</span>&<span class="AS-keyword">in</span>);
+	<span class="AS-valuetype">Color3F</span> opDiv(<span class="AS-keyword">const</span> <span class="AS-valuetype">Color3F</span>&<span class="AS-keyword">in</span>) <span class="AS-keyword">const</span>;
+	<span class="AS-valuetype">Color3F</span> opMul(<span class="AS-keyword">const</span> <span class="AS-valuetype">Color3F</span>&<span class="AS-keyword">in</span>) <span class="AS-keyword">const</span>;
+	<span class="AS-valuetype">Color3F</span> opAdd(<span class="AS-keyword">const</span> <span class="AS-valuetype">Color3F</span>&<span class="AS-keyword">in</span>) <span class="AS-keyword">const</span>;
+	<span class="AS-valuetype">Color3F</span> opSub(<span class="AS-keyword">const</span> <span class="AS-valuetype">Color3F</span>&<span class="AS-keyword">in</span>) <span class="AS-keyword">const</span>;
+	<span class="AS-valuetype">Color3F</span>& opDivAssign(<span class="AS-keyword">const</span> <span class="AS-valuetype">Color3F</span>&<span class="AS-keyword">in</span>);
+	<span class="AS-valuetype">Color3F</span>& opMulAssign(<span class="AS-keyword">const</span> <span class="AS-valuetype">Color3F</span>&<span class="AS-keyword">in</span>);
+	<span class="AS-valuetype">Color3F</span>& opAddAssign(<span class="AS-keyword">const</span> <span class="AS-valuetype">Color3F</span>&<span class="AS-keyword">in</span>);
+	<span class="AS-valuetype">Color3F</span>& opSubAssign(<span class="AS-keyword">const</span> <span class="AS-valuetype">Color3F</span>&<span class="AS-keyword">in</span>);
+	<span class="AS-keyword">bool</span> opEq(<span class="AS-keyword">const</span> <span class="AS-valuetype">Color3F</span>&<span class="AS-keyword">in</span>) <span class="AS-keyword">const</span>;
+	<span class="AS-keyword">bool</span> opNotEq(<span class="AS-keyword">const</span> <span class="AS-valuetype">Color3F</span>&<span class="AS-keyword">in</span>) <span class="AS-keyword">const</span>;
+	<span class="AS-keyword">float</span> r;
+	<span class="AS-keyword">float</span> g;
+	<span class="AS-keyword">float</span> b;
+}</div></div>
+<a name="color3f::$beh0"></a><div class="block" name="color3f::$beh0">
+<div class="api"><span class="AS-valuetype">Color3F</span>::<span class="AS-valuetype">Color3F</span>()</div></div>
+<a name="color3f::$beh0"></a><div class="block" name="color3f::$beh0">
+<div class="api"><span class="AS-valuetype">Color3F</span>::<span class="AS-valuetype">Color3F</span>(<span class="AS-keyword">float</span>, <span class="AS-keyword">float</span>, <span class="AS-keyword">float</span>)</div></div>
+<a name="color3f::$beh0"></a><div class="block" name="color3f::$beh0">
+<div class="api"><span class="AS-valuetype">Color3F</span>::<span class="AS-valuetype">Color3F</span>(<span class="AS-valuetype">Color3F</span>&<span class="AS-keyword">in</span>)</div></div>
+<a name="color3f::opdiv"></a><div class="block" name="color3f::opdiv">
+<div class="api"><span class="AS-valuetype">Color3F</span> <span class="AS-valuetype">Color3F</span>::opDiv(<span class="AS-keyword">const</span> <span class="AS-valuetype">Color3F</span>&<span class="AS-keyword">in</span>) <span class="AS-keyword">const</span></div></div>
+<a name="color3f::opmul"></a><div class="block" name="color3f::opmul">
+<div class="api"><span class="AS-valuetype">Color3F</span> <span class="AS-valuetype">Color3F</span>::opMul(<span class="AS-keyword">const</span> <span class="AS-valuetype">Color3F</span>&<span class="AS-keyword">in</span>) <span class="AS-keyword">const</span></div></div>
+<a name="color3f::opadd"></a><div class="block" name="color3f::opadd">
+<div class="api"><span class="AS-valuetype">Color3F</span> <span class="AS-valuetype">Color3F</span>::opAdd(<span class="AS-keyword">const</span> <span class="AS-valuetype">Color3F</span>&<span class="AS-keyword">in</span>) <span class="AS-keyword">const</span></div></div>
+<a name="color3f::opsub"></a><div class="block" name="color3f::opsub">
+<div class="api"><span class="AS-valuetype">Color3F</span> <span class="AS-valuetype">Color3F</span>::opSub(<span class="AS-keyword">const</span> <span class="AS-valuetype">Color3F</span>&<span class="AS-keyword">in</span>) <span class="AS-keyword">const</span></div></div>
+<a name="color3f::opdivassign"></a><div class="block" name="color3f::opdivassign">
+<div class="api"><span class="AS-valuetype">Color3F</span>& <span class="AS-valuetype">Color3F</span>::opDivAssign(<span class="AS-keyword">const</span> <span class="AS-valuetype">Color3F</span>&<span class="AS-keyword">in</span>)</div></div>
+<a name="color3f::opmulassign"></a><div class="block" name="color3f::opmulassign">
+<div class="api"><span class="AS-valuetype">Color3F</span>& <span class="AS-valuetype">Color3F</span>::opMulAssign(<span class="AS-keyword">const</span> <span class="AS-valuetype">Color3F</span>&<span class="AS-keyword">in</span>)</div></div>
+<a name="color3f::opaddassign"></a><div class="block" name="color3f::opaddassign">
+<div class="api"><span class="AS-valuetype">Color3F</span>& <span class="AS-valuetype">Color3F</span>::opAddAssign(<span class="AS-keyword">const</span> <span class="AS-valuetype">Color3F</span>&<span class="AS-keyword">in</span>)</div></div>
+<a name="color3f::opsubassign"></a><div class="block" name="color3f::opsubassign">
+<div class="api"><span class="AS-valuetype">Color3F</span>& <span class="AS-valuetype">Color3F</span>::opSubAssign(<span class="AS-keyword">const</span> <span class="AS-valuetype">Color3F</span>&<span class="AS-keyword">in</span>)</div></div>
+<a name="color3f::opeq"></a><div class="block" name="color3f::opeq">
+<div class="api"><span class="AS-keyword">bool</span> <span class="AS-valuetype">Color3F</span>::opEq(<span class="AS-keyword">const</span> <span class="AS-valuetype">Color3F</span>&<span class="AS-keyword">in</span>) <span class="AS-keyword">const</span></div></div>
+<a name="color3f::opnoteq"></a><div class="block" name="color3f::opnoteq">
+<div class="api"><span class="AS-keyword">bool</span> <span class="AS-valuetype">Color3F</span>::opNotEq(<span class="AS-keyword">const</span> <span class="AS-valuetype">Color3F</span>&<span class="AS-keyword">in</span>) <span class="AS-keyword">const</span></div></div>
+</div><a name="color4f"></a><h2 name="color4f">Color4F</h2>
+<div name="color4f"><a name="color4f"></a><div class="block" name="color4f">
+<div class="api"><span class="AS-keyword">class</span> <span class="AS-valuetype">Color4F</span> {
+	<span class="AS-valuetype">Color4F</span>();
+	<span class="AS-valuetype">Color4F</span>(<span class="AS-keyword">float</span>, <span class="AS-keyword">float</span>, <span class="AS-keyword">float</span>, <span class="AS-keyword">float</span>);
+	<span class="AS-valuetype">Color4F</span>(<span class="AS-valuetype">Color4F</span>&<span class="AS-keyword">in</span>);
+	<span class="AS-valuetype">Color4F</span> opDiv(<span class="AS-keyword">const</span> <span class="AS-valuetype">Color4F</span>&<span class="AS-keyword">in</span>) <span class="AS-keyword">const</span>;
+	<span class="AS-valuetype">Color4F</span> opMul(<span class="AS-keyword">const</span> <span class="AS-valuetype">Color4F</span>&<span class="AS-keyword">in</span>) <span class="AS-keyword">const</span>;
+	<span class="AS-valuetype">Color4F</span> opAdd(<span class="AS-keyword">const</span> <span class="AS-valuetype">Color4F</span>&<span class="AS-keyword">in</span>) <span class="AS-keyword">const</span>;
+	<span class="AS-valuetype">Color4F</span> opSub(<span class="AS-keyword">const</span> <span class="AS-valuetype">Color4F</span>&<span class="AS-keyword">in</span>) <span class="AS-keyword">const</span>;
+	<span class="AS-valuetype">Color4F</span>& opDivAssign(<span class="AS-keyword">const</span> <span class="AS-valuetype">Color4F</span>&<span class="AS-keyword">in</span>);
+	<span class="AS-valuetype">Color4F</span>& opMulAssign(<span class="AS-keyword">const</span> <span class="AS-valuetype">Color4F</span>&<span class="AS-keyword">in</span>);
+	<span class="AS-valuetype">Color4F</span>& opAddAssign(<span class="AS-keyword">const</span> <span class="AS-valuetype">Color4F</span>&<span class="AS-keyword">in</span>);
+	<span class="AS-valuetype">Color4F</span>& opSubAssign(<span class="AS-keyword">const</span> <span class="AS-valuetype">Color4F</span>&<span class="AS-keyword">in</span>);
+	<span class="AS-keyword">bool</span> opEq(<span class="AS-keyword">const</span> <span class="AS-valuetype">Color4F</span>&<span class="AS-keyword">in</span>) <span class="AS-keyword">const</span>;
+	<span class="AS-keyword">bool</span> opNotEq(<span class="AS-keyword">const</span> <span class="AS-valuetype">Color4F</span>&<span class="AS-keyword">in</span>) <span class="AS-keyword">const</span>;
+	<span class="AS-keyword">float</span> r;
+	<span class="AS-keyword">float</span> g;
+	<span class="AS-keyword">float</span> b;
+	<span class="AS-keyword">float</span> a;
+}</div></div>
+<a name="color4f::$beh0"></a><div class="block" name="color4f::$beh0">
+<div class="api"><span class="AS-valuetype">Color4F</span>::<span class="AS-valuetype">Color4F</span>()</div></div>
+<a name="color4f::$beh0"></a><div class="block" name="color4f::$beh0">
+<div class="api"><span class="AS-valuetype">Color4F</span>::<span class="AS-valuetype">Color4F</span>(<span class="AS-keyword">float</span>, <span class="AS-keyword">float</span>, <span class="AS-keyword">float</span>, <span class="AS-keyword">float</span>)</div></div>
+<a name="color4f::$beh0"></a><div class="block" name="color4f::$beh0">
+<div class="api"><span class="AS-valuetype">Color4F</span>::<span class="AS-valuetype">Color4F</span>(<span class="AS-valuetype">Color4F</span>&<span class="AS-keyword">in</span>)</div></div>
+<a name="color4f::opdiv"></a><div class="block" name="color4f::opdiv">
+<div class="api"><span class="AS-valuetype">Color4F</span> <span class="AS-valuetype">Color4F</span>::opDiv(<span class="AS-keyword">const</span> <span class="AS-valuetype">Color4F</span>&<span class="AS-keyword">in</span>) <span class="AS-keyword">const</span></div></div>
+<a name="color4f::opmul"></a><div class="block" name="color4f::opmul">
+<div class="api"><span class="AS-valuetype">Color4F</span> <span class="AS-valuetype">Color4F</span>::opMul(<span class="AS-keyword">const</span> <span class="AS-valuetype">Color4F</span>&<span class="AS-keyword">in</span>) <span class="AS-keyword">const</span></div></div>
+<a name="color4f::opadd"></a><div class="block" name="color4f::opadd">
+<div class="api"><span class="AS-valuetype">Color4F</span> <span class="AS-valuetype">Color4F</span>::opAdd(<span class="AS-keyword">const</span> <span class="AS-valuetype">Color4F</span>&<span class="AS-keyword">in</span>) <span class="AS-keyword">const</span></div></div>
+<a name="color4f::opsub"></a><div class="block" name="color4f::opsub">
+<div class="api"><span class="AS-valuetype">Color4F</span> <span class="AS-valuetype">Color4F</span>::opSub(<span class="AS-keyword">const</span> <span class="AS-valuetype">Color4F</span>&<span class="AS-keyword">in</span>) <span class="AS-keyword">const</span></div></div>
+<a name="color4f::opdivassign"></a><div class="block" name="color4f::opdivassign">
+<div class="api"><span class="AS-valuetype">Color4F</span>& <span class="AS-valuetype">Color4F</span>::opDivAssign(<span class="AS-keyword">const</span> <span class="AS-valuetype">Color4F</span>&<span class="AS-keyword">in</span>)</div></div>
+<a name="color4f::opmulassign"></a><div class="block" name="color4f::opmulassign">
+<div class="api"><span class="AS-valuetype">Color4F</span>& <span class="AS-valuetype">Color4F</span>::opMulAssign(<span class="AS-keyword">const</span> <span class="AS-valuetype">Color4F</span>&<span class="AS-keyword">in</span>)</div></div>
+<a name="color4f::opaddassign"></a><div class="block" name="color4f::opaddassign">
+<div class="api"><span class="AS-valuetype">Color4F</span>& <span class="AS-valuetype">Color4F</span>::opAddAssign(<span class="AS-keyword">const</span> <span class="AS-valuetype">Color4F</span>&<span class="AS-keyword">in</span>)</div></div>
+<a name="color4f::opsubassign"></a><div class="block" name="color4f::opsubassign">
+<div class="api"><span class="AS-valuetype">Color4F</span>& <span class="AS-valuetype">Color4F</span>::opSubAssign(<span class="AS-keyword">const</span> <span class="AS-valuetype">Color4F</span>&<span class="AS-keyword">in</span>)</div></div>
+<a name="color4f::opeq"></a><div class="block" name="color4f::opeq">
+<div class="api"><span class="AS-keyword">bool</span> <span class="AS-valuetype">Color4F</span>::opEq(<span class="AS-keyword">const</span> <span class="AS-valuetype">Color4F</span>&<span class="AS-keyword">in</span>) <span class="AS-keyword">const</span></div></div>
+<a name="color4f::opnoteq"></a><div class="block" name="color4f::opnoteq">
+<div class="api"><span class="AS-keyword">bool</span> <span class="AS-valuetype">Color4F</span>::opNotEq(<span class="AS-keyword">const</span> <span class="AS-valuetype">Color4F</span>&<span class="AS-keyword">in</span>) <span class="AS-keyword">const</span></div></div>
+</div><a name="joystickaxisstates"></a><h2 name="joystickaxisstates">JoystickAxisStates</h2>
+<div name="joystickaxisstates"><a name="joystickaxisstates"></a><div class="block" name="joystickaxisstates">
+<div class="api"><span class="AS-keyword">class</span> <span class="AS-valuetype">JoystickAxisStates</span> {
+	<span class="AS-keyword">float</span> axisLeftX;
+	<span class="AS-keyword">float</span> axisLeftY;
+	<span class="AS-keyword">float</span> axisRightX;
+	<span class="AS-keyword">float</span> axisRightY;
+	<span class="AS-keyword">float</span> axisLeftTrigger;
+	<span class="AS-keyword">float</span> axisRightTrigger;
+}</div><div class="documentation"><b>JoystickAxisStates</b> is an object containing joystick axis state properties.</div></div>
+</div><a name="joystickbuttonstates"></a><h2 name="joystickbuttonstates">JoystickButtonStates</h2>
+<div name="joystickbuttonstates"><a name="joystickbuttonstates"></a><div class="block" name="joystickbuttonstates">
+<div class="api"><span class="AS-keyword">class</span> <span class="AS-valuetype">JoystickButtonStates</span> {
+	<span class="AS-keyword">uint</span> buttonA;
+	<span class="AS-keyword">uint</span> buttonB;
+	<span class="AS-keyword">uint</span> buttonX;
+	<span class="AS-keyword">uint</span> buttonY;
+	<span class="AS-keyword">uint</span> buttonLeftBumperOrWhite;
+	<span class="AS-keyword">uint</span> buttonRightBumperOrBlack;
+	<span class="AS-keyword">uint</span> buttonBack;
+	<span class="AS-keyword">uint</span> buttonStart;
+	<span class="AS-keyword">uint</span> buttonGuide;
+	<span class="AS-keyword">uint</span> buttonLeftThumb;
+	<span class="AS-keyword">uint</span> buttonRightThumb;
+	<span class="AS-keyword">uint</span> buttonDpadUp;
+	<span class="AS-keyword">uint</span> buttonDpadRight;
+	<span class="AS-keyword">uint</span> buttonDpadDown;
+	<span class="AS-keyword">uint</span> buttonDpadLeft;
+}</div><div class="documentation"><b>JoystickButtonStates</b> is an object containing joystick button state properties.</div></div>
+</div><a name="monitorvideomode"></a><h2 name="monitorvideomode">MonitorVideoMode</h2>
+<div name="monitorvideomode"><a name="monitorvideomode"></a><div class="block" name="monitorvideomode">
+<div class="api"><span class="AS-keyword">class</span> <span class="AS-valuetype">MonitorVideoMode</span> {
+	<span class="AS-keyword">uint</span> monitorIndex;
+	<span class="AS-keyword">uint</span> width;
+	<span class="AS-keyword">uint</span> height;
+	<span class="AS-keyword">uint</span> redBits;
+	<span class="AS-keyword">uint</span> greenBits;
+	<span class="AS-keyword">uint</span> blueBits;
+	<span class="AS-keyword">uint</span> refreshRate;
+}</div><div class="documentation"><b>MonitorVideoMode</b> is an object containing video mode properties.</div></div>
+</div><a name="rectf"></a><h2 name="rectf">RectF</h2>
+<div name="rectf"><a name="rectf"></a><div class="block" name="rectf">
+<div class="api"><span class="AS-keyword">class</span> <span class="AS-valuetype">RectF</span> {
+	<span class="AS-valuetype">RectF</span>();
+	<span class="AS-valuetype">RectF</span>(<span class="AS-keyword">float</span>, <span class="AS-keyword">float</span>, <span class="AS-keyword">float</span>, <span class="AS-keyword">float</span>);
+	<span class="AS-valuetype">RectF</span>(<span class="AS-valuetype">RectF</span>&<span class="AS-keyword">in</span>);
+	<span class="AS-keyword">bool</span> opEq(<span class="AS-keyword">const</span> <span class="AS-valuetype">RectF</span>&<span class="AS-keyword">in</span>) <span class="AS-keyword">const</span>;
+	<span class="AS-keyword">bool</span> opNotEq(<span class="AS-keyword">const</span> <span class="AS-valuetype">RectF</span>&<span class="AS-keyword">in</span>) <span class="AS-keyword">const</span>;
+	<span class="AS-keyword">float</span> x;
+	<span class="AS-keyword">float</span> y;
+	<span class="AS-keyword">float</span> width;
+	<span class="AS-keyword">float</span> height;
+}</div></div>
+<a name="rectf::$beh0"></a><div class="block" name="rectf::$beh0">
+<div class="api"><span class="AS-valuetype">RectF</span>::<span class="AS-valuetype">RectF</span>()</div></div>
+<a name="rectf::$beh0"></a><div class="block" name="rectf::$beh0">
+<div class="api"><span class="AS-valuetype">RectF</span>::<span class="AS-valuetype">RectF</span>(<span class="AS-keyword">float</span>, <span class="AS-keyword">float</span>, <span class="AS-keyword">float</span>, <span class="AS-keyword">float</span>)</div></div>
+<a name="rectf::$beh0"></a><div class="block" name="rectf::$beh0">
+<div class="api"><span class="AS-valuetype">RectF</span>::<span class="AS-valuetype">RectF</span>(<span class="AS-valuetype">RectF</span>&<span class="AS-keyword">in</span>)</div></div>
+<a name="rectf::opeq"></a><div class="block" name="rectf::opeq">
+<div class="api"><span class="AS-keyword">bool</span> <span class="AS-valuetype">RectF</span>::opEq(<span class="AS-keyword">const</span> <span class="AS-valuetype">RectF</span>&<span class="AS-keyword">in</span>) <span class="AS-keyword">const</span></div></div>
+<a name="rectf::opnoteq"></a><div class="block" name="rectf::opnoteq">
+<div class="api"><span class="AS-keyword">bool</span> <span class="AS-valuetype">RectF</span>::opNotEq(<span class="AS-keyword">const</span> <span class="AS-valuetype">RectF</span>&<span class="AS-keyword">in</span>) <span class="AS-keyword">const</span></div></div>
+</div><a name="recti"></a><h2 name="recti">RectI</h2>
+<div name="recti"><a name="recti"></a><div class="block" name="recti">
+<div class="api"><span class="AS-keyword">class</span> <span class="AS-valuetype">RectI</span> {
+	<span class="AS-valuetype">RectI</span>();
+	<span class="AS-valuetype">RectI</span>(<span class="AS-keyword">int</span>, <span class="AS-keyword">int</span>, <span class="AS-keyword">int</span>, <span class="AS-keyword">int</span>);
+	<span class="AS-valuetype">RectI</span>(<span class="AS-valuetype">RectI</span>&<span class="AS-keyword">in</span>);
+	<span class="AS-keyword">bool</span> opEq(<span class="AS-keyword">const</span> <span class="AS-valuetype">RectI</span>&<span class="AS-keyword">in</span>) <span class="AS-keyword">const</span>;
+	<span class="AS-keyword">bool</span> opNotEq(<span class="AS-keyword">const</span> <span class="AS-valuetype">RectI</span>&<span class="AS-keyword">in</span>) <span class="AS-keyword">const</span>;
+	<span class="AS-keyword">int</span> x;
+	<span class="AS-keyword">int</span> y;
+	<span class="AS-keyword">int</span> width;
+	<span class="AS-keyword">int</span> height;
+}</div></div>
+<a name="recti::$beh0"></a><div class="block" name="recti::$beh0">
+<div class="api"><span class="AS-valuetype">RectI</span>::<span class="AS-valuetype">RectI</span>()</div></div>
+<a name="recti::$beh0"></a><div class="block" name="recti::$beh0">
+<div class="api"><span class="AS-valuetype">RectI</span>::<span class="AS-valuetype">RectI</span>(<span class="AS-keyword">int</span>, <span class="AS-keyword">int</span>, <span class="AS-keyword">int</span>, <span class="AS-keyword">int</span>)</div></div>
+<a name="recti::$beh0"></a><div class="block" name="recti::$beh0">
+<div class="api"><span class="AS-valuetype">RectI</span>::<span class="AS-valuetype">RectI</span>(<span class="AS-valuetype">RectI</span>&<span class="AS-keyword">in</span>)</div></div>
+<a name="recti::opeq"></a><div class="block" name="recti::opeq">
+<div class="api"><span class="AS-keyword">bool</span> <span class="AS-valuetype">RectI</span>::opEq(<span class="AS-keyword">const</span> <span class="AS-valuetype">RectI</span>&<span class="AS-keyword">in</span>) <span class="AS-keyword">const</span></div></div>
+<a name="recti::opnoteq"></a><div class="block" name="recti::opnoteq">
+<div class="api"><span class="AS-keyword">bool</span> <span class="AS-valuetype">RectI</span>::opNotEq(<span class="AS-keyword">const</span> <span class="AS-valuetype">RectI</span>&<span class="AS-keyword">in</span>) <span class="AS-keyword">const</span></div></div>
+</div><a name="sizef"></a><h2 name="sizef">SizeF</h2>
+<div name="sizef"><a name="sizef"></a><div class="block" name="sizef">
+<div class="api"><span class="AS-keyword">class</span> <span class="AS-valuetype">SizeF</span> {
+	<span class="AS-valuetype">SizeF</span>();
+	<span class="AS-valuetype">SizeF</span>(<span class="AS-keyword">float</span>, <span class="AS-keyword">float</span>);
+	<span class="AS-valuetype">SizeF</span>(<span class="AS-valuetype">SizeF</span>&<span class="AS-keyword">in</span>);
+	<span class="AS-keyword">bool</span> opEq(<span class="AS-keyword">const</span> <span class="AS-valuetype">SizeF</span>&<span class="AS-keyword">in</span>) <span class="AS-keyword">const</span>;
+	<span class="AS-keyword">bool</span> opNotEq(<span class="AS-keyword">const</span> <span class="AS-valuetype">SizeF</span>&<span class="AS-keyword">in</span>) <span class="AS-keyword">const</span>;
+	<span class="AS-keyword">float</span> width;
+	<span class="AS-keyword">float</span> height;
+}</div></div>
+<a name="sizef::$beh0"></a><div class="block" name="sizef::$beh0">
+<div class="api"><span class="AS-valuetype">SizeF</span>::<span class="AS-valuetype">SizeF</span>()</div></div>
+<a name="sizef::$beh0"></a><div class="block" name="sizef::$beh0">
+<div class="api"><span class="AS-valuetype">SizeF</span>::<span class="AS-valuetype">SizeF</span>(<span class="AS-keyword">float</span>, <span class="AS-keyword">float</span>)</div></div>
+<a name="sizef::$beh0"></a><div class="block" name="sizef::$beh0">
+<div class="api"><span class="AS-valuetype">SizeF</span>::<span class="AS-valuetype">SizeF</span>(<span class="AS-valuetype">SizeF</span>&<span class="AS-keyword">in</span>)</div></div>
+<a name="sizef::opeq"></a><div class="block" name="sizef::opeq">
+<div class="api"><span class="AS-keyword">bool</span> <span class="AS-valuetype">SizeF</span>::opEq(<span class="AS-keyword">const</span> <span class="AS-valuetype">SizeF</span>&<span class="AS-keyword">in</span>) <span class="AS-keyword">const</span></div></div>
+<a name="sizef::opnoteq"></a><div class="block" name="sizef::opnoteq">
+<div class="api"><span class="AS-keyword">bool</span> <span class="AS-valuetype">SizeF</span>::opNotEq(<span class="AS-keyword">const</span> <span class="AS-valuetype">SizeF</span>&<span class="AS-keyword">in</span>) <span class="AS-keyword">const</span></div></div>
+</div><a name="sizei"></a><h2 name="sizei">SizeI</h2>
+<div name="sizei"><a name="sizei"></a><div class="block" name="sizei">
+<div class="api"><span class="AS-keyword">class</span> <span class="AS-valuetype">SizeI</span> {
+	<span class="AS-valuetype">SizeI</span>();
+	<span class="AS-valuetype">SizeI</span>(<span class="AS-keyword">int</span>, <span class="AS-keyword">int</span>);
+	<span class="AS-valuetype">SizeI</span>(<span class="AS-valuetype">SizeI</span>&<span class="AS-keyword">in</span>);
+	<span class="AS-keyword">bool</span> opEq(<span class="AS-keyword">const</span> <span class="AS-valuetype">SizeI</span>&<span class="AS-keyword">in</span>) <span class="AS-keyword">const</span>;
+	<span class="AS-keyword">bool</span> opNotEq(<span class="AS-keyword">const</span> <span class="AS-valuetype">SizeI</span>&<span class="AS-keyword">in</span>) <span class="AS-keyword">const</span>;
+	<span class="AS-keyword">int</span> width;
+	<span class="AS-keyword">int</span> height;
+}</div></div>
+<a name="sizei::$beh0"></a><div class="block" name="sizei::$beh0">
+<div class="api"><span class="AS-valuetype">SizeI</span>::<span class="AS-valuetype">SizeI</span>()</div></div>
+<a name="sizei::$beh0"></a><div class="block" name="sizei::$beh0">
+<div class="api"><span class="AS-valuetype">SizeI</span>::<span class="AS-valuetype">SizeI</span>(<span class="AS-keyword">int</span>, <span class="AS-keyword">int</span>)</div></div>
+<a name="sizei::$beh0"></a><div class="block" name="sizei::$beh0">
+<div class="api"><span class="AS-valuetype">SizeI</span>::<span class="AS-valuetype">SizeI</span>(<span class="AS-valuetype">SizeI</span>&<span class="AS-keyword">in</span>)</div></div>
+<a name="sizei::opeq"></a><div class="block" name="sizei::opeq">
+<div class="api"><span class="AS-keyword">bool</span> <span class="AS-valuetype">SizeI</span>::opEq(<span class="AS-keyword">const</span> <span class="AS-valuetype">SizeI</span>&<span class="AS-keyword">in</span>) <span class="AS-keyword">const</span></div></div>
+<a name="sizei::opnoteq"></a><div class="block" name="sizei::opnoteq">
+<div class="api"><span class="AS-keyword">bool</span> <span class="AS-valuetype">SizeI</span>::opNotEq(<span class="AS-keyword">const</span> <span class="AS-valuetype">SizeI</span>&<span class="AS-keyword">in</span>) <span class="AS-keyword">const</span></div></div>
+</div><a name="time"></a><h2 name="time">Time</h2>
+<div name="time"><a name="time"></a><div class="block" name="time">
+<div class="api"><span class="AS-keyword">class</span> <span class="AS-valuetype">Time</span> {
+	<span class="AS-keyword">uint16</span> month;
+	<span class="AS-keyword">uint16</span> day;
+	<span class="AS-keyword">uint16</span> year;
+	<span class="AS-keyword">uint16</span> hour;
+	<span class="AS-keyword">uint16</span> minute;
+	<span class="AS-keyword">uint16</span> second;
+}</div><div class="documentation"><b>Time</b> is an object containing time and date properties.</div></div>
+</div><a name="vec2d"></a><h2 name="vec2d">Vec2D</h2>
+<div name="vec2d"><a name="vec2d"></a><div class="block" name="vec2d">
+<div class="api"><span class="AS-keyword">class</span> <span class="AS-valuetype">Vec2D</span> {
+	<span class="AS-valuetype">Vec2D</span>();
+	<span class="AS-valuetype">Vec2D</span>(<span class="AS-keyword">double</span>, <span class="AS-keyword">double</span>);
+	<span class="AS-valuetype">Vec2D</span>(<span class="AS-valuetype">Vec2D</span>&<span class="AS-keyword">in</span>);
+	<span class="AS-valuetype">Vec2D</span> opDiv(<span class="AS-keyword">const</span> <span class="AS-valuetype">Vec2D</span>&<span class="AS-keyword">in</span>) <span class="AS-keyword">const</span>;
+	<span class="AS-valuetype">Vec2D</span> opMul(<span class="AS-keyword">const</span> <span class="AS-valuetype">Vec2D</span>&<span class="AS-keyword">in</span>) <span class="AS-keyword">const</span>;
+	<span class="AS-valuetype">Vec2D</span> opAdd(<span class="AS-keyword">const</span> <span class="AS-valuetype">Vec2D</span>&<span class="AS-keyword">in</span>) <span class="AS-keyword">const</span>;
+	<span class="AS-valuetype">Vec2D</span> opSub(<span class="AS-keyword">const</span> <span class="AS-valuetype">Vec2D</span>&<span class="AS-keyword">in</span>) <span class="AS-keyword">const</span>;
+	<span class="AS-valuetype">Vec2D</span>& opDivAssign(<span class="AS-keyword">const</span> <span class="AS-valuetype">Vec2D</span>&<span class="AS-keyword">in</span>);
+	<span class="AS-valuetype">Vec2D</span>& opMulAssign(<span class="AS-keyword">const</span> <span class="AS-valuetype">Vec2D</span>&<span class="AS-keyword">in</span>);
+	<span class="AS-valuetype">Vec2D</span>& opAddAssign(<span class="AS-keyword">const</span> <span class="AS-valuetype">Vec2D</span>&<span class="AS-keyword">in</span>);
+	<span class="AS-valuetype">Vec2D</span>& opSubAssign(<span class="AS-keyword">const</span> <span class="AS-valuetype">Vec2D</span>&<span class="AS-keyword">in</span>);
+	<span class="AS-keyword">bool</span> opEq(<span class="AS-keyword">const</span> <span class="AS-valuetype">Vec2D</span>&<span class="AS-keyword">in</span>) <span class="AS-keyword">const</span>;
+	<span class="AS-keyword">bool</span> opNotEq(<span class="AS-keyword">const</span> <span class="AS-valuetype">Vec2D</span>&<span class="AS-keyword">in</span>) <span class="AS-keyword">const</span>;
+	<span class="AS-keyword">double</span> x;
+	<span class="AS-keyword">double</span> y;
+}</div><div class="documentation"><b>Vec2D</b> is an object containing x and y double precision properties.</div></div>
+<a name="vec2d::$beh0"></a><div class="block" name="vec2d::$beh0">
+<div class="api"><span class="AS-valuetype">Vec2D</span>::<span class="AS-valuetype">Vec2D</span>()</div></div>
+<a name="vec2d::$beh0"></a><div class="block" name="vec2d::$beh0">
+<div class="api"><span class="AS-valuetype">Vec2D</span>::<span class="AS-valuetype">Vec2D</span>(<span class="AS-keyword">double</span>, <span class="AS-keyword">double</span>)</div></div>
+<a name="vec2d::$beh0"></a><div class="block" name="vec2d::$beh0">
+<div class="api"><span class="AS-valuetype">Vec2D</span>::<span class="AS-valuetype">Vec2D</span>(<span class="AS-valuetype">Vec2D</span>&<span class="AS-keyword">in</span>)</div></div>
+<a name="vec2d::opdiv"></a><div class="block" name="vec2d::opdiv">
+<div class="api"><span class="AS-valuetype">Vec2D</span> <span class="AS-valuetype">Vec2D</span>::opDiv(<span class="AS-keyword">const</span> <span class="AS-valuetype">Vec2D</span>&<span class="AS-keyword">in</span>) <span class="AS-keyword">const</span></div></div>
+<a name="vec2d::opmul"></a><div class="block" name="vec2d::opmul">
+<div class="api"><span class="AS-valuetype">Vec2D</span> <span class="AS-valuetype">Vec2D</span>::opMul(<span class="AS-keyword">const</span> <span class="AS-valuetype">Vec2D</span>&<span class="AS-keyword">in</span>) <span class="AS-keyword">const</span></div></div>
+<a name="vec2d::opadd"></a><div class="block" name="vec2d::opadd">
+<div class="api"><span class="AS-valuetype">Vec2D</span> <span class="AS-valuetype">Vec2D</span>::opAdd(<span class="AS-keyword">const</span> <span class="AS-valuetype">Vec2D</span>&<span class="AS-keyword">in</span>) <span class="AS-keyword">const</span></div></div>
+<a name="vec2d::opsub"></a><div class="block" name="vec2d::opsub">
+<div class="api"><span class="AS-valuetype">Vec2D</span> <span class="AS-valuetype">Vec2D</span>::opSub(<span class="AS-keyword">const</span> <span class="AS-valuetype">Vec2D</span>&<span class="AS-keyword">in</span>) <span class="AS-keyword">const</span></div></div>
+<a name="vec2d::opdivassign"></a><div class="block" name="vec2d::opdivassign">
+<div class="api"><span class="AS-valuetype">Vec2D</span>& <span class="AS-valuetype">Vec2D</span>::opDivAssign(<span class="AS-keyword">const</span> <span class="AS-valuetype">Vec2D</span>&<span class="AS-keyword">in</span>)</div></div>
+<a name="vec2d::opmulassign"></a><div class="block" name="vec2d::opmulassign">
+<div class="api"><span class="AS-valuetype">Vec2D</span>& <span class="AS-valuetype">Vec2D</span>::opMulAssign(<span class="AS-keyword">const</span> <span class="AS-valuetype">Vec2D</span>&<span class="AS-keyword">in</span>)</div></div>
+<a name="vec2d::opaddassign"></a><div class="block" name="vec2d::opaddassign">
+<div class="api"><span class="AS-valuetype">Vec2D</span>& <span class="AS-valuetype">Vec2D</span>::opAddAssign(<span class="AS-keyword">const</span> <span class="AS-valuetype">Vec2D</span>&<span class="AS-keyword">in</span>)</div></div>
+<a name="vec2d::opsubassign"></a><div class="block" name="vec2d::opsubassign">
+<div class="api"><span class="AS-valuetype">Vec2D</span>& <span class="AS-valuetype">Vec2D</span>::opSubAssign(<span class="AS-keyword">const</span> <span class="AS-valuetype">Vec2D</span>&<span class="AS-keyword">in</span>)</div></div>
+<a name="vec2d::opeq"></a><div class="block" name="vec2d::opeq">
+<div class="api"><span class="AS-keyword">bool</span> <span class="AS-valuetype">Vec2D</span>::opEq(<span class="AS-keyword">const</span> <span class="AS-valuetype">Vec2D</span>&<span class="AS-keyword">in</span>) <span class="AS-keyword">const</span></div></div>
+<a name="vec2d::opnoteq"></a><div class="block" name="vec2d::opnoteq">
+<div class="api"><span class="AS-keyword">bool</span> <span class="AS-valuetype">Vec2D</span>::opNotEq(<span class="AS-keyword">const</span> <span class="AS-valuetype">Vec2D</span>&<span class="AS-keyword">in</span>) <span class="AS-keyword">const</span></div></div>
+</div><a name="vec2f"></a><h2 name="vec2f">Vec2F</h2>
+<div name="vec2f"><a name="vec2f"></a><div class="block" name="vec2f">
+<div class="api"><span class="AS-keyword">class</span> <span class="AS-valuetype">Vec2F</span> {
+	<span class="AS-valuetype">Vec2F</span>();
+	<span class="AS-valuetype">Vec2F</span>(<span class="AS-keyword">float</span>, <span class="AS-keyword">float</span>);
+	<span class="AS-valuetype">Vec2F</span>(<span class="AS-valuetype">Vec2F</span>&<span class="AS-keyword">in</span>);
+	<span class="AS-valuetype">Vec2F</span> opDiv(<span class="AS-keyword">const</span> <span class="AS-valuetype">Vec2F</span>&<span class="AS-keyword">in</span>) <span class="AS-keyword">const</span>;
+	<span class="AS-valuetype">Vec2F</span> opMul(<span class="AS-keyword">const</span> <span class="AS-valuetype">Vec2F</span>&<span class="AS-keyword">in</span>) <span class="AS-keyword">const</span>;
+	<span class="AS-valuetype">Vec2F</span> opAdd(<span class="AS-keyword">const</span> <span class="AS-valuetype">Vec2F</span>&<span class="AS-keyword">in</span>) <span class="AS-keyword">const</span>;
+	<span class="AS-valuetype">Vec2F</span> opSub(<span class="AS-keyword">const</span> <span class="AS-valuetype">Vec2F</span>&<span class="AS-keyword">in</span>) <span class="AS-keyword">const</span>;
+	<span class="AS-valuetype">Vec2F</span>& opDivAssign(<span class="AS-keyword">const</span> <span class="AS-valuetype">Vec2F</span>&<span class="AS-keyword">in</span>);
+	<span class="AS-valuetype">Vec2F</span>& opMulAssign(<span class="AS-keyword">const</span> <span class="AS-valuetype">Vec2F</span>&<span class="AS-keyword">in</span>);
+	<span class="AS-valuetype">Vec2F</span>& opAddAssign(<span class="AS-keyword">const</span> <span class="AS-valuetype">Vec2F</span>&<span class="AS-keyword">in</span>);
+	<span class="AS-valuetype">Vec2F</span>& opSubAssign(<span class="AS-keyword">const</span> <span class="AS-valuetype">Vec2F</span>&<span class="AS-keyword">in</span>);
+	<span class="AS-keyword">bool</span> opEq(<span class="AS-keyword">const</span> <span class="AS-valuetype">Vec2F</span>&<span class="AS-keyword">in</span>) <span class="AS-keyword">const</span>;
+	<span class="AS-keyword">bool</span> opNotEq(<span class="AS-keyword">const</span> <span class="AS-valuetype">Vec2F</span>&<span class="AS-keyword">in</span>) <span class="AS-keyword">const</span>;
+	<span class="AS-keyword">float</span> x;
+	<span class="AS-keyword">float</span> y;
+}</div><div class="documentation"><b>Vec2F</b> is an object containing x and y float precision properties.</div></div>
+<a name="vec2f::$beh0"></a><div class="block" name="vec2f::$beh0">
+<div class="api"><span class="AS-valuetype">Vec2F</span>::<span class="AS-valuetype">Vec2F</span>()</div></div>
+<a name="vec2f::$beh0"></a><div class="block" name="vec2f::$beh0">
+<div class="api"><span class="AS-valuetype">Vec2F</span>::<span class="AS-valuetype">Vec2F</span>(<span class="AS-keyword">float</span>, <span class="AS-keyword">float</span>)</div></div>
+<a name="vec2f::$beh0"></a><div class="block" name="vec2f::$beh0">
+<div class="api"><span class="AS-valuetype">Vec2F</span>::<span class="AS-valuetype">Vec2F</span>(<span class="AS-valuetype">Vec2F</span>&<span class="AS-keyword">in</span>)</div></div>
+<a name="vec2f::opdiv"></a><div class="block" name="vec2f::opdiv">
+<div class="api"><span class="AS-valuetype">Vec2F</span> <span class="AS-valuetype">Vec2F</span>::opDiv(<span class="AS-keyword">const</span> <span class="AS-valuetype">Vec2F</span>&<span class="AS-keyword">in</span>) <span class="AS-keyword">const</span></div></div>
+<a name="vec2f::opmul"></a><div class="block" name="vec2f::opmul">
+<div class="api"><span class="AS-valuetype">Vec2F</span> <span class="AS-valuetype">Vec2F</span>::opMul(<span class="AS-keyword">const</span> <span class="AS-valuetype">Vec2F</span>&<span class="AS-keyword">in</span>) <span class="AS-keyword">const</span></div></div>
+<a name="vec2f::opadd"></a><div class="block" name="vec2f::opadd">
+<div class="api"><span class="AS-valuetype">Vec2F</span> <span class="AS-valuetype">Vec2F</span>::opAdd(<span class="AS-keyword">const</span> <span class="AS-valuetype">Vec2F</span>&<span class="AS-keyword">in</span>) <span class="AS-keyword">const</span></div></div>
+<a name="vec2f::opsub"></a><div class="block" name="vec2f::opsub">
+<div class="api"><span class="AS-valuetype">Vec2F</span> <span class="AS-valuetype">Vec2F</span>::opSub(<span class="AS-keyword">const</span> <span class="AS-valuetype">Vec2F</span>&<span class="AS-keyword">in</span>) <span class="AS-keyword">const</span></div></div>
+<a name="vec2f::opdivassign"></a><div class="block" name="vec2f::opdivassign">
+<div class="api"><span class="AS-valuetype">Vec2F</span>& <span class="AS-valuetype">Vec2F</span>::opDivAssign(<span class="AS-keyword">const</span> <span class="AS-valuetype">Vec2F</span>&<span class="AS-keyword">in</span>)</div></div>
+<a name="vec2f::opmulassign"></a><div class="block" name="vec2f::opmulassign">
+<div class="api"><span class="AS-valuetype">Vec2F</span>& <span class="AS-valuetype">Vec2F</span>::opMulAssign(<span class="AS-keyword">const</span> <span class="AS-valuetype">Vec2F</span>&<span class="AS-keyword">in</span>)</div></div>
+<a name="vec2f::opaddassign"></a><div class="block" name="vec2f::opaddassign">
+<div class="api"><span class="AS-valuetype">Vec2F</span>& <span class="AS-valuetype">Vec2F</span>::opAddAssign(<span class="AS-keyword">const</span> <span class="AS-valuetype">Vec2F</span>&<span class="AS-keyword">in</span>)</div></div>
+<a name="vec2f::opsubassign"></a><div class="block" name="vec2f::opsubassign">
+<div class="api"><span class="AS-valuetype">Vec2F</span>& <span class="AS-valuetype">Vec2F</span>::opSubAssign(<span class="AS-keyword">const</span> <span class="AS-valuetype">Vec2F</span>&<span class="AS-keyword">in</span>)</div></div>
+<a name="vec2f::opeq"></a><div class="block" name="vec2f::opeq">
+<div class="api"><span class="AS-keyword">bool</span> <span class="AS-valuetype">Vec2F</span>::opEq(<span class="AS-keyword">const</span> <span class="AS-valuetype">Vec2F</span>&<span class="AS-keyword">in</span>) <span class="AS-keyword">const</span></div></div>
+<a name="vec2f::opnoteq"></a><div class="block" name="vec2f::opnoteq">
+<div class="api"><span class="AS-keyword">bool</span> <span class="AS-valuetype">Vec2F</span>::opNotEq(<span class="AS-keyword">const</span> <span class="AS-valuetype">Vec2F</span>&<span class="AS-keyword">in</span>) <span class="AS-keyword">const</span></div></div>
+</div><a name="vec3f"></a><h2 name="vec3f">Vec3F</h2>
+<div name="vec3f"><a name="vec3f"></a><div class="block" name="vec3f">
+<div class="api"><span class="AS-keyword">class</span> <span class="AS-valuetype">Vec3F</span> {
+	<span class="AS-valuetype">Vec3F</span>();
+	<span class="AS-valuetype">Vec3F</span>(<span class="AS-keyword">float</span>, <span class="AS-keyword">float</span>, <span class="AS-keyword">float</span>);
+	<span class="AS-valuetype">Vec3F</span>(<span class="AS-valuetype">Vec3F</span>&<span class="AS-keyword">in</span>);
+	<span class="AS-valuetype">Vec3F</span> opDiv(<span class="AS-keyword">const</span> <span class="AS-valuetype">Vec3F</span>&<span class="AS-keyword">in</span>) <span class="AS-keyword">const</span>;
+	<span class="AS-valuetype">Vec3F</span> opMul(<span class="AS-keyword">const</span> <span class="AS-valuetype">Vec3F</span>&<span class="AS-keyword">in</span>) <span class="AS-keyword">const</span>;
+	<span class="AS-valuetype">Vec3F</span> opAdd(<span class="AS-keyword">const</span> <span class="AS-valuetype">Vec3F</span>&<span class="AS-keyword">in</span>) <span class="AS-keyword">const</span>;
+	<span class="AS-valuetype">Vec3F</span> opSub(<span class="AS-keyword">const</span> <span class="AS-valuetype">Vec3F</span>&<span class="AS-keyword">in</span>) <span class="AS-keyword">const</span>;
+	<span class="AS-valuetype">Vec3F</span>& opDivAssign(<span class="AS-keyword">const</span> <span class="AS-valuetype">Vec3F</span>&<span class="AS-keyword">in</span>);
+	<span class="AS-valuetype">Vec3F</span>& opMulAssign(<span class="AS-keyword">const</span> <span class="AS-valuetype">Vec3F</span>&<span class="AS-keyword">in</span>);
+	<span class="AS-valuetype">Vec3F</span>& opAddAssign(<span class="AS-keyword">const</span> <span class="AS-valuetype">Vec3F</span>&<span class="AS-keyword">in</span>);
+	<span class="AS-valuetype">Vec3F</span>& opSubAssign(<span class="AS-keyword">const</span> <span class="AS-valuetype">Vec3F</span>&<span class="AS-keyword">in</span>);
+	<span class="AS-keyword">bool</span> opEq(<span class="AS-keyword">const</span> <span class="AS-valuetype">Vec3F</span>&<span class="AS-keyword">in</span>) <span class="AS-keyword">const</span>;
+	<span class="AS-keyword">bool</span> opNotEq(<span class="AS-keyword">const</span> <span class="AS-valuetype">Vec3F</span>&<span class="AS-keyword">in</span>) <span class="AS-keyword">const</span>;
+	<span class="AS-keyword">float</span> Dot(<span class="AS-keyword">const</span> <span class="AS-valuetype">Vec3F</span>&<span class="AS-keyword">in</span>);
+	<span class="AS-valuetype">Vec3F</span> Cross(<span class="AS-keyword">const</span> <span class="AS-valuetype">Vec3F</span>&<span class="AS-keyword">in</span>);
+	<span class="AS-valuetype">Vec3F</span> Normal();
+	<span class="AS-keyword">float</span> x;
+	<span class="AS-keyword">float</span> y;
+	<span class="AS-keyword">float</span> z;
+}</div><div class="documentation"><b>Vec3F</b> is an object containing x, y and z float precision properties.</div></div>
+<a name="vec3f::$beh0"></a><div class="block" name="vec3f::$beh0">
+<div class="api"><span class="AS-valuetype">Vec3F</span>::<span class="AS-valuetype">Vec3F</span>()</div></div>
+<a name="vec3f::$beh0"></a><div class="block" name="vec3f::$beh0">
+<div class="api"><span class="AS-valuetype">Vec3F</span>::<span class="AS-valuetype">Vec3F</span>(<span class="AS-keyword">float</span>, <span class="AS-keyword">float</span>, <span class="AS-keyword">float</span>)</div></div>
+<a name="vec3f::$beh0"></a><div class="block" name="vec3f::$beh0">
+<div class="api"><span class="AS-valuetype">Vec3F</span>::<span class="AS-valuetype">Vec3F</span>(<span class="AS-valuetype">Vec3F</span>&<span class="AS-keyword">in</span>)</div></div>
+<a name="vec3f::opdiv"></a><div class="block" name="vec3f::opdiv">
+<div class="api"><span class="AS-valuetype">Vec3F</span> <span class="AS-valuetype">Vec3F</span>::opDiv(<span class="AS-keyword">const</span> <span class="AS-valuetype">Vec3F</span>&<span class="AS-keyword">in</span>) <span class="AS-keyword">const</span></div></div>
+<a name="vec3f::opmul"></a><div class="block" name="vec3f::opmul">
+<div class="api"><span class="AS-valuetype">Vec3F</span> <span class="AS-valuetype">Vec3F</span>::opMul(<span class="AS-keyword">const</span> <span class="AS-valuetype">Vec3F</span>&<span class="AS-keyword">in</span>) <span class="AS-keyword">const</span></div></div>
+<a name="vec3f::opadd"></a><div class="block" name="vec3f::opadd">
+<div class="api"><span class="AS-valuetype">Vec3F</span> <span class="AS-valuetype">Vec3F</span>::opAdd(<span class="AS-keyword">const</span> <span class="AS-valuetype">Vec3F</span>&<span class="AS-keyword">in</span>) <span class="AS-keyword">const</span></div></div>
+<a name="vec3f::opsub"></a><div class="block" name="vec3f::opsub">
+<div class="api"><span class="AS-valuetype">Vec3F</span> <span class="AS-valuetype">Vec3F</span>::opSub(<span class="AS-keyword">const</span> <span class="AS-valuetype">Vec3F</span>&<span class="AS-keyword">in</span>) <span class="AS-keyword">const</span></div></div>
+<a name="vec3f::opdivassign"></a><div class="block" name="vec3f::opdivassign">
+<div class="api"><span class="AS-valuetype">Vec3F</span>& <span class="AS-valuetype">Vec3F</span>::opDivAssign(<span class="AS-keyword">const</span> <span class="AS-valuetype">Vec3F</span>&<span class="AS-keyword">in</span>)</div></div>
+<a name="vec3f::opmulassign"></a><div class="block" name="vec3f::opmulassign">
+<div class="api"><span class="AS-valuetype">Vec3F</span>& <span class="AS-valuetype">Vec3F</span>::opMulAssign(<span class="AS-keyword">const</span> <span class="AS-valuetype">Vec3F</span>&<span class="AS-keyword">in</span>)</div></div>
+<a name="vec3f::opaddassign"></a><div class="block" name="vec3f::opaddassign">
+<div class="api"><span class="AS-valuetype">Vec3F</span>& <span class="AS-valuetype">Vec3F</span>::opAddAssign(<span class="AS-keyword">const</span> <span class="AS-valuetype">Vec3F</span>&<span class="AS-keyword">in</span>)</div></div>
+<a name="vec3f::opsubassign"></a><div class="block" name="vec3f::opsubassign">
+<div class="api"><span class="AS-valuetype">Vec3F</span>& <span class="AS-valuetype">Vec3F</span>::opSubAssign(<span class="AS-keyword">const</span> <span class="AS-valuetype">Vec3F</span>&<span class="AS-keyword">in</span>)</div></div>
+<a name="vec3f::opeq"></a><div class="block" name="vec3f::opeq">
+<div class="api"><span class="AS-keyword">bool</span> <span class="AS-valuetype">Vec3F</span>::opEq(<span class="AS-keyword">const</span> <span class="AS-valuetype">Vec3F</span>&<span class="AS-keyword">in</span>) <span class="AS-keyword">const</span></div></div>
+<a name="vec3f::opnoteq"></a><div class="block" name="vec3f::opnoteq">
+<div class="api"><span class="AS-keyword">bool</span> <span class="AS-valuetype">Vec3F</span>::opNotEq(<span class="AS-keyword">const</span> <span class="AS-valuetype">Vec3F</span>&<span class="AS-keyword">in</span>) <span class="AS-keyword">const</span></div></div>
+<a name="vec3f::dot"></a><div class="block" name="vec3f::dot">
+<div class="api"><span class="AS-keyword">float</span> <span class="AS-valuetype">Vec3F</span>::Dot(<span class="AS-keyword">const</span> <span class="AS-valuetype">Vec3F</span>&<span class="AS-keyword">in</span>)</div></div>
+<a name="vec3f::cross"></a><div class="block" name="vec3f::cross">
+<div class="api"><span class="AS-valuetype">Vec3F</span> <span class="AS-valuetype">Vec3F</span>::Cross(<span class="AS-keyword">const</span> <span class="AS-valuetype">Vec3F</span>&<span class="AS-keyword">in</span>)</div></div>
+<a name="vec3f::normal"></a><div class="block" name="vec3f::normal">
+<div class="api"><span class="AS-valuetype">Vec3F</span> <span class="AS-valuetype">Vec3F</span>::Normal()</div></div>
+</div><a name="vec4f"></a><h2 name="vec4f">Vec4F</h2>
+<div name="vec4f"><a name="vec4f"></a><div class="block" name="vec4f">
+<div class="api"><span class="AS-keyword">class</span> <span class="AS-valuetype">Vec4F</span> {
+	<span class="AS-valuetype">Vec4F</span>();
+	<span class="AS-valuetype">Vec4F</span>(<span class="AS-keyword">float</span>, <span class="AS-keyword">float</span>, <span class="AS-keyword">float</span>, <span class="AS-keyword">float</span>);
+	<span class="AS-valuetype">Vec4F</span>(<span class="AS-valuetype">Vec4F</span>&<span class="AS-keyword">in</span>);
+	<span class="AS-valuetype">Vec4F</span> opDiv(<span class="AS-keyword">const</span> <span class="AS-valuetype">Vec4F</span>&<span class="AS-keyword">in</span>) <span class="AS-keyword">const</span>;
+	<span class="AS-valuetype">Vec4F</span> opMul(<span class="AS-keyword">const</span> <span class="AS-valuetype">Vec4F</span>&<span class="AS-keyword">in</span>) <span class="AS-keyword">const</span>;
+	<span class="AS-valuetype">Vec4F</span> opAdd(<span class="AS-keyword">const</span> <span class="AS-valuetype">Vec4F</span>&<span class="AS-keyword">in</span>) <span class="AS-keyword">const</span>;
+	<span class="AS-valuetype">Vec4F</span> opSub(<span class="AS-keyword">const</span> <span class="AS-valuetype">Vec4F</span>&<span class="AS-keyword">in</span>) <span class="AS-keyword">const</span>;
+	<span class="AS-valuetype">Vec4F</span>& opDivAssign(<span class="AS-keyword">const</span> <span class="AS-valuetype">Vec4F</span>&<span class="AS-keyword">in</span>);
+	<span class="AS-valuetype">Vec4F</span>& opMulAssign(<span class="AS-keyword">const</span> <span class="AS-valuetype">Vec4F</span>&<span class="AS-keyword">in</span>);
+	<span class="AS-valuetype">Vec4F</span>& opAddAssign(<span class="AS-keyword">const</span> <span class="AS-valuetype">Vec4F</span>&<span class="AS-keyword">in</span>);
+	<span class="AS-valuetype">Vec4F</span>& opSubAssign(<span class="AS-keyword">const</span> <span class="AS-valuetype">Vec4F</span>&<span class="AS-keyword">in</span>);
+	<span class="AS-keyword">bool</span> opEq(<span class="AS-keyword">const</span> <span class="AS-valuetype">Vec4F</span>&<span class="AS-keyword">in</span>) <span class="AS-keyword">const</span>;
+	<span class="AS-keyword">bool</span> opNotEq(<span class="AS-keyword">const</span> <span class="AS-valuetype">Vec4F</span>&<span class="AS-keyword">in</span>) <span class="AS-keyword">const</span>;
+	<span class="AS-keyword">float</span> x;
+	<span class="AS-keyword">float</span> y;
+	<span class="AS-keyword">float</span> z;
+	<span class="AS-keyword">float</span> w;
+}</div><div class="documentation"><b>Vec4F</b> is an object containing x, y, z and w float precision properties.</div></div>
+<a name="vec4f::$beh0"></a><div class="block" name="vec4f::$beh0">
+<div class="api"><span class="AS-valuetype">Vec4F</span>::<span class="AS-valuetype">Vec4F</span>()</div></div>
+<a name="vec4f::$beh0"></a><div class="block" name="vec4f::$beh0">
+<div class="api"><span class="AS-valuetype">Vec4F</span>::<span class="AS-valuetype">Vec4F</span>(<span class="AS-keyword">float</span>, <span class="AS-keyword">float</span>, <span class="AS-keyword">float</span>, <span class="AS-keyword">float</span>)</div></div>
+<a name="vec4f::$beh0"></a><div class="block" name="vec4f::$beh0">
+<div class="api"><span class="AS-valuetype">Vec4F</span>::<span class="AS-valuetype">Vec4F</span>(<span class="AS-valuetype">Vec4F</span>&<span class="AS-keyword">in</span>)</div></div>
+<a name="vec4f::opdiv"></a><div class="block" name="vec4f::opdiv">
+<div class="api"><span class="AS-valuetype">Vec4F</span> <span class="AS-valuetype">Vec4F</span>::opDiv(<span class="AS-keyword">const</span> <span class="AS-valuetype">Vec4F</span>&<span class="AS-keyword">in</span>) <span class="AS-keyword">const</span></div></div>
+<a name="vec4f::opmul"></a><div class="block" name="vec4f::opmul">
+<div class="api"><span class="AS-valuetype">Vec4F</span> <span class="AS-valuetype">Vec4F</span>::opMul(<span class="AS-keyword">const</span> <span class="AS-valuetype">Vec4F</span>&<span class="AS-keyword">in</span>) <span class="AS-keyword">const</span></div></div>
+<a name="vec4f::opadd"></a><div class="block" name="vec4f::opadd">
+<div class="api"><span class="AS-valuetype">Vec4F</span> <span class="AS-valuetype">Vec4F</span>::opAdd(<span class="AS-keyword">const</span> <span class="AS-valuetype">Vec4F</span>&<span class="AS-keyword">in</span>) <span class="AS-keyword">const</span></div></div>
+<a name="vec4f::opsub"></a><div class="block" name="vec4f::opsub">
+<div class="api"><span class="AS-valuetype">Vec4F</span> <span class="AS-valuetype">Vec4F</span>::opSub(<span class="AS-keyword">const</span> <span class="AS-valuetype">Vec4F</span>&<span class="AS-keyword">in</span>) <span class="AS-keyword">const</span></div></div>
+<a name="vec4f::opdivassign"></a><div class="block" name="vec4f::opdivassign">
+<div class="api"><span class="AS-valuetype">Vec4F</span>& <span class="AS-valuetype">Vec4F</span>::opDivAssign(<span class="AS-keyword">const</span> <span class="AS-valuetype">Vec4F</span>&<span class="AS-keyword">in</span>)</div></div>
+<a name="vec4f::opmulassign"></a><div class="block" name="vec4f::opmulassign">
+<div class="api"><span class="AS-valuetype">Vec4F</span>& <span class="AS-valuetype">Vec4F</span>::opMulAssign(<span class="AS-keyword">const</span> <span class="AS-valuetype">Vec4F</span>&<span class="AS-keyword">in</span>)</div></div>
+<a name="vec4f::opaddassign"></a><div class="block" name="vec4f::opaddassign">
+<div class="api"><span class="AS-valuetype">Vec4F</span>& <span class="AS-valuetype">Vec4F</span>::opAddAssign(<span class="AS-keyword">const</span> <span class="AS-valuetype">Vec4F</span>&<span class="AS-keyword">in</span>)</div></div>
+<a name="vec4f::opsubassign"></a><div class="block" name="vec4f::opsubassign">
+<div class="api"><span class="AS-valuetype">Vec4F</span>& <span class="AS-valuetype">Vec4F</span>::opSubAssign(<span class="AS-keyword">const</span> <span class="AS-valuetype">Vec4F</span>&<span class="AS-keyword">in</span>)</div></div>
+<a name="vec4f::opeq"></a><div class="block" name="vec4f::opeq">
+<div class="api"><span class="AS-keyword">bool</span> <span class="AS-valuetype">Vec4F</span>::opEq(<span class="AS-keyword">const</span> <span class="AS-valuetype">Vec4F</span>&<span class="AS-keyword">in</span>) <span class="AS-keyword">const</span></div></div>
+<a name="vec4f::opnoteq"></a><div class="block" name="vec4f::opnoteq">
+<div class="api"><span class="AS-keyword">bool</span> <span class="AS-valuetype">Vec4F</span>::opNotEq(<span class="AS-keyword">const</span> <span class="AS-valuetype">Vec4F</span>&<span class="AS-keyword">in</span>) <span class="AS-keyword">const</span></div></div>
+</div><a name="dictionaryvalue"></a><h2 name="dictionaryvalue">dictionaryValue</h2>
+<div name="dictionaryvalue"><a name="dictionaryvalue"></a><div class="block" name="dictionaryvalue">
+<div class="api"><span class="AS-keyword">class</span> <span class="AS-valuetype">dictionaryValue</span> {
+	<span class="AS-valuetype">dictionaryValue</span>();
+	~<span class="AS-valuetype">dictionaryValue</span>();
+	<span class="AS-valuetype">dictionaryValue</span>& opAssign(<span class="AS-keyword">const</span> <span class="AS-valuetype">dictionaryValue</span>&<span class="AS-keyword">in</span>);
+	<span class="AS-valuetype">dictionaryValue</span>& opHndlAssign(<span class="AS-keyword">const</span> ?&<span class="AS-keyword">in</span>);
+	<span class="AS-valuetype">dictionaryValue</span>& opHndlAssign(<span class="AS-keyword">const</span> <span class="AS-valuetype">dictionaryValue</span>&<span class="AS-keyword">in</span>);
+	<span class="AS-valuetype">dictionaryValue</span>& opAssign(<span class="AS-keyword">const</span> ?&<span class="AS-keyword">in</span>);
+	<span class="AS-valuetype">dictionaryValue</span>& opAssign(<span class="AS-keyword">double</span>);
+	<span class="AS-valuetype">dictionaryValue</span>& opAssign(<span class="AS-keyword">int64</span>);
+	<span class="AS-keyword">void</span> opCast(?&<span class="AS-keyword">out</span>);
+	<span class="AS-keyword">void</span> opConv(?&<span class="AS-keyword">out</span>);
+	<span class="AS-keyword">int64</span> opConv();
+	<span class="AS-keyword">double</span> opConv();
+}</div></div>
+<a name="dictionaryvalue::$beh0"></a><div class="block" name="dictionaryvalue::$beh0">
+<div class="api"><span class="AS-valuetype">dictionaryValue</span>::<span class="AS-valuetype">dictionaryValue</span>()</div></div>
+<a name="dictionaryvalue::$beh2"></a><div class="block" name="dictionaryvalue::$beh2">
+<div class="api"><span class="AS-valuetype">dictionaryValue</span>::~<span class="AS-valuetype">dictionaryValue</span>()</div></div>
+<a name="dictionaryvalue::opassign"></a><div class="block" name="dictionaryvalue::opassign">
+<div class="api"><span class="AS-valuetype">dictionaryValue</span>& <span class="AS-valuetype">dictionaryValue</span>::opAssign(<span class="AS-keyword">const</span> <span class="AS-valuetype">dictionaryValue</span>&<span class="AS-keyword">in</span>)</div></div>
+<a name="dictionaryvalue::ophndlassign"></a><div class="block" name="dictionaryvalue::ophndlassign">
+<div class="api"><span class="AS-valuetype">dictionaryValue</span>& <span class="AS-valuetype">dictionaryValue</span>::opHndlAssign(<span class="AS-keyword">const</span> ?&<span class="AS-keyword">in</span>)</div></div>
+<a name="dictionaryvalue::ophndlassign"></a><div class="block" name="dictionaryvalue::ophndlassign">
+<div class="api"><span class="AS-valuetype">dictionaryValue</span>& <span class="AS-valuetype">dictionaryValue</span>::opHndlAssign(<span class="AS-keyword">const</span> <span class="AS-valuetype">dictionaryValue</span>&<span class="AS-keyword">in</span>)</div></div>
+<a name="dictionaryvalue::opassign"></a><div class="block" name="dictionaryvalue::opassign">
+<div class="api"><span class="AS-valuetype">dictionaryValue</span>& <span class="AS-valuetype">dictionaryValue</span>::opAssign(<span class="AS-keyword">const</span> ?&<span class="AS-keyword">in</span>)</div></div>
+<a name="dictionaryvalue::opassign"></a><div class="block" name="dictionaryvalue::opassign">
+<div class="api"><span class="AS-valuetype">dictionaryValue</span>& <span class="AS-valuetype">dictionaryValue</span>::opAssign(<span class="AS-keyword">double</span>)</div></div>
+<a name="dictionaryvalue::opassign"></a><div class="block" name="dictionaryvalue::opassign">
+<div class="api"><span class="AS-valuetype">dictionaryValue</span>& <span class="AS-valuetype">dictionaryValue</span>::opAssign(<span class="AS-keyword">int64</span>)</div></div>
+<a name="dictionaryvalue::opcast"></a><div class="block" name="dictionaryvalue::opcast">
+<div class="api"><span class="AS-keyword">void</span> <span class="AS-valuetype">dictionaryValue</span>::opCast(?&<span class="AS-keyword">out</span>)</div></div>
+<a name="dictionaryvalue::opconv"></a><div class="block" name="dictionaryvalue::opconv">
+<div class="api"><span class="AS-keyword">void</span> <span class="AS-valuetype">dictionaryValue</span>::opConv(?&<span class="AS-keyword">out</span>)</div></div>
+<a name="dictionaryvalue::opconv"></a><div class="block" name="dictionaryvalue::opconv">
+<div class="api"><span class="AS-keyword">int64</span> <span class="AS-valuetype">dictionaryValue</span>::opConv()</div></div>
+<a name="dictionaryvalue::opconv"></a><div class="block" name="dictionaryvalue::opconv">
+<div class="api"><span class="AS-keyword">double</span> <span class="AS-valuetype">dictionaryValue</span>::opConv()</div></div>
+</div><a name="string"></a><h2 name="string">string</h2>
+<div name="string"><a name="string"></a><div class="block" name="string">
+<div class="api"><span class="AS-keyword">class</span> <span class="AS-valuetype">string</span> {
+	<span class="AS-valuetype">string</span>();
+	<span class="AS-valuetype">string</span>(<span class="AS-keyword">const</span> <span class="AS-valuetype">string</span>&<span class="AS-keyword">in</span>);
+	~<span class="AS-valuetype">string</span>();
+	<span class="AS-valuetype">string</span>& opAssign(<span class="AS-keyword">const</span> <span class="AS-valuetype">string</span>&<span class="AS-keyword">in</span>);
+	<span class="AS-valuetype">string</span>& opAddAssign(<span class="AS-keyword">const</span> <span class="AS-valuetype">string</span>&<span class="AS-keyword">in</span>);
+	<span class="AS-keyword">bool</span> opEquals(<span class="AS-keyword">const</span> <span class="AS-valuetype">string</span>&<span class="AS-keyword">in</span>) <span class="AS-keyword">const</span>;
+	<span class="AS-keyword">int</span> opCmp(<span class="AS-keyword">const</span> <span class="AS-valuetype">string</span>&<span class="AS-keyword">in</span>) <span class="AS-keyword">const</span>;
+	<span class="AS-valuetype">string</span> opAdd(<span class="AS-keyword">const</span> <span class="AS-valuetype">string</span>&<span class="AS-keyword">in</span>) <span class="AS-keyword">const</span>;
+	<span class="AS-keyword">uint</span> length() <span class="AS-keyword">const</span>;
+	<span class="AS-keyword">void</span> resize(<span class="AS-keyword">uint</span>);
+	<span class="AS-keyword">bool</span> isEmpty() <span class="AS-keyword">const</span>;
+	<span class="AS-keyword">uint8</span>& opIndex(<span class="AS-keyword">uint</span>);
+	<span class="AS-keyword">const</span> <span class="AS-keyword">uint8</span>& opIndex(<span class="AS-keyword">uint</span>) <span class="AS-keyword">const</span>;
+	<span class="AS-valuetype">string</span>& opAssign(<span class="AS-keyword">double</span>);
+	<span class="AS-valuetype">string</span>& opAddAssign(<span class="AS-keyword">double</span>);
+	<span class="AS-valuetype">string</span> opAdd(<span class="AS-keyword">double</span>) <span class="AS-keyword">const</span>;
+	<span class="AS-valuetype">string</span> opAdd_r(<span class="AS-keyword">double</span>) <span class="AS-keyword">const</span>;
+	<span class="AS-valuetype">string</span>& opAssign(<span class="AS-keyword">float</span>);
+	<span class="AS-valuetype">string</span>& opAddAssign(<span class="AS-keyword">float</span>);
+	<span class="AS-valuetype">string</span> opAdd(<span class="AS-keyword">float</span>) <span class="AS-keyword">const</span>;
+	<span class="AS-valuetype">string</span> opAdd_r(<span class="AS-keyword">float</span>) <span class="AS-keyword">const</span>;
+	<span class="AS-valuetype">string</span>& opAssign(<span class="AS-keyword">int64</span>);
+	<span class="AS-valuetype">string</span>& opAddAssign(<span class="AS-keyword">int64</span>);
+	<span class="AS-valuetype">string</span> opAdd(<span class="AS-keyword">int64</span>) <span class="AS-keyword">const</span>;
+	<span class="AS-valuetype">string</span> opAdd_r(<span class="AS-keyword">int64</span>) <span class="AS-keyword">const</span>;
+	<span class="AS-valuetype">string</span>& opAssign(<span class="AS-keyword">uint64</span>);
+	<span class="AS-valuetype">string</span>& opAddAssign(<span class="AS-keyword">uint64</span>);
+	<span class="AS-valuetype">string</span> opAdd(<span class="AS-keyword">uint64</span>) <span class="AS-keyword">const</span>;
+	<span class="AS-valuetype">string</span> opAdd_r(<span class="AS-keyword">uint64</span>) <span class="AS-keyword">const</span>;
+	<span class="AS-valuetype">string</span>& opAssign(<span class="AS-keyword">bool</span>);
+	<span class="AS-valuetype">string</span>& opAddAssign(<span class="AS-keyword">bool</span>);
+	<span class="AS-valuetype">string</span> opAdd(<span class="AS-keyword">bool</span>) <span class="AS-keyword">const</span>;
+	<span class="AS-valuetype">string</span> opAdd_r(<span class="AS-keyword">bool</span>) <span class="AS-keyword">const</span>;
+	<span class="AS-valuetype">string</span> substr(<span class="AS-keyword">uint</span> start = <span class="AS-number">0</span>, <span class="AS-keyword">int</span> count = - <span class="AS-number">1</span>) <span class="AS-keyword">const</span>;
+	<span class="AS-keyword">int</span> findFirst(<span class="AS-keyword">const</span> <span class="AS-valuetype">string</span>&<span class="AS-keyword">in</span>, <span class="AS-keyword">uint</span> start = <span class="AS-number">0</span>) <span class="AS-keyword">const</span>;
+	<span class="AS-keyword">int</span> findFirstOf(<span class="AS-keyword">const</span> <span class="AS-valuetype">string</span>&<span class="AS-keyword">in</span>, <span class="AS-keyword">uint</span> start = <span class="AS-number">0</span>) <span class="AS-keyword">const</span>;
+	<span class="AS-keyword">int</span> findFirstNotOf(<span class="AS-keyword">const</span> <span class="AS-valuetype">string</span>&<span class="AS-keyword">in</span>, <span class="AS-keyword">uint</span> start = <span class="AS-number">0</span>) <span class="AS-keyword">const</span>;
+	<span class="AS-keyword">int</span> findLast(<span class="AS-keyword">const</span> <span class="AS-valuetype">string</span>&<span class="AS-keyword">in</span>, <span class="AS-keyword">int</span> start = - <span class="AS-number">1</span>) <span class="AS-keyword">const</span>;
+	<span class="AS-keyword">int</span> findLastOf(<span class="AS-keyword">const</span> <span class="AS-valuetype">string</span>&<span class="AS-keyword">in</span>, <span class="AS-keyword">int</span> start = - <span class="AS-number">1</span>) <span class="AS-keyword">const</span>;
+	<span class="AS-keyword">int</span> findLastNotOf(<span class="AS-keyword">const</span> <span class="AS-valuetype">string</span>&<span class="AS-keyword">in</span>, <span class="AS-keyword">int</span> start = - <span class="AS-number">1</span>) <span class="AS-keyword">const</span>;
+	<span class="AS-keyword">void</span> insert(<span class="AS-keyword">uint</span> pos, <span class="AS-keyword">const</span> <span class="AS-valuetype">string</span>&<span class="AS-keyword">in</span> other);
+	<span class="AS-keyword">void</span> erase(<span class="AS-keyword">uint</span> pos, <span class="AS-keyword">int</span> count = - <span class="AS-number">1</span>);
+}</div></div>
+<a name="string::$beh0"></a><div class="block" name="string::$beh0">
+<div class="api"><span class="AS-valuetype">string</span>::<span class="AS-valuetype">string</span>()</div></div>
+<a name="string::$beh0"></a><div class="block" name="string::$beh0">
+<div class="api"><span class="AS-valuetype">string</span>::<span class="AS-valuetype">string</span>(<span class="AS-keyword">const</span> <span class="AS-valuetype">string</span>&<span class="AS-keyword">in</span>)</div></div>
+<a name="string::$beh2"></a><div class="block" name="string::$beh2">
+<div class="api"><span class="AS-valuetype">string</span>::~<span class="AS-valuetype">string</span>()</div></div>
+<a name="string::opassign"></a><div class="block" name="string::opassign">
+<div class="api"><span class="AS-valuetype">string</span>& <span class="AS-valuetype">string</span>::opAssign(<span class="AS-keyword">const</span> <span class="AS-valuetype">string</span>&<span class="AS-keyword">in</span>)</div></div>
+<a name="string::opaddassign"></a><div class="block" name="string::opaddassign">
+<div class="api"><span class="AS-valuetype">string</span>& <span class="AS-valuetype">string</span>::opAddAssign(<span class="AS-keyword">const</span> <span class="AS-valuetype">string</span>&<span class="AS-keyword">in</span>)</div></div>
+<a name="string::opequals"></a><div class="block" name="string::opequals">
+<div class="api"><span class="AS-keyword">bool</span> <span class="AS-valuetype">string</span>::opEquals(<span class="AS-keyword">const</span> <span class="AS-valuetype">string</span>&<span class="AS-keyword">in</span>) <span class="AS-keyword">const</span></div></div>
+<a name="string::opcmp"></a><div class="block" name="string::opcmp">
+<div class="api"><span class="AS-keyword">int</span> <span class="AS-valuetype">string</span>::opCmp(<span class="AS-keyword">const</span> <span class="AS-valuetype">string</span>&<span class="AS-keyword">in</span>) <span class="AS-keyword">const</span></div></div>
+<a name="string::opadd"></a><div class="block" name="string::opadd">
+<div class="api"><span class="AS-valuetype">string</span> <span class="AS-valuetype">string</span>::opAdd(<span class="AS-keyword">const</span> <span class="AS-valuetype">string</span>&<span class="AS-keyword">in</span>) <span class="AS-keyword">const</span></div></div>
+<a name="string::length"></a><div class="block" name="string::length">
+<div class="api"><span class="AS-keyword">uint</span> <span class="AS-valuetype">string</span>::length() <span class="AS-keyword">const</span></div></div>
+<a name="string::resize"></a><div class="block" name="string::resize">
+<div class="api"><span class="AS-keyword">void</span> <span class="AS-valuetype">string</span>::resize(<span class="AS-keyword">uint</span>)</div></div>
+<a name="string::isempty"></a><div class="block" name="string::isempty">
+<div class="api"><span class="AS-keyword">bool</span> <span class="AS-valuetype">string</span>::isEmpty() <span class="AS-keyword">const</span></div></div>
+<a name="string::opindex"></a><div class="block" name="string::opindex">
+<div class="api"><span class="AS-keyword">uint8</span>& <span class="AS-valuetype">string</span>::opIndex(<span class="AS-keyword">uint</span>)</div></div>
+<a name="string::opindex"></a><div class="block" name="string::opindex">
+<div class="api"><span class="AS-keyword">const</span> <span class="AS-keyword">uint8</span>& <span class="AS-valuetype">string</span>::opIndex(<span class="AS-keyword">uint</span>) <span class="AS-keyword">const</span></div></div>
+<a name="string::opassign"></a><div class="block" name="string::opassign">
+<div class="api"><span class="AS-valuetype">string</span>& <span class="AS-valuetype">string</span>::opAssign(<span class="AS-keyword">double</span>)</div></div>
+<a name="string::opaddassign"></a><div class="block" name="string::opaddassign">
+<div class="api"><span class="AS-valuetype">string</span>& <span class="AS-valuetype">string</span>::opAddAssign(<span class="AS-keyword">double</span>)</div></div>
+<a name="string::opadd"></a><div class="block" name="string::opadd">
+<div class="api"><span class="AS-valuetype">string</span> <span class="AS-valuetype">string</span>::opAdd(<span class="AS-keyword">double</span>) <span class="AS-keyword">const</span></div></div>
+<a name="string::opadd_r"></a><div class="block" name="string::opadd_r">
+<div class="api"><span class="AS-valuetype">string</span> <span class="AS-valuetype">string</span>::opAdd_r(<span class="AS-keyword">double</span>) <span class="AS-keyword">const</span></div></div>
+<a name="string::opassign"></a><div class="block" name="string::opassign">
+<div class="api"><span class="AS-valuetype">string</span>& <span class="AS-valuetype">string</span>::opAssign(<span class="AS-keyword">float</span>)</div></div>
+<a name="string::opaddassign"></a><div class="block" name="string::opaddassign">
+<div class="api"><span class="AS-valuetype">string</span>& <span class="AS-valuetype">string</span>::opAddAssign(<span class="AS-keyword">float</span>)</div></div>
+<a name="string::opadd"></a><div class="block" name="string::opadd">
+<div class="api"><span class="AS-valuetype">string</span> <span class="AS-valuetype">string</span>::opAdd(<span class="AS-keyword">float</span>) <span class="AS-keyword">const</span></div></div>
+<a name="string::opadd_r"></a><div class="block" name="string::opadd_r">
+<div class="api"><span class="AS-valuetype">string</span> <span class="AS-valuetype">string</span>::opAdd_r(<span class="AS-keyword">float</span>) <span class="AS-keyword">const</span></div></div>
+<a name="string::opassign"></a><div class="block" name="string::opassign">
+<div class="api"><span class="AS-valuetype">string</span>& <span class="AS-valuetype">string</span>::opAssign(<span class="AS-keyword">int64</span>)</div></div>
+<a name="string::opaddassign"></a><div class="block" name="string::opaddassign">
+<div class="api"><span class="AS-valuetype">string</span>& <span class="AS-valuetype">string</span>::opAddAssign(<span class="AS-keyword">int64</span>)</div></div>
+<a name="string::opadd"></a><div class="block" name="string::opadd">
+<div class="api"><span class="AS-valuetype">string</span> <span class="AS-valuetype">string</span>::opAdd(<span class="AS-keyword">int64</span>) <span class="AS-keyword">const</span></div></div>
+<a name="string::opadd_r"></a><div class="block" name="string::opadd_r">
+<div class="api"><span class="AS-valuetype">string</span> <span class="AS-valuetype">string</span>::opAdd_r(<span class="AS-keyword">int64</span>) <span class="AS-keyword">const</span></div></div>
+<a name="string::opassign"></a><div class="block" name="string::opassign">
+<div class="api"><span class="AS-valuetype">string</span>& <span class="AS-valuetype">string</span>::opAssign(<span class="AS-keyword">uint64</span>)</div></div>
+<a name="string::opaddassign"></a><div class="block" name="string::opaddassign">
+<div class="api"><span class="AS-valuetype">string</span>& <span class="AS-valuetype">string</span>::opAddAssign(<span class="AS-keyword">uint64</span>)</div></div>
+<a name="string::opadd"></a><div class="block" name="string::opadd">
+<div class="api"><span class="AS-valuetype">string</span> <span class="AS-valuetype">string</span>::opAdd(<span class="AS-keyword">uint64</span>) <span class="AS-keyword">const</span></div></div>
+<a name="string::opadd_r"></a><div class="block" name="string::opadd_r">
+<div class="api"><span class="AS-valuetype">string</span> <span class="AS-valuetype">string</span>::opAdd_r(<span class="AS-keyword">uint64</span>) <span class="AS-keyword">const</span></div></div>
+<a name="string::opassign"></a><div class="block" name="string::opassign">
+<div class="api"><span class="AS-valuetype">string</span>& <span class="AS-valuetype">string</span>::opAssign(<span class="AS-keyword">bool</span>)</div></div>
+<a name="string::opaddassign"></a><div class="block" name="string::opaddassign">
+<div class="api"><span class="AS-valuetype">string</span>& <span class="AS-valuetype">string</span>::opAddAssign(<span class="AS-keyword">bool</span>)</div></div>
+<a name="string::opadd"></a><div class="block" name="string::opadd">
+<div class="api"><span class="AS-valuetype">string</span> <span class="AS-valuetype">string</span>::opAdd(<span class="AS-keyword">bool</span>) <span class="AS-keyword">const</span></div></div>
+<a name="string::opadd_r"></a><div class="block" name="string::opadd_r">
+<div class="api"><span class="AS-valuetype">string</span> <span class="AS-valuetype">string</span>::opAdd_r(<span class="AS-keyword">bool</span>) <span class="AS-keyword">const</span></div></div>
+<a name="string::substr"></a><div class="block" name="string::substr">
+<div class="api"><span class="AS-valuetype">string</span> <span class="AS-valuetype">string</span>::substr(<span class="AS-keyword">uint</span> start = <span class="AS-number">0</span>, <span class="AS-keyword">int</span> count = - <span class="AS-number">1</span>) <span class="AS-keyword">const</span></div></div>
+<a name="string::findfirst"></a><div class="block" name="string::findfirst">
+<div class="api"><span class="AS-keyword">int</span> <span class="AS-valuetype">string</span>::findFirst(<span class="AS-keyword">const</span> <span class="AS-valuetype">string</span>&<span class="AS-keyword">in</span>, <span class="AS-keyword">uint</span> start = <span class="AS-number">0</span>) <span class="AS-keyword">const</span></div></div>
+<a name="string::findfirstof"></a><div class="block" name="string::findfirstof">
+<div class="api"><span class="AS-keyword">int</span> <span class="AS-valuetype">string</span>::findFirstOf(<span class="AS-keyword">const</span> <span class="AS-valuetype">string</span>&<span class="AS-keyword">in</span>, <span class="AS-keyword">uint</span> start = <span class="AS-number">0</span>) <span class="AS-keyword">const</span></div></div>
+<a name="string::findfirstnotof"></a><div class="block" name="string::findfirstnotof">
+<div class="api"><span class="AS-keyword">int</span> <span class="AS-valuetype">string</span>::findFirstNotOf(<span class="AS-keyword">const</span> <span class="AS-valuetype">string</span>&<span class="AS-keyword">in</span>, <span class="AS-keyword">uint</span> start = <span class="AS-number">0</span>) <span class="AS-keyword">const</span></div></div>
+<a name="string::findlast"></a><div class="block" name="string::findlast">
+<div class="api"><span class="AS-keyword">int</span> <span class="AS-valuetype">string</span>::findLast(<span class="AS-keyword">const</span> <span class="AS-valuetype">string</span>&<span class="AS-keyword">in</span>, <span class="AS-keyword">int</span> start = - <span class="AS-number">1</span>) <span class="AS-keyword">const</span></div></div>
+<a name="string::findlastof"></a><div class="block" name="string::findlastof">
+<div class="api"><span class="AS-keyword">int</span> <span class="AS-valuetype">string</span>::findLastOf(<span class="AS-keyword">const</span> <span class="AS-valuetype">string</span>&<span class="AS-keyword">in</span>, <span class="AS-keyword">int</span> start = - <span class="AS-number">1</span>) <span class="AS-keyword">const</span></div></div>
+<a name="string::findlastnotof"></a><div class="block" name="string::findlastnotof">
+<div class="api"><span class="AS-keyword">int</span> <span class="AS-valuetype">string</span>::findLastNotOf(<span class="AS-keyword">const</span> <span class="AS-valuetype">string</span>&<span class="AS-keyword">in</span>, <span class="AS-keyword">int</span> start = - <span class="AS-number">1</span>) <span class="AS-keyword">const</span></div></div>
+<a name="string::insert"></a><div class="block" name="string::insert">
+<div class="api"><span class="AS-keyword">void</span> <span class="AS-valuetype">string</span>::insert(<span class="AS-keyword">uint</span> pos, <span class="AS-keyword">const</span> <span class="AS-valuetype">string</span>&<span class="AS-keyword">in</span> other)</div></div>
+<a name="string::erase"></a><div class="block" name="string::erase">
+<div class="api"><span class="AS-keyword">void</span> <span class="AS-valuetype">string</span>::erase(<span class="AS-keyword">uint</span> pos, <span class="AS-keyword">int</span> count = - <span class="AS-number">1</span>)</div></div>
+</div></div><a name="___classes"></a><h1 name="classes">Classes</h1>
+<div name="___classes"><a name="fog"></a><h2 name="fog">Fog</h2>
+<div name="fog"><a name="fog"></a><div class="block" name="fog">
+<div class="api"><span class="AS-keyword">class</span> <span class="AS-classtype">Fog</span> {
+	<span class="AS-keyword">uint</span> GetID();
+	<span class="AS-valuetype">Vec3F</span>& GetAnchor();
+	<span class="AS-keyword">void</span> SetAnchor(<span class="AS-valuetype">Vec3F</span>);
+	<span class="AS-valuetype">Vec3F</span>& GetRotation();
+	<span class="AS-keyword">void</span> SetRotation(<span class="AS-valuetype">Vec3F</span>);
+	<span class="AS-valuetype">Vec3F</span>& GetSkew();
+	<span class="AS-keyword">void</span> SetSkew(<span class="AS-valuetype">Vec3F</span>);
+	<span class="AS-valuetype">Vec3F</span>& GetScale();
+	<span class="AS-keyword">void</span> SetScale(<span class="AS-valuetype">Vec3F</span>);
+	<span class="AS-valuetype">Vec3F</span>& GetPosition();
+	<span class="AS-keyword">void</span> SetPosition(<span class="AS-valuetype">Vec3F</span>);
+	FogOperation GetFog();
+	<span class="AS-keyword">void</span> SetFog(FogOperation);
+	<span class="AS-valuetype">Color3F</span>& GetFogColor();
+	<span class="AS-keyword">void</span> SetFogColor(<span class="AS-valuetype">Color3F</span>);
+	<span class="AS-keyword">float</span> GetFogStart();
+	<span class="AS-keyword">void</span> SetFogStart(<span class="AS-keyword">float</span>);
+	<span class="AS-keyword">float</span> GetFogEnd();
+	<span class="AS-keyword">void</span> SetFogEnd(<span class="AS-keyword">float</span>);
+	<span class="AS-keyword">float</span> GetFogDensity();
+	<span class="AS-keyword">void</span> SetFogDensity(<span class="AS-keyword">float</span>);
+	<span class="AS-classtype">Node</span>@ opImplCast();
+}</div></div>
+<a name="fog::getid"></a><div class="block" name="fog::getid">
+<div class="api"><span class="AS-keyword">uint</span> <span class="AS-classtype">Fog</span>::GetID()</div></div>
+<a name="fog::getanchor"></a><div class="block" name="fog::getanchor">
+<div class="api"><span class="AS-valuetype">Vec3F</span>& <span class="AS-classtype">Fog</span>::GetAnchor()</div></div>
+<a name="fog::setanchor"></a><div class="block" name="fog::setanchor">
+<div class="api"><span class="AS-keyword">void</span> <span class="AS-classtype">Fog</span>::SetAnchor(<span class="AS-valuetype">Vec3F</span>)</div></div>
+<a name="fog::getrotation"></a><div class="block" name="fog::getrotation">
+<div class="api"><span class="AS-valuetype">Vec3F</span>& <span class="AS-classtype">Fog</span>::GetRotation()</div></div>
+<a name="fog::setrotation"></a><div class="block" name="fog::setrotation">
+<div class="api"><span class="AS-keyword">void</span> <span class="AS-classtype">Fog</span>::SetRotation(<span class="AS-valuetype">Vec3F</span>)</div></div>
+<a name="fog::getskew"></a><div class="block" name="fog::getskew">
+<div class="api"><span class="AS-valuetype">Vec3F</span>& <span class="AS-classtype">Fog</span>::GetSkew()</div></div>
+<a name="fog::setskew"></a><div class="block" name="fog::setskew">
+<div class="api"><span class="AS-keyword">void</span> <span class="AS-classtype">Fog</span>::SetSkew(<span class="AS-valuetype">Vec3F</span>)</div></div>
+<a name="fog::getscale"></a><div class="block" name="fog::getscale">
+<div class="api"><span class="AS-valuetype">Vec3F</span>& <span class="AS-classtype">Fog</span>::GetScale()</div></div>
+<a name="fog::setscale"></a><div class="block" name="fog::setscale">
+<div class="api"><span class="AS-keyword">void</span> <span class="AS-classtype">Fog</span>::SetScale(<span class="AS-valuetype">Vec3F</span>)</div></div>
+<a name="fog::getposition"></a><div class="block" name="fog::getposition">
+<div class="api"><span class="AS-valuetype">Vec3F</span>& <span class="AS-classtype">Fog</span>::GetPosition()</div></div>
+<a name="fog::setposition"></a><div class="block" name="fog::setposition">
+<div class="api"><span class="AS-keyword">void</span> <span class="AS-classtype">Fog</span>::SetPosition(<span class="AS-valuetype">Vec3F</span>)</div></div>
+<a name="fog::getfog"></a><div class="block" name="fog::getfog">
+<div class="api">FogOperation <span class="AS-classtype">Fog</span>::GetFog()</div></div>
+<a name="fog::setfog"></a><div class="block" name="fog::setfog">
+<div class="api"><span class="AS-keyword">void</span> <span class="AS-classtype">Fog</span>::SetFog(FogOperation)</div></div>
+<a name="fog::getfogcolor"></a><div class="block" name="fog::getfogcolor">
+<div class="api"><span class="AS-valuetype">Color3F</span>& <span class="AS-classtype">Fog</span>::GetFogColor()</div></div>
+<a name="fog::setfogcolor"></a><div class="block" name="fog::setfogcolor">
+<div class="api"><span class="AS-keyword">void</span> <span class="AS-classtype">Fog</span>::SetFogColor(<span class="AS-valuetype">Color3F</span>)</div></div>
+<a name="fog::getfogstart"></a><div class="block" name="fog::getfogstart">
+<div class="api"><span class="AS-keyword">float</span> <span class="AS-classtype">Fog</span>::GetFogStart()</div></div>
+<a name="fog::setfogstart"></a><div class="block" name="fog::setfogstart">
+<div class="api"><span class="AS-keyword">void</span> <span class="AS-classtype">Fog</span>::SetFogStart(<span class="AS-keyword">float</span>)</div></div>
+<a name="fog::getfogend"></a><div class="block" name="fog::getfogend">
+<div class="api"><span class="AS-keyword">float</span> <span class="AS-classtype">Fog</span>::GetFogEnd()</div></div>
+<a name="fog::setfogend"></a><div class="block" name="fog::setfogend">
+<div class="api"><span class="AS-keyword">void</span> <span class="AS-classtype">Fog</span>::SetFogEnd(<span class="AS-keyword">float</span>)</div></div>
+<a name="fog::getfogdensity"></a><div class="block" name="fog::getfogdensity">
+<div class="api"><span class="AS-keyword">float</span> <span class="AS-classtype">Fog</span>::GetFogDensity()</div></div>
+<a name="fog::setfogdensity"></a><div class="block" name="fog::setfogdensity">
+<div class="api"><span class="AS-keyword">void</span> <span class="AS-classtype">Fog</span>::SetFogDensity(<span class="AS-keyword">float</span>)</div></div>
+<a name="fog::opimplcast"></a><div class="block" name="fog::opimplcast">
+<div class="api"><span class="AS-classtype">Node</span>@ <span class="AS-classtype">Fog</span>::opImplCast()</div></div>
+</div><a name="lighting"></a><h2 name="lighting">Lighting</h2>
+<div name="lighting"><a name="lighting"></a><div class="block" name="lighting">
+<div class="api"><span class="AS-keyword">class</span> <span class="AS-classtype">Lighting</span> {
+	<span class="AS-keyword">uint</span> GetID();
+	<span class="AS-valuetype">Vec3F</span>& GetAnchor();
+	<span class="AS-keyword">void</span> SetAnchor(<span class="AS-valuetype">Vec3F</span>);
+	<span class="AS-valuetype">Vec3F</span>& GetRotation();
+	<span class="AS-keyword">void</span> SetRotation(<span class="AS-valuetype">Vec3F</span>);
+	<span class="AS-valuetype">Vec3F</span>& GetSkew();
+	<span class="AS-keyword">void</span> SetSkew(<span class="AS-valuetype">Vec3F</span>);
+	<span class="AS-valuetype">Vec3F</span>& GetScale();
+	<span class="AS-keyword">void</span> SetScale(<span class="AS-valuetype">Vec3F</span>);
+	<span class="AS-valuetype">Vec3F</span>& GetPosition();
+	<span class="AS-keyword">void</span> SetPosition(<span class="AS-valuetype">Vec3F</span>);
+	LightsOperation GetLights();
+	<span class="AS-keyword">void</span> SetLights(LightsOperation);
+	<span class="AS-valuetype">Color3F</span>& GetAmbientLight();
+	<span class="AS-keyword">void</span> SetAmbientLight(<span class="AS-valuetype">Color3F</span>);
+	LightOperation GetLight1();
+	<span class="AS-keyword">void</span> SetLight1(LightOperation);
+	<span class="AS-valuetype">Vec3F</span>& GetLight1Position();
+	<span class="AS-keyword">void</span> SetLight1Position(<span class="AS-valuetype">Vec3F</span>);
+	<span class="AS-keyword">float</span> GetLight1Distance();
+	<span class="AS-keyword">void</span> SetLight1Distance(<span class="AS-keyword">float</span>);
+	<span class="AS-valuetype">Color4F</span>& GetLight1Diffuse();
+	<span class="AS-keyword">void</span> SetLight1Diffuse(<span class="AS-valuetype">Color4F</span>);
+	LightOperation GetLight2();
+	<span class="AS-keyword">void</span> SetLight2(LightOperation);
+	<span class="AS-valuetype">Vec3F</span>& GetLight2Position();
+	<span class="AS-keyword">void</span> SetLight2Position(<span class="AS-valuetype">Vec3F</span>);
+	<span class="AS-keyword">float</span> GetLight2Distance();
+	<span class="AS-keyword">void</span> SetLight2Distance(<span class="AS-keyword">float</span>);
+	<span class="AS-valuetype">Color4F</span>& GetLight2Diffuse();
+	<span class="AS-keyword">void</span> SetLight2Diffuse(<span class="AS-valuetype">Color4F</span>);
+	LightOperation GetLight3();
+	<span class="AS-keyword">void</span> SetLight3(LightOperation);
+	<span class="AS-valuetype">Vec3F</span>& GetLight3Position();
+	<span class="AS-keyword">void</span> SetLight3Position(<span class="AS-valuetype">Vec3F</span>);
+	<span class="AS-keyword">float</span> GetLight3Distance();
+	<span class="AS-keyword">void</span> SetLight3Distance(<span class="AS-keyword">float</span>);
+	<span class="AS-valuetype">Color4F</span>& GetLight3Diffuse();
+	<span class="AS-keyword">void</span> SetLight3Diffuse(<span class="AS-valuetype">Color4F</span>);
+	LightOperation GetLight4();
+	<span class="AS-keyword">void</span> SetLight4(LightOperation);
+	<span class="AS-valuetype">Vec3F</span>& GetLight4Position();
+	<span class="AS-keyword">void</span> SetLight4Position(<span class="AS-valuetype">Vec3F</span>);
+	<span class="AS-keyword">float</span> GetLight4Distance();
+	<span class="AS-keyword">void</span> SetLight4Distance(<span class="AS-keyword">float</span>);
+	<span class="AS-valuetype">Color4F</span>& GetLight4Diffuse();
+	<span class="AS-keyword">void</span> SetLight4Diffuse(<span class="AS-valuetype">Color4F</span>);
+	<span class="AS-classtype">Node</span>@ opImplCast();
+}</div></div>
+<a name="lighting::getid"></a><div class="block" name="lighting::getid">
+<div class="api"><span class="AS-keyword">uint</span> <span class="AS-classtype">Lighting</span>::GetID()</div></div>
+<a name="lighting::getanchor"></a><div class="block" name="lighting::getanchor">
+<div class="api"><span class="AS-valuetype">Vec3F</span>& <span class="AS-classtype">Lighting</span>::GetAnchor()</div></div>
+<a name="lighting::setanchor"></a><div class="block" name="lighting::setanchor">
+<div class="api"><span class="AS-keyword">void</span> <span class="AS-classtype">Lighting</span>::SetAnchor(<span class="AS-valuetype">Vec3F</span>)</div></div>
+<a name="lighting::getrotation"></a><div class="block" name="lighting::getrotation">
+<div class="api"><span class="AS-valuetype">Vec3F</span>& <span class="AS-classtype">Lighting</span>::GetRotation()</div></div>
+<a name="lighting::setrotation"></a><div class="block" name="lighting::setrotation">
+<div class="api"><span class="AS-keyword">void</span> <span class="AS-classtype">Lighting</span>::SetRotation(<span class="AS-valuetype">Vec3F</span>)</div></div>
+<a name="lighting::getskew"></a><div class="block" name="lighting::getskew">
+<div class="api"><span class="AS-valuetype">Vec3F</span>& <span class="AS-classtype">Lighting</span>::GetSkew()</div></div>
+<a name="lighting::setskew"></a><div class="block" name="lighting::setskew">
+<div class="api"><span class="AS-keyword">void</span> <span class="AS-classtype">Lighting</span>::SetSkew(<span class="AS-valuetype">Vec3F</span>)</div></div>
+<a name="lighting::getscale"></a><div class="block" name="lighting::getscale">
+<div class="api"><span class="AS-valuetype">Vec3F</span>& <span class="AS-classtype">Lighting</span>::GetScale()</div></div>
+<a name="lighting::setscale"></a><div class="block" name="lighting::setscale">
+<div class="api"><span class="AS-keyword">void</span> <span class="AS-classtype">Lighting</span>::SetScale(<span class="AS-valuetype">Vec3F</span>)</div></div>
+<a name="lighting::getposition"></a><div class="block" name="lighting::getposition">
+<div class="api"><span class="AS-valuetype">Vec3F</span>& <span class="AS-classtype">Lighting</span>::GetPosition()</div></div>
+<a name="lighting::setposition"></a><div class="block" name="lighting::setposition">
+<div class="api"><span class="AS-keyword">void</span> <span class="AS-classtype">Lighting</span>::SetPosition(<span class="AS-valuetype">Vec3F</span>)</div></div>
+<a name="lighting::getlights"></a><div class="block" name="lighting::getlights">
+<div class="api">LightsOperation <span class="AS-classtype">Lighting</span>::GetLights()</div></div>
+<a name="lighting::setlights"></a><div class="block" name="lighting::setlights">
+<div class="api"><span class="AS-keyword">void</span> <span class="AS-classtype">Lighting</span>::SetLights(LightsOperation)</div></div>
+<a name="lighting::getambientlight"></a><div class="block" name="lighting::getambientlight">
+<div class="api"><span class="AS-valuetype">Color3F</span>& <span class="AS-classtype">Lighting</span>::GetAmbientLight()</div></div>
+<a name="lighting::setambientlight"></a><div class="block" name="lighting::setambientlight">
+<div class="api"><span class="AS-keyword">void</span> <span class="AS-classtype">Lighting</span>::SetAmbientLight(<span class="AS-valuetype">Color3F</span>)</div></div>
+<a name="lighting::getlight1"></a><div class="block" name="lighting::getlight1">
+<div class="api">LightOperation <span class="AS-classtype">Lighting</span>::GetLight1()</div></div>
+<a name="lighting::setlight1"></a><div class="block" name="lighting::setlight1">
+<div class="api"><span class="AS-keyword">void</span> <span class="AS-classtype">Lighting</span>::SetLight1(LightOperation)</div></div>
+<a name="lighting::getlight1position"></a><div class="block" name="lighting::getlight1position">
+<div class="api"><span class="AS-valuetype">Vec3F</span>& <span class="AS-classtype">Lighting</span>::GetLight1Position()</div></div>
+<a name="lighting::setlight1position"></a><div class="block" name="lighting::setlight1position">
+<div class="api"><span class="AS-keyword">void</span> <span class="AS-classtype">Lighting</span>::SetLight1Position(<span class="AS-valuetype">Vec3F</span>)</div></div>
+<a name="lighting::getlight1distance"></a><div class="block" name="lighting::getlight1distance">
+<div class="api"><span class="AS-keyword">float</span> <span class="AS-classtype">Lighting</span>::GetLight1Distance()</div></div>
+<a name="lighting::setlight1distance"></a><div class="block" name="lighting::setlight1distance">
+<div class="api"><span class="AS-keyword">void</span> <span class="AS-classtype">Lighting</span>::SetLight1Distance(<span class="AS-keyword">float</span>)</div></div>
+<a name="lighting::getlight1diffuse"></a><div class="block" name="lighting::getlight1diffuse">
+<div class="api"><span class="AS-valuetype">Color4F</span>& <span class="AS-classtype">Lighting</span>::GetLight1Diffuse()</div></div>
+<a name="lighting::setlight1diffuse"></a><div class="block" name="lighting::setlight1diffuse">
+<div class="api"><span class="AS-keyword">void</span> <span class="AS-classtype">Lighting</span>::SetLight1Diffuse(<span class="AS-valuetype">Color4F</span>)</div></div>
+<a name="lighting::getlight2"></a><div class="block" name="lighting::getlight2">
+<div class="api">LightOperation <span class="AS-classtype">Lighting</span>::GetLight2()</div></div>
+<a name="lighting::setlight2"></a><div class="block" name="lighting::setlight2">
+<div class="api"><span class="AS-keyword">void</span> <span class="AS-classtype">Lighting</span>::SetLight2(LightOperation)</div></div>
+<a name="lighting::getlight2position"></a><div class="block" name="lighting::getlight2position">
+<div class="api"><span class="AS-valuetype">Vec3F</span>& <span class="AS-classtype">Lighting</span>::GetLight2Position()</div></div>
+<a name="lighting::setlight2position"></a><div class="block" name="lighting::setlight2position">
+<div class="api"><span class="AS-keyword">void</span> <span class="AS-classtype">Lighting</span>::SetLight2Position(<span class="AS-valuetype">Vec3F</span>)</div></div>
+<a name="lighting::getlight2distance"></a><div class="block" name="lighting::getlight2distance">
+<div class="api"><span class="AS-keyword">float</span> <span class="AS-classtype">Lighting</span>::GetLight2Distance()</div></div>
+<a name="lighting::setlight2distance"></a><div class="block" name="lighting::setlight2distance">
+<div class="api"><span class="AS-keyword">void</span> <span class="AS-classtype">Lighting</span>::SetLight2Distance(<span class="AS-keyword">float</span>)</div></div>
+<a name="lighting::getlight2diffuse"></a><div class="block" name="lighting::getlight2diffuse">
+<div class="api"><span class="AS-valuetype">Color4F</span>& <span class="AS-classtype">Lighting</span>::GetLight2Diffuse()</div></div>
+<a name="lighting::setlight2diffuse"></a><div class="block" name="lighting::setlight2diffuse">
+<div class="api"><span class="AS-keyword">void</span> <span class="AS-classtype">Lighting</span>::SetLight2Diffuse(<span class="AS-valuetype">Color4F</span>)</div></div>
+<a name="lighting::getlight3"></a><div class="block" name="lighting::getlight3">
+<div class="api">LightOperation <span class="AS-classtype">Lighting</span>::GetLight3()</div></div>
+<a name="lighting::setlight3"></a><div class="block" name="lighting::setlight3">
+<div class="api"><span class="AS-keyword">void</span> <span class="AS-classtype">Lighting</span>::SetLight3(LightOperation)</div></div>
+<a name="lighting::getlight3position"></a><div class="block" name="lighting::getlight3position">
+<div class="api"><span class="AS-valuetype">Vec3F</span>& <span class="AS-classtype">Lighting</span>::GetLight3Position()</div></div>
+<a name="lighting::setlight3position"></a><div class="block" name="lighting::setlight3position">
+<div class="api"><span class="AS-keyword">void</span> <span class="AS-classtype">Lighting</span>::SetLight3Position(<span class="AS-valuetype">Vec3F</span>)</div></div>
+<a name="lighting::getlight3distance"></a><div class="block" name="lighting::getlight3distance">
+<div class="api"><span class="AS-keyword">float</span> <span class="AS-classtype">Lighting</span>::GetLight3Distance()</div></div>
+<a name="lighting::setlight3distance"></a><div class="block" name="lighting::setlight3distance">
+<div class="api"><span class="AS-keyword">void</span> <span class="AS-classtype">Lighting</span>::SetLight3Distance(<span class="AS-keyword">float</span>)</div></div>
+<a name="lighting::getlight3diffuse"></a><div class="block" name="lighting::getlight3diffuse">
+<div class="api"><span class="AS-valuetype">Color4F</span>& <span class="AS-classtype">Lighting</span>::GetLight3Diffuse()</div></div>
+<a name="lighting::setlight3diffuse"></a><div class="block" name="lighting::setlight3diffuse">
+<div class="api"><span class="AS-keyword">void</span> <span class="AS-classtype">Lighting</span>::SetLight3Diffuse(<span class="AS-valuetype">Color4F</span>)</div></div>
+<a name="lighting::getlight4"></a><div class="block" name="lighting::getlight4">
+<div class="api">LightOperation <span class="AS-classtype">Lighting</span>::GetLight4()</div></div>
+<a name="lighting::setlight4"></a><div class="block" name="lighting::setlight4">
+<div class="api"><span class="AS-keyword">void</span> <span class="AS-classtype">Lighting</span>::SetLight4(LightOperation)</div></div>
+<a name="lighting::getlight4position"></a><div class="block" name="lighting::getlight4position">
+<div class="api"><span class="AS-valuetype">Vec3F</span>& <span class="AS-classtype">Lighting</span>::GetLight4Position()</div></div>
+<a name="lighting::setlight4position"></a><div class="block" name="lighting::setlight4position">
+<div class="api"><span class="AS-keyword">void</span> <span class="AS-classtype">Lighting</span>::SetLight4Position(<span class="AS-valuetype">Vec3F</span>)</div></div>
+<a name="lighting::getlight4distance"></a><div class="block" name="lighting::getlight4distance">
+<div class="api"><span class="AS-keyword">float</span> <span class="AS-classtype">Lighting</span>::GetLight4Distance()</div></div>
+<a name="lighting::setlight4distance"></a><div class="block" name="lighting::setlight4distance">
+<div class="api"><span class="AS-keyword">void</span> <span class="AS-classtype">Lighting</span>::SetLight4Distance(<span class="AS-keyword">float</span>)</div></div>
+<a name="lighting::getlight4diffuse"></a><div class="block" name="lighting::getlight4diffuse">
+<div class="api"><span class="AS-valuetype">Color4F</span>& <span class="AS-classtype">Lighting</span>::GetLight4Diffuse()</div></div>
+<a name="lighting::setlight4diffuse"></a><div class="block" name="lighting::setlight4diffuse">
+<div class="api"><span class="AS-keyword">void</span> <span class="AS-classtype">Lighting</span>::SetLight4Diffuse(<span class="AS-valuetype">Color4F</span>)</div></div>
+<a name="lighting::opimplcast"></a><div class="block" name="lighting::opimplcast">
+<div class="api"><span class="AS-classtype">Node</span>@ <span class="AS-classtype">Lighting</span>::opImplCast()</div></div>
+</div><a name="node"></a><h2 name="node">Node</h2>
+<div name="node"><a name="node"></a><div class="block" name="node">
+<div class="api"><span class="AS-keyword">class</span> <span class="AS-classtype">Node</span> {
+	<span class="AS-classtype">OrthoCamera</span>@ opCast();
+	<span class="AS-classtype">Fog</span>@ opCast();
+	<span class="AS-classtype">Lighting</span>@ opCast();
+	<span class="AS-classtype">Sprite</span>@ opCast();
+	<span class="AS-classtype">Text</span>@ opCast();
+	<span class="AS-classtype">OrthoCamera</span>@ opImplCast();
+	<span class="AS-classtype">Fog</span>@ opImplCast();
+	<span class="AS-classtype">Lighting</span>@ opImplCast();
+	<span class="AS-classtype">Sprite</span>@ opImplCast();
+	<span class="AS-classtype">Text</span>@ opImplCast();
+}</div></div>
+<a name="node::opcast"></a><div class="block" name="node::opcast">
+<div class="api"><span class="AS-classtype">OrthoCamera</span>@ <span class="AS-classtype">Node</span>::opCast()</div></div>
+<a name="node::opcast"></a><div class="block" name="node::opcast">
+<div class="api"><span class="AS-classtype">Fog</span>@ <span class="AS-classtype">Node</span>::opCast()</div></div>
+<a name="node::opcast"></a><div class="block" name="node::opcast">
+<div class="api"><span class="AS-classtype">Lighting</span>@ <span class="AS-classtype">Node</span>::opCast()</div></div>
+<a name="node::opcast"></a><div class="block" name="node::opcast">
+<div class="api"><span class="AS-classtype">Sprite</span>@ <span class="AS-classtype">Node</span>::opCast()</div></div>
+<a name="node::opcast"></a><div class="block" name="node::opcast">
+<div class="api"><span class="AS-classtype">Text</span>@ <span class="AS-classtype">Node</span>::opCast()</div></div>
+<a name="node::opimplcast"></a><div class="block" name="node::opimplcast">
+<div class="api"><span class="AS-classtype">OrthoCamera</span>@ <span class="AS-classtype">Node</span>::opImplCast()</div></div>
+<a name="node::opimplcast"></a><div class="block" name="node::opimplcast">
+<div class="api"><span class="AS-classtype">Fog</span>@ <span class="AS-classtype">Node</span>::opImplCast()</div></div>
+<a name="node::opimplcast"></a><div class="block" name="node::opimplcast">
+<div class="api"><span class="AS-classtype">Lighting</span>@ <span class="AS-classtype">Node</span>::opImplCast()</div></div>
+<a name="node::opimplcast"></a><div class="block" name="node::opimplcast">
+<div class="api"><span class="AS-classtype">Sprite</span>@ <span class="AS-classtype">Node</span>::opImplCast()</div></div>
+<a name="node::opimplcast"></a><div class="block" name="node::opimplcast">
+<div class="api"><span class="AS-classtype">Text</span>@ <span class="AS-classtype">Node</span>::opImplCast()</div></div>
+</div><a name="orthocamera"></a><h2 name="orthocamera">OrthoCamera</h2>
+<div name="orthocamera"><a name="orthocamera"></a><div class="block" name="orthocamera">
+<div class="api"><span class="AS-keyword">class</span> <span class="AS-classtype">OrthoCamera</span> {
+	<span class="AS-keyword">uint</span> GetID();
+	<span class="AS-valuetype">Vec3F</span>& GetAnchor();
+	<span class="AS-keyword">void</span> SetAnchor(<span class="AS-valuetype">Vec3F</span>);
+	<span class="AS-valuetype">Vec3F</span>& GetRotation();
+	<span class="AS-keyword">void</span> SetRotation(<span class="AS-valuetype">Vec3F</span>);
+	<span class="AS-valuetype">Vec3F</span>& GetSkew();
+	<span class="AS-keyword">void</span> SetSkew(<span class="AS-valuetype">Vec3F</span>);
+	<span class="AS-valuetype">Vec3F</span>& GetScale();
+	<span class="AS-keyword">void</span> SetScale(<span class="AS-valuetype">Vec3F</span>);
+	<span class="AS-valuetype">Vec3F</span>& GetPosition();
+	<span class="AS-keyword">void</span> SetPosition(<span class="AS-valuetype">Vec3F</span>);
+	<span class="AS-valuetype">Color4F</span>& GetClearColor();
+	<span class="AS-keyword">void</span> SetClearColor(<span class="AS-valuetype">Color4F</span>);
+	<span class="AS-valuetype">Vec3F</span>& GetEye();
+	<span class="AS-keyword">void</span> SetEye(<span class="AS-valuetype">Vec3F</span>);
+	<span class="AS-valuetype">Vec3F</span>& GetTarget();
+	<span class="AS-keyword">void</span> SetTarget(<span class="AS-valuetype">Vec3F</span>);
+	<span class="AS-valuetype">Vec3F</span>& GetUp();
+	<span class="AS-keyword">void</span> SetUp(<span class="AS-valuetype">Vec3F</span>);
+	<span class="AS-keyword">float</span> GetLeft();
+	<span class="AS-keyword">void</span> SetLeft(<span class="AS-keyword">float</span>);
+	<span class="AS-keyword">float</span> GetRight();
+	<span class="AS-keyword">void</span> SetRight(<span class="AS-keyword">float</span>);
+	<span class="AS-keyword">float</span> GetBottom();
+	<span class="AS-keyword">void</span> SetBottom(<span class="AS-keyword">float</span>);
+	<span class="AS-keyword">float</span> GetTop();
+	<span class="AS-keyword">void</span> SetTop(<span class="AS-keyword">float</span>);
+	<span class="AS-keyword">float</span> GetZNear();
+	<span class="AS-keyword">void</span> SetZNear(<span class="AS-keyword">float</span>);
+	<span class="AS-keyword">float</span> GetZFar();
+	<span class="AS-keyword">void</span> SetZFar(<span class="AS-keyword">float</span>);
+	<span class="AS-classtype">Node</span>@ opImplCast();
+}</div></div>
+<a name="orthocamera::getid"></a><div class="block" name="orthocamera::getid">
+<div class="api"><span class="AS-keyword">uint</span> <span class="AS-classtype">OrthoCamera</span>::GetID()</div></div>
+<a name="orthocamera::getanchor"></a><div class="block" name="orthocamera::getanchor">
+<div class="api"><span class="AS-valuetype">Vec3F</span>& <span class="AS-classtype">OrthoCamera</span>::GetAnchor()</div></div>
+<a name="orthocamera::setanchor"></a><div class="block" name="orthocamera::setanchor">
+<div class="api"><span class="AS-keyword">void</span> <span class="AS-classtype">OrthoCamera</span>::SetAnchor(<span class="AS-valuetype">Vec3F</span>)</div></div>
+<a name="orthocamera::getrotation"></a><div class="block" name="orthocamera::getrotation">
+<div class="api"><span class="AS-valuetype">Vec3F</span>& <span class="AS-classtype">OrthoCamera</span>::GetRotation()</div></div>
+<a name="orthocamera::setrotation"></a><div class="block" name="orthocamera::setrotation">
+<div class="api"><span class="AS-keyword">void</span> <span class="AS-classtype">OrthoCamera</span>::SetRotation(<span class="AS-valuetype">Vec3F</span>)</div></div>
+<a name="orthocamera::getskew"></a><div class="block" name="orthocamera::getskew">
+<div class="api"><span class="AS-valuetype">Vec3F</span>& <span class="AS-classtype">OrthoCamera</span>::GetSkew()</div></div>
+<a name="orthocamera::setskew"></a><div class="block" name="orthocamera::setskew">
+<div class="api"><span class="AS-keyword">void</span> <span class="AS-classtype">OrthoCamera</span>::SetSkew(<span class="AS-valuetype">Vec3F</span>)</div></div>
+<a name="orthocamera::getscale"></a><div class="block" name="orthocamera::getscale">
+<div class="api"><span class="AS-valuetype">Vec3F</span>& <span class="AS-classtype">OrthoCamera</span>::GetScale()</div></div>
+<a name="orthocamera::setscale"></a><div class="block" name="orthocamera::setscale">
+<div class="api"><span class="AS-keyword">void</span> <span class="AS-classtype">OrthoCamera</span>::SetScale(<span class="AS-valuetype">Vec3F</span>)</div></div>
+<a name="orthocamera::getposition"></a><div class="block" name="orthocamera::getposition">
+<div class="api"><span class="AS-valuetype">Vec3F</span>& <span class="AS-classtype">OrthoCamera</span>::GetPosition()</div></div>
+<a name="orthocamera::setposition"></a><div class="block" name="orthocamera::setposition">
+<div class="api"><span class="AS-keyword">void</span> <span class="AS-classtype">OrthoCamera</span>::SetPosition(<span class="AS-valuetype">Vec3F</span>)</div></div>
+<a name="orthocamera::getclearcolor"></a><div class="block" name="orthocamera::getclearcolor">
+<div class="api"><span class="AS-valuetype">Color4F</span>& <span class="AS-classtype">OrthoCamera</span>::GetClearColor()</div></div>
+<a name="orthocamera::setclearcolor"></a><div class="block" name="orthocamera::setclearcolor">
+<div class="api"><span class="AS-keyword">void</span> <span class="AS-classtype">OrthoCamera</span>::SetClearColor(<span class="AS-valuetype">Color4F</span>)</div></div>
+<a name="orthocamera::geteye"></a><div class="block" name="orthocamera::geteye">
+<div class="api"><span class="AS-valuetype">Vec3F</span>& <span class="AS-classtype">OrthoCamera</span>::GetEye()</div></div>
+<a name="orthocamera::seteye"></a><div class="block" name="orthocamera::seteye">
+<div class="api"><span class="AS-keyword">void</span> <span class="AS-classtype">OrthoCamera</span>::SetEye(<span class="AS-valuetype">Vec3F</span>)</div></div>
+<a name="orthocamera::gettarget"></a><div class="block" name="orthocamera::gettarget">
+<div class="api"><span class="AS-valuetype">Vec3F</span>& <span class="AS-classtype">OrthoCamera</span>::GetTarget()</div></div>
+<a name="orthocamera::settarget"></a><div class="block" name="orthocamera::settarget">
+<div class="api"><span class="AS-keyword">void</span> <span class="AS-classtype">OrthoCamera</span>::SetTarget(<span class="AS-valuetype">Vec3F</span>)</div></div>
+<a name="orthocamera::getup"></a><div class="block" name="orthocamera::getup">
+<div class="api"><span class="AS-valuetype">Vec3F</span>& <span class="AS-classtype">OrthoCamera</span>::GetUp()</div></div>
+<a name="orthocamera::setup"></a><div class="block" name="orthocamera::setup">
+<div class="api"><span class="AS-keyword">void</span> <span class="AS-classtype">OrthoCamera</span>::SetUp(<span class="AS-valuetype">Vec3F</span>)</div></div>
+<a name="orthocamera::getleft"></a><div class="block" name="orthocamera::getleft">
+<div class="api"><span class="AS-keyword">float</span> <span class="AS-classtype">OrthoCamera</span>::GetLeft()</div></div>
+<a name="orthocamera::setleft"></a><div class="block" name="orthocamera::setleft">
+<div class="api"><span class="AS-keyword">void</span> <span class="AS-classtype">OrthoCamera</span>::SetLeft(<span class="AS-keyword">float</span>)</div></div>
+<a name="orthocamera::getright"></a><div class="block" name="orthocamera::getright">
+<div class="api"><span class="AS-keyword">float</span> <span class="AS-classtype">OrthoCamera</span>::GetRight()</div></div>
+<a name="orthocamera::setright"></a><div class="block" name="orthocamera::setright">
+<div class="api"><span class="AS-keyword">void</span> <span class="AS-classtype">OrthoCamera</span>::SetRight(<span class="AS-keyword">float</span>)</div></div>
+<a name="orthocamera::getbottom"></a><div class="block" name="orthocamera::getbottom">
+<div class="api"><span class="AS-keyword">float</span> <span class="AS-classtype">OrthoCamera</span>::GetBottom()</div></div>
+<a name="orthocamera::setbottom"></a><div class="block" name="orthocamera::setbottom">
+<div class="api"><span class="AS-keyword">void</span> <span class="AS-classtype">OrthoCamera</span>::SetBottom(<span class="AS-keyword">float</span>)</div></div>
+<a name="orthocamera::gettop"></a><div class="block" name="orthocamera::gettop">
+<div class="api"><span class="AS-keyword">float</span> <span class="AS-classtype">OrthoCamera</span>::GetTop()</div></div>
+<a name="orthocamera::settop"></a><div class="block" name="orthocamera::settop">
+<div class="api"><span class="AS-keyword">void</span> <span class="AS-classtype">OrthoCamera</span>::SetTop(<span class="AS-keyword">float</span>)</div></div>
+<a name="orthocamera::getznear"></a><div class="block" name="orthocamera::getznear">
+<div class="api"><span class="AS-keyword">float</span> <span class="AS-classtype">OrthoCamera</span>::GetZNear()</div></div>
+<a name="orthocamera::setznear"></a><div class="block" name="orthocamera::setznear">
+<div class="api"><span class="AS-keyword">void</span> <span class="AS-classtype">OrthoCamera</span>::SetZNear(<span class="AS-keyword">float</span>)</div></div>
+<a name="orthocamera::getzfar"></a><div class="block" name="orthocamera::getzfar">
+<div class="api"><span class="AS-keyword">float</span> <span class="AS-classtype">OrthoCamera</span>::GetZFar()</div></div>
+<a name="orthocamera::setzfar"></a><div class="block" name="orthocamera::setzfar">
+<div class="api"><span class="AS-keyword">void</span> <span class="AS-classtype">OrthoCamera</span>::SetZFar(<span class="AS-keyword">float</span>)</div></div>
+<a name="orthocamera::opimplcast"></a><div class="block" name="orthocamera::opimplcast">
+<div class="api"><span class="AS-classtype">Node</span>@ <span class="AS-classtype">OrthoCamera</span>::opImplCast()</div></div>
+</div><a name="sprite"></a><h2 name="sprite">Sprite</h2>
+<div name="sprite"><a name="sprite"></a><div class="block" name="sprite">
+<div class="api"><span class="AS-keyword">class</span> <span class="AS-classtype">Sprite</span> {
+	<span class="AS-keyword">uint</span> GetID();
+	<span class="AS-valuetype">Vec3F</span>& GetAnchor();
+	<span class="AS-keyword">void</span> SetAnchor(<span class="AS-valuetype">Vec3F</span>);
+	<span class="AS-valuetype">Vec3F</span>& GetRotation();
+	<span class="AS-keyword">void</span> SetRotation(<span class="AS-valuetype">Vec3F</span>);
+	<span class="AS-valuetype">Vec3F</span>& GetSkew();
+	<span class="AS-keyword">void</span> SetSkew(<span class="AS-valuetype">Vec3F</span>);
+	<span class="AS-valuetype">Vec3F</span>& GetScale();
+	<span class="AS-keyword">void</span> SetScale(<span class="AS-valuetype">Vec3F</span>);
+	<span class="AS-valuetype">Vec3F</span>& GetPosition();
+	<span class="AS-keyword">void</span> SetPosition(<span class="AS-valuetype">Vec3F</span>);
+	<span class="AS-valuetype">string</span> GetTexturePath();
+	<span class="AS-keyword">void</span> SetTexturePath(<span class="AS-valuetype">string</span>);
+	<span class="AS-valuetype">RectF</span>& GetUV();
+	<span class="AS-keyword">void</span> SetUV(<span class="AS-valuetype">RectF</span>);
+	<span class="AS-valuetype">SizeF</span>& GetSize();
+	<span class="AS-keyword">void</span> SetSize(<span class="AS-valuetype">SizeF</span>);
+	<span class="AS-valuetype">Color4F</span>& GetTint();
+	<span class="AS-keyword">void</span> SetTint(<span class="AS-valuetype">Color4F</span>);
+	BlendOperation GetBlend();
+	<span class="AS-keyword">void</span> SetBlend(BlendOperation);
+	BlendFactor GetBlendFactorSrc();
+	<span class="AS-keyword">void</span> SetBlendFactorSrc(BlendFactor);
+	BlendFactor GetBlendFactorDst();
+	<span class="AS-keyword">void</span> SetBlendFactorDst(BlendFactor);
+	DrawModeOperation GetDrawMode();
+	<span class="AS-keyword">void</span> SetDrawMode(DrawModeOperation);
+	CullingOperation GetCulling();
+	<span class="AS-keyword">void</span> SetCulling(CullingOperation);
+	DepthOperation GetDepth();
+	<span class="AS-keyword">void</span> SetDepth(DepthOperation);
+	<span class="AS-keyword">bool</span> HitTest(<span class="AS-keyword">double</span>, <span class="AS-keyword">double</span>, <span class="AS-classtype">OrthoCamera</span>@);
+	<span class="AS-classtype">Node</span>@ opImplCast();
+}</div></div>
+<a name="sprite::getid"></a><div class="block" name="sprite::getid">
+<div class="api"><span class="AS-keyword">uint</span> <span class="AS-classtype">Sprite</span>::GetID()</div></div>
+<a name="sprite::getanchor"></a><div class="block" name="sprite::getanchor">
+<div class="api"><span class="AS-valuetype">Vec3F</span>& <span class="AS-classtype">Sprite</span>::GetAnchor()</div></div>
+<a name="sprite::setanchor"></a><div class="block" name="sprite::setanchor">
+<div class="api"><span class="AS-keyword">void</span> <span class="AS-classtype">Sprite</span>::SetAnchor(<span class="AS-valuetype">Vec3F</span>)</div></div>
+<a name="sprite::getrotation"></a><div class="block" name="sprite::getrotation">
+<div class="api"><span class="AS-valuetype">Vec3F</span>& <span class="AS-classtype">Sprite</span>::GetRotation()</div></div>
+<a name="sprite::setrotation"></a><div class="block" name="sprite::setrotation">
+<div class="api"><span class="AS-keyword">void</span> <span class="AS-classtype">Sprite</span>::SetRotation(<span class="AS-valuetype">Vec3F</span>)</div></div>
+<a name="sprite::getskew"></a><div class="block" name="sprite::getskew">
+<div class="api"><span class="AS-valuetype">Vec3F</span>& <span class="AS-classtype">Sprite</span>::GetSkew()</div></div>
+<a name="sprite::setskew"></a><div class="block" name="sprite::setskew">
+<div class="api"><span class="AS-keyword">void</span> <span class="AS-classtype">Sprite</span>::SetSkew(<span class="AS-valuetype">Vec3F</span>)</div></div>
+<a name="sprite::getscale"></a><div class="block" name="sprite::getscale">
+<div class="api"><span class="AS-valuetype">Vec3F</span>& <span class="AS-classtype">Sprite</span>::GetScale()</div></div>
+<a name="sprite::setscale"></a><div class="block" name="sprite::setscale">
+<div class="api"><span class="AS-keyword">void</span> <span class="AS-classtype">Sprite</span>::SetScale(<span class="AS-valuetype">Vec3F</span>)</div></div>
+<a name="sprite::getposition"></a><div class="block" name="sprite::getposition">
+<div class="api"><span class="AS-valuetype">Vec3F</span>& <span class="AS-classtype">Sprite</span>::GetPosition()</div></div>
+<a name="sprite::setposition"></a><div class="block" name="sprite::setposition">
+<div class="api"><span class="AS-keyword">void</span> <span class="AS-classtype">Sprite</span>::SetPosition(<span class="AS-valuetype">Vec3F</span>)</div></div>
+<a name="sprite::gettexturepath"></a><div class="block" name="sprite::gettexturepath">
+<div class="api"><span class="AS-valuetype">string</span> <span class="AS-classtype">Sprite</span>::GetTexturePath()</div></div>
+<a name="sprite::settexturepath"></a><div class="block" name="sprite::settexturepath">
+<div class="api"><span class="AS-keyword">void</span> <span class="AS-classtype">Sprite</span>::SetTexturePath(<span class="AS-valuetype">string</span>)</div></div>
+<a name="sprite::getuv"></a><div class="block" name="sprite::getuv">
+<div class="api"><span class="AS-valuetype">RectF</span>& <span class="AS-classtype">Sprite</span>::GetUV()</div></div>
+<a name="sprite::setuv"></a><div class="block" name="sprite::setuv">
+<div class="api"><span class="AS-keyword">void</span> <span class="AS-classtype">Sprite</span>::SetUV(<span class="AS-valuetype">RectF</span>)</div></div>
+<a name="sprite::getsize"></a><div class="block" name="sprite::getsize">
+<div class="api"><span class="AS-valuetype">SizeF</span>& <span class="AS-classtype">Sprite</span>::GetSize()</div></div>
+<a name="sprite::setsize"></a><div class="block" name="sprite::setsize">
+<div class="api"><span class="AS-keyword">void</span> <span class="AS-classtype">Sprite</span>::SetSize(<span class="AS-valuetype">SizeF</span>)</div></div>
+<a name="sprite::gettint"></a><div class="block" name="sprite::gettint">
+<div class="api"><span class="AS-valuetype">Color4F</span>& <span class="AS-classtype">Sprite</span>::GetTint()</div></div>
+<a name="sprite::settint"></a><div class="block" name="sprite::settint">
+<div class="api"><span class="AS-keyword">void</span> <span class="AS-classtype">Sprite</span>::SetTint(<span class="AS-valuetype">Color4F</span>)</div></div>
+<a name="sprite::getblend"></a><div class="block" name="sprite::getblend">
+<div class="api">BlendOperation <span class="AS-classtype">Sprite</span>::GetBlend()</div></div>
+<a name="sprite::setblend"></a><div class="block" name="sprite::setblend">
+<div class="api"><span class="AS-keyword">void</span> <span class="AS-classtype">Sprite</span>::SetBlend(BlendOperation)</div></div>
+<a name="sprite::getblendfactorsrc"></a><div class="block" name="sprite::getblendfactorsrc">
+<div class="api">BlendFactor <span class="AS-classtype">Sprite</span>::GetBlendFactorSrc()</div></div>
+<a name="sprite::setblendfactorsrc"></a><div class="block" name="sprite::setblendfactorsrc">
+<div class="api"><span class="AS-keyword">void</span> <span class="AS-classtype">Sprite</span>::SetBlendFactorSrc(BlendFactor)</div></div>
+<a name="sprite::getblendfactordst"></a><div class="block" name="sprite::getblendfactordst">
+<div class="api">BlendFactor <span class="AS-classtype">Sprite</span>::GetBlendFactorDst()</div></div>
+<a name="sprite::setblendfactordst"></a><div class="block" name="sprite::setblendfactordst">
+<div class="api"><span class="AS-keyword">void</span> <span class="AS-classtype">Sprite</span>::SetBlendFactorDst(BlendFactor)</div></div>
+<a name="sprite::getdrawmode"></a><div class="block" name="sprite::getdrawmode">
+<div class="api">DrawModeOperation <span class="AS-classtype">Sprite</span>::GetDrawMode()</div></div>
+<a name="sprite::setdrawmode"></a><div class="block" name="sprite::setdrawmode">
+<div class="api"><span class="AS-keyword">void</span> <span class="AS-classtype">Sprite</span>::SetDrawMode(DrawModeOperation)</div></div>
+<a name="sprite::getculling"></a><div class="block" name="sprite::getculling">
+<div class="api">CullingOperation <span class="AS-classtype">Sprite</span>::GetCulling()</div></div>
+<a name="sprite::setculling"></a><div class="block" name="sprite::setculling">
+<div class="api"><span class="AS-keyword">void</span> <span class="AS-classtype">Sprite</span>::SetCulling(CullingOperation)</div></div>
+<a name="sprite::getdepth"></a><div class="block" name="sprite::getdepth">
+<div class="api">DepthOperation <span class="AS-classtype">Sprite</span>::GetDepth()</div></div>
+<a name="sprite::setdepth"></a><div class="block" name="sprite::setdepth">
+<div class="api"><span class="AS-keyword">void</span> <span class="AS-classtype">Sprite</span>::SetDepth(DepthOperation)</div></div>
+<a name="sprite::hittest"></a><div class="block" name="sprite::hittest">
+<div class="api"><span class="AS-keyword">bool</span> <span class="AS-classtype">Sprite</span>::HitTest(<span class="AS-keyword">double</span>, <span class="AS-keyword">double</span>, <span class="AS-classtype">OrthoCamera</span>@)</div></div>
+<a name="sprite::opimplcast"></a><div class="block" name="sprite::opimplcast">
+<div class="api"><span class="AS-classtype">Node</span>@ <span class="AS-classtype">Sprite</span>::opImplCast()</div></div>
+</div><a name="text"></a><h2 name="text">Text</h2>
+<div name="text"><a name="text"></a><div class="block" name="text">
+<div class="api"><span class="AS-keyword">class</span> <span class="AS-classtype">Text</span> {
+	<span class="AS-keyword">uint</span> GetID();
+	<span class="AS-valuetype">Vec3F</span>& GetAnchor();
+	<span class="AS-keyword">void</span> SetAnchor(<span class="AS-valuetype">Vec3F</span>);
+	<span class="AS-valuetype">Vec3F</span>& GetRotation();
+	<span class="AS-keyword">void</span> SetRotation(<span class="AS-valuetype">Vec3F</span>);
+	<span class="AS-valuetype">Vec3F</span>& GetSkew();
+	<span class="AS-keyword">void</span> SetSkew(<span class="AS-valuetype">Vec3F</span>);
+	<span class="AS-valuetype">Vec3F</span>& GetScale();
+	<span class="AS-keyword">void</span> SetScale(<span class="AS-valuetype">Vec3F</span>);
+	<span class="AS-valuetype">Vec3F</span>& GetPosition();
+	<span class="AS-keyword">void</span> SetPosition(<span class="AS-valuetype">Vec3F</span>);
+	<span class="AS-valuetype">string</span> GetText();
+	<span class="AS-keyword">void</span> SetText(<span class="AS-valuetype">string</span>);
+	<span class="AS-valuetype">string</span> GetFontName();
+	<span class="AS-keyword">void</span> SetFontName(<span class="AS-valuetype">string</span>);
+	<span class="AS-keyword">uint</span> GetFontStyle();
+	<span class="AS-keyword">void</span> SetFontStyle(<span class="AS-keyword">uint</span>);
+	<span class="AS-keyword">uint</span> GetFontSize();
+	<span class="AS-keyword">void</span> SetFontSize(<span class="AS-keyword">uint</span>);
+	<span class="AS-valuetype">SizeF</span>& GetTextSize();
+	<span class="AS-valuetype">Color4F</span>& GetTint();
+	<span class="AS-keyword">void</span> SetTint(<span class="AS-valuetype">Color4F</span>);
+	BlendOperation GetBlend();
+	<span class="AS-keyword">void</span> SetBlend(BlendOperation);
+	BlendFactor GetBlendFactorSrc();
+	<span class="AS-keyword">void</span> SetBlendFactorSrc(BlendFactor);
+	BlendFactor GetBlendFactorDst();
+	<span class="AS-keyword">void</span> SetBlendFactorDst(BlendFactor);
+	DrawModeOperation GetDrawMode();
+	<span class="AS-keyword">void</span> SetDrawMode(DrawModeOperation);
+	CullingOperation GetCulling();
+	<span class="AS-keyword">void</span> SetCulling(CullingOperation);
+	DepthOperation GetDepth();
+	<span class="AS-keyword">void</span> SetDepth(DepthOperation);
+	<span class="AS-keyword">bool</span> HitTest(<span class="AS-keyword">double</span>, <span class="AS-keyword">double</span>, <span class="AS-classtype">OrthoCamera</span>@);
+	<span class="AS-classtype">Node</span>@ opImplCast();
+}</div></div>
+<a name="text::getid"></a><div class="block" name="text::getid">
+<div class="api"><span class="AS-keyword">uint</span> <span class="AS-classtype">Text</span>::GetID()</div></div>
+<a name="text::getanchor"></a><div class="block" name="text::getanchor">
+<div class="api"><span class="AS-valuetype">Vec3F</span>& <span class="AS-classtype">Text</span>::GetAnchor()</div></div>
+<a name="text::setanchor"></a><div class="block" name="text::setanchor">
+<div class="api"><span class="AS-keyword">void</span> <span class="AS-classtype">Text</span>::SetAnchor(<span class="AS-valuetype">Vec3F</span>)</div></div>
+<a name="text::getrotation"></a><div class="block" name="text::getrotation">
+<div class="api"><span class="AS-valuetype">Vec3F</span>& <span class="AS-classtype">Text</span>::GetRotation()</div></div>
+<a name="text::setrotation"></a><div class="block" name="text::setrotation">
+<div class="api"><span class="AS-keyword">void</span> <span class="AS-classtype">Text</span>::SetRotation(<span class="AS-valuetype">Vec3F</span>)</div></div>
+<a name="text::getskew"></a><div class="block" name="text::getskew">
+<div class="api"><span class="AS-valuetype">Vec3F</span>& <span class="AS-classtype">Text</span>::GetSkew()</div></div>
+<a name="text::setskew"></a><div class="block" name="text::setskew">
+<div class="api"><span class="AS-keyword">void</span> <span class="AS-classtype">Text</span>::SetSkew(<span class="AS-valuetype">Vec3F</span>)</div></div>
+<a name="text::getscale"></a><div class="block" name="text::getscale">
+<div class="api"><span class="AS-valuetype">Vec3F</span>& <span class="AS-classtype">Text</span>::GetScale()</div></div>
+<a name="text::setscale"></a><div class="block" name="text::setscale">
+<div class="api"><span class="AS-keyword">void</span> <span class="AS-classtype">Text</span>::SetScale(<span class="AS-valuetype">Vec3F</span>)</div></div>
+<a name="text::getposition"></a><div class="block" name="text::getposition">
+<div class="api"><span class="AS-valuetype">Vec3F</span>& <span class="AS-classtype">Text</span>::GetPosition()</div></div>
+<a name="text::setposition"></a><div class="block" name="text::setposition">
+<div class="api"><span class="AS-keyword">void</span> <span class="AS-classtype">Text</span>::SetPosition(<span class="AS-valuetype">Vec3F</span>)</div></div>
+<a name="text::gettext"></a><div class="block" name="text::gettext">
+<div class="api"><span class="AS-valuetype">string</span> <span class="AS-classtype">Text</span>::GetText()</div></div>
+<a name="text::settext"></a><div class="block" name="text::settext">
+<div class="api"><span class="AS-keyword">void</span> <span class="AS-classtype">Text</span>::SetText(<span class="AS-valuetype">string</span>)</div></div>
+<a name="text::getfontname"></a><div class="block" name="text::getfontname">
+<div class="api"><span class="AS-valuetype">string</span> <span class="AS-classtype">Text</span>::GetFontName()</div></div>
+<a name="text::setfontname"></a><div class="block" name="text::setfontname">
+<div class="api"><span class="AS-keyword">void</span> <span class="AS-classtype">Text</span>::SetFontName(<span class="AS-valuetype">string</span>)</div></div>
+<a name="text::getfontstyle"></a><div class="block" name="text::getfontstyle">
+<div class="api"><span class="AS-keyword">uint</span> <span class="AS-classtype">Text</span>::GetFontStyle()</div></div>
+<a name="text::setfontstyle"></a><div class="block" name="text::setfontstyle">
+<div class="api"><span class="AS-keyword">void</span> <span class="AS-classtype">Text</span>::SetFontStyle(<span class="AS-keyword">uint</span>)</div></div>
+<a name="text::getfontsize"></a><div class="block" name="text::getfontsize">
+<div class="api"><span class="AS-keyword">uint</span> <span class="AS-classtype">Text</span>::GetFontSize()</div></div>
+<a name="text::setfontsize"></a><div class="block" name="text::setfontsize">
+<div class="api"><span class="AS-keyword">void</span> <span class="AS-classtype">Text</span>::SetFontSize(<span class="AS-keyword">uint</span>)</div></div>
+<a name="text::gettextsize"></a><div class="block" name="text::gettextsize">
+<div class="api"><span class="AS-valuetype">SizeF</span>& <span class="AS-classtype">Text</span>::GetTextSize()</div></div>
+<a name="text::gettint"></a><div class="block" name="text::gettint">
+<div class="api"><span class="AS-valuetype">Color4F</span>& <span class="AS-classtype">Text</span>::GetTint()</div></div>
+<a name="text::settint"></a><div class="block" name="text::settint">
+<div class="api"><span class="AS-keyword">void</span> <span class="AS-classtype">Text</span>::SetTint(<span class="AS-valuetype">Color4F</span>)</div></div>
+<a name="text::getblend"></a><div class="block" name="text::getblend">
+<div class="api">BlendOperation <span class="AS-classtype">Text</span>::GetBlend()</div></div>
+<a name="text::setblend"></a><div class="block" name="text::setblend">
+<div class="api"><span class="AS-keyword">void</span> <span class="AS-classtype">Text</span>::SetBlend(BlendOperation)</div></div>
+<a name="text::getblendfactorsrc"></a><div class="block" name="text::getblendfactorsrc">
+<div class="api">BlendFactor <span class="AS-classtype">Text</span>::GetBlendFactorSrc()</div></div>
+<a name="text::setblendfactorsrc"></a><div class="block" name="text::setblendfactorsrc">
+<div class="api"><span class="AS-keyword">void</span> <span class="AS-classtype">Text</span>::SetBlendFactorSrc(BlendFactor)</div></div>
+<a name="text::getblendfactordst"></a><div class="block" name="text::getblendfactordst">
+<div class="api">BlendFactor <span class="AS-classtype">Text</span>::GetBlendFactorDst()</div></div>
+<a name="text::setblendfactordst"></a><div class="block" name="text::setblendfactordst">
+<div class="api"><span class="AS-keyword">void</span> <span class="AS-classtype">Text</span>::SetBlendFactorDst(BlendFactor)</div></div>
+<a name="text::getdrawmode"></a><div class="block" name="text::getdrawmode">
+<div class="api">DrawModeOperation <span class="AS-classtype">Text</span>::GetDrawMode()</div></div>
+<a name="text::setdrawmode"></a><div class="block" name="text::setdrawmode">
+<div class="api"><span class="AS-keyword">void</span> <span class="AS-classtype">Text</span>::SetDrawMode(DrawModeOperation)</div></div>
+<a name="text::getculling"></a><div class="block" name="text::getculling">
+<div class="api">CullingOperation <span class="AS-classtype">Text</span>::GetCulling()</div></div>
+<a name="text::setculling"></a><div class="block" name="text::setculling">
+<div class="api"><span class="AS-keyword">void</span> <span class="AS-classtype">Text</span>::SetCulling(CullingOperation)</div></div>
+<a name="text::getdepth"></a><div class="block" name="text::getdepth">
+<div class="api">DepthOperation <span class="AS-classtype">Text</span>::GetDepth()</div></div>
+<a name="text::setdepth"></a><div class="block" name="text::setdepth">
+<div class="api"><span class="AS-keyword">void</span> <span class="AS-classtype">Text</span>::SetDepth(DepthOperation)</div></div>
+<a name="text::hittest"></a><div class="block" name="text::hittest">
+<div class="api"><span class="AS-keyword">bool</span> <span class="AS-classtype">Text</span>::HitTest(<span class="AS-keyword">double</span>, <span class="AS-keyword">double</span>, <span class="AS-classtype">OrthoCamera</span>@)</div></div>
+<a name="text::opimplcast"></a><div class="block" name="text::opimplcast">
+<div class="api"><span class="AS-classtype">Node</span>@ <span class="AS-classtype">Text</span>::opImplCast()</div></div>
+</div><a name="array"></a><h2 name="array">array</h2>
+<div name="array"><a name="array"></a><div class="block" name="array">
+<div class="api"><span class="AS-keyword">class</span> <span class="AS-classtype">array</span> {
+	T[]@ $list(<span class="AS-keyword">int</span>&<span class="AS-keyword">in</span> type, <span class="AS-keyword">int</span>&<span class="AS-keyword">in</span> list) { repeat T };
+	T& opIndex(<span class="AS-keyword">uint</span> index);
+	<span class="AS-keyword">const</span> T& opIndex(<span class="AS-keyword">uint</span> index) <span class="AS-keyword">const</span>;
+	T[]& opAssign(<span class="AS-keyword">const</span> T[]&<span class="AS-keyword">in</span>);
+	<span class="AS-keyword">void</span> insertAt(<span class="AS-keyword">uint</span> index, <span class="AS-keyword">const</span> T&<span class="AS-keyword">in</span> value);
+	<span class="AS-keyword">void</span> insertAt(<span class="AS-keyword">uint</span> index, <span class="AS-keyword">const</span> T[]&<span class="AS-keyword">inout</span> arr);
+	<span class="AS-keyword">void</span> insertLast(<span class="AS-keyword">const</span> T&<span class="AS-keyword">in</span> value);
+	<span class="AS-keyword">void</span> removeAt(<span class="AS-keyword">uint</span> index);
+	<span class="AS-keyword">void</span> removeLast();
+	<span class="AS-keyword">void</span> removeRange(<span class="AS-keyword">uint</span> start, <span class="AS-keyword">uint</span> count);
+	<span class="AS-keyword">uint</span> length() <span class="AS-keyword">const</span>;
+	<span class="AS-keyword">void</span> reserve(<span class="AS-keyword">uint</span> length);
+	<span class="AS-keyword">void</span> resize(<span class="AS-keyword">uint</span> length);
+	<span class="AS-keyword">void</span> sortAsc();
+	<span class="AS-keyword">void</span> sortAsc(<span class="AS-keyword">uint</span> startAt, <span class="AS-keyword">uint</span> count);
+	<span class="AS-keyword">void</span> sortDesc();
+	<span class="AS-keyword">void</span> sortDesc(<span class="AS-keyword">uint</span> startAt, <span class="AS-keyword">uint</span> count);
+	<span class="AS-keyword">void</span> reverse();
+	<span class="AS-keyword">int</span> find(<span class="AS-keyword">const</span> T&<span class="AS-keyword">in</span> value) <span class="AS-keyword">const</span>;
+	<span class="AS-keyword">int</span> find(<span class="AS-keyword">uint</span> startAt, <span class="AS-keyword">const</span> T&<span class="AS-keyword">in</span> value) <span class="AS-keyword">const</span>;
+	<span class="AS-keyword">int</span> findByRef(<span class="AS-keyword">const</span> T&<span class="AS-keyword">in</span> value) <span class="AS-keyword">const</span>;
+	<span class="AS-keyword">int</span> findByRef(<span class="AS-keyword">uint</span> startAt, <span class="AS-keyword">const</span> T&<span class="AS-keyword">in</span> value) <span class="AS-keyword">const</span>;
+	<span class="AS-keyword">bool</span> opEquals(<span class="AS-keyword">const</span> T[]&<span class="AS-keyword">in</span>) <span class="AS-keyword">const</span>;
+	<span class="AS-keyword">bool</span> isEmpty() <span class="AS-keyword">const</span>;
+	<span class="AS-keyword">void</span> sort(<span class="AS-classtype">array</span>::less&<span class="AS-keyword">in</span>, <span class="AS-keyword">uint</span> startAt = <span class="AS-number">0</span>, <span class="AS-keyword">uint</span> count = <span class="AS-keyword">uint</span> ( - <span class="AS-number">1</span> ));
+}</div></div>
+<a name="array::$list"></a><div class="block" name="array::$list">
+<div class="api">T[]@ $list(<span class="AS-keyword">int</span>&<span class="AS-keyword">in</span> type, <span class="AS-keyword">int</span>&<span class="AS-keyword">in</span> list) { repeat T }</div></div>
+<a name="array::opindex"></a><div class="block" name="array::opindex">
+<div class="api">T& <span class="AS-classtype">array</span>::opIndex(<span class="AS-keyword">uint</span> index)</div></div>
+<a name="array::opindex"></a><div class="block" name="array::opindex">
+<div class="api"><span class="AS-keyword">const</span> T& <span class="AS-classtype">array</span>::opIndex(<span class="AS-keyword">uint</span> index) <span class="AS-keyword">const</span></div></div>
+<a name="array::opassign"></a><div class="block" name="array::opassign">
+<div class="api">T[]& <span class="AS-classtype">array</span>::opAssign(<span class="AS-keyword">const</span> T[]&<span class="AS-keyword">in</span>)</div></div>
+<a name="array::insertat"></a><div class="block" name="array::insertat">
+<div class="api"><span class="AS-keyword">void</span> <span class="AS-classtype">array</span>::insertAt(<span class="AS-keyword">uint</span> index, <span class="AS-keyword">const</span> T&<span class="AS-keyword">in</span> value)</div></div>
+<a name="array::insertat"></a><div class="block" name="array::insertat">
+<div class="api"><span class="AS-keyword">void</span> <span class="AS-classtype">array</span>::insertAt(<span class="AS-keyword">uint</span> index, <span class="AS-keyword">const</span> T[]&<span class="AS-keyword">inout</span> arr)</div></div>
+<a name="array::insertlast"></a><div class="block" name="array::insertlast">
+<div class="api"><span class="AS-keyword">void</span> <span class="AS-classtype">array</span>::insertLast(<span class="AS-keyword">const</span> T&<span class="AS-keyword">in</span> value)</div></div>
+<a name="array::removeat"></a><div class="block" name="array::removeat">
+<div class="api"><span class="AS-keyword">void</span> <span class="AS-classtype">array</span>::removeAt(<span class="AS-keyword">uint</span> index)</div></div>
+<a name="array::removelast"></a><div class="block" name="array::removelast">
+<div class="api"><span class="AS-keyword">void</span> <span class="AS-classtype">array</span>::removeLast()</div></div>
+<a name="array::removerange"></a><div class="block" name="array::removerange">
+<div class="api"><span class="AS-keyword">void</span> <span class="AS-classtype">array</span>::removeRange(<span class="AS-keyword">uint</span> start, <span class="AS-keyword">uint</span> count)</div></div>
+<a name="array::length"></a><div class="block" name="array::length">
+<div class="api"><span class="AS-keyword">uint</span> <span class="AS-classtype">array</span>::length() <span class="AS-keyword">const</span></div></div>
+<a name="array::reserve"></a><div class="block" name="array::reserve">
+<div class="api"><span class="AS-keyword">void</span> <span class="AS-classtype">array</span>::reserve(<span class="AS-keyword">uint</span> length)</div></div>
+<a name="array::resize"></a><div class="block" name="array::resize">
+<div class="api"><span class="AS-keyword">void</span> <span class="AS-classtype">array</span>::resize(<span class="AS-keyword">uint</span> length)</div></div>
+<a name="array::sortasc"></a><div class="block" name="array::sortasc">
+<div class="api"><span class="AS-keyword">void</span> <span class="AS-classtype">array</span>::sortAsc()</div></div>
+<a name="array::sortasc"></a><div class="block" name="array::sortasc">
+<div class="api"><span class="AS-keyword">void</span> <span class="AS-classtype">array</span>::sortAsc(<span class="AS-keyword">uint</span> startAt, <span class="AS-keyword">uint</span> count)</div></div>
+<a name="array::sortdesc"></a><div class="block" name="array::sortdesc">
+<div class="api"><span class="AS-keyword">void</span> <span class="AS-classtype">array</span>::sortDesc()</div></div>
+<a name="array::sortdesc"></a><div class="block" name="array::sortdesc">
+<div class="api"><span class="AS-keyword">void</span> <span class="AS-classtype">array</span>::sortDesc(<span class="AS-keyword">uint</span> startAt, <span class="AS-keyword">uint</span> count)</div></div>
+<a name="array::reverse"></a><div class="block" name="array::reverse">
+<div class="api"><span class="AS-keyword">void</span> <span class="AS-classtype">array</span>::reverse()</div></div>
+<a name="array::find"></a><div class="block" name="array::find">
+<div class="api"><span class="AS-keyword">int</span> <span class="AS-classtype">array</span>::find(<span class="AS-keyword">const</span> T&<span class="AS-keyword">in</span> value) <span class="AS-keyword">const</span></div></div>
+<a name="array::find"></a><div class="block" name="array::find">
+<div class="api"><span class="AS-keyword">int</span> <span class="AS-classtype">array</span>::find(<span class="AS-keyword">uint</span> startAt, <span class="AS-keyword">const</span> T&<span class="AS-keyword">in</span> value) <span class="AS-keyword">const</span></div></div>
+<a name="array::findbyref"></a><div class="block" name="array::findbyref">
+<div class="api"><span class="AS-keyword">int</span> <span class="AS-classtype">array</span>::findByRef(<span class="AS-keyword">const</span> T&<span class="AS-keyword">in</span> value) <span class="AS-keyword">const</span></div></div>
+<a name="array::findbyref"></a><div class="block" name="array::findbyref">
+<div class="api"><span class="AS-keyword">int</span> <span class="AS-classtype">array</span>::findByRef(<span class="AS-keyword">uint</span> startAt, <span class="AS-keyword">const</span> T&<span class="AS-keyword">in</span> value) <span class="AS-keyword">const</span></div></div>
+<a name="array::opequals"></a><div class="block" name="array::opequals">
+<div class="api"><span class="AS-keyword">bool</span> <span class="AS-classtype">array</span>::opEquals(<span class="AS-keyword">const</span> T[]&<span class="AS-keyword">in</span>) <span class="AS-keyword">const</span></div></div>
+<a name="array::isempty"></a><div class="block" name="array::isempty">
+<div class="api"><span class="AS-keyword">bool</span> <span class="AS-classtype">array</span>::isEmpty() <span class="AS-keyword">const</span></div></div>
+<a name="array::sort"></a><div class="block" name="array::sort">
+<div class="api"><span class="AS-keyword">void</span> <span class="AS-classtype">array</span>::sort(<span class="AS-classtype">array</span>::less&<span class="AS-keyword">in</span>, <span class="AS-keyword">uint</span> startAt = <span class="AS-number">0</span>, <span class="AS-keyword">uint</span> count = <span class="AS-keyword">uint</span> ( - <span class="AS-number">1</span> ))</div></div>
+</div><a name="dictionary"></a><h2 name="dictionary">dictionary</h2>
+<div name="dictionary"><a name="dictionary"></a><div class="block" name="dictionary">
+<div class="api"><span class="AS-keyword">class</span> <span class="AS-classtype">dictionary</span> {
+	<span class="AS-classtype">dictionary</span>@ $list(<span class="AS-keyword">int</span>&<span class="AS-keyword">in</span>) { repeat { <span class="AS-valuetype">string</span>, ? } };
+	<span class="AS-classtype">dictionary</span>& opAssign(<span class="AS-keyword">const</span> <span class="AS-classtype">dictionary</span>&<span class="AS-keyword">in</span>);
+	<span class="AS-keyword">void</span> set(<span class="AS-keyword">const</span> <span class="AS-valuetype">string</span>&<span class="AS-keyword">in</span>, <span class="AS-keyword">const</span> ?&<span class="AS-keyword">in</span>);
+	<span class="AS-keyword">bool</span> <span class="AS-keyword">get</span>(<span class="AS-keyword">const</span> <span class="AS-valuetype">string</span>&<span class="AS-keyword">in</span>, ?&<span class="AS-keyword">out</span>) <span class="AS-keyword">const</span>;
+	<span class="AS-keyword">void</span> set(<span class="AS-keyword">const</span> <span class="AS-valuetype">string</span>&<span class="AS-keyword">in</span>, <span class="AS-keyword">const</span> <span class="AS-keyword">int64</span>&<span class="AS-keyword">in</span>);
+	<span class="AS-keyword">bool</span> <span class="AS-keyword">get</span>(<span class="AS-keyword">const</span> <span class="AS-valuetype">string</span>&<span class="AS-keyword">in</span>, <span class="AS-keyword">int64</span>&<span class="AS-keyword">out</span>) <span class="AS-keyword">const</span>;
+	<span class="AS-keyword">void</span> set(<span class="AS-keyword">const</span> <span class="AS-valuetype">string</span>&<span class="AS-keyword">in</span>, <span class="AS-keyword">const</span> <span class="AS-keyword">double</span>&<span class="AS-keyword">in</span>);
+	<span class="AS-keyword">bool</span> <span class="AS-keyword">get</span>(<span class="AS-keyword">const</span> <span class="AS-valuetype">string</span>&<span class="AS-keyword">in</span>, <span class="AS-keyword">double</span>&<span class="AS-keyword">out</span>) <span class="AS-keyword">const</span>;
+	<span class="AS-keyword">bool</span> exists(<span class="AS-keyword">const</span> <span class="AS-valuetype">string</span>&<span class="AS-keyword">in</span>) <span class="AS-keyword">const</span>;
+	<span class="AS-keyword">bool</span> isEmpty() <span class="AS-keyword">const</span>;
+	<span class="AS-keyword">uint</span> getSize() <span class="AS-keyword">const</span>;
+	<span class="AS-keyword">bool</span> delete(<span class="AS-keyword">const</span> <span class="AS-valuetype">string</span>&<span class="AS-keyword">in</span>);
+	<span class="AS-keyword">void</span> deleteAll();
+	<span class="AS-valuetype">string</span>[]@ getKeys() <span class="AS-keyword">const</span>;
+	<span class="AS-valuetype">dictionaryValue</span>& opIndex(<span class="AS-keyword">const</span> <span class="AS-valuetype">string</span>&<span class="AS-keyword">in</span>);
+	<span class="AS-keyword">const</span> <span class="AS-valuetype">dictionaryValue</span>& opIndex(<span class="AS-keyword">const</span> <span class="AS-valuetype">string</span>&<span class="AS-keyword">in</span>) <span class="AS-keyword">const</span>;
+}</div></div>
+<a name="dictionary::$list"></a><div class="block" name="dictionary::$list">
+<div class="api"><span class="AS-classtype">dictionary</span>@ $list(<span class="AS-keyword">int</span>&<span class="AS-keyword">in</span>) { repeat { <span class="AS-valuetype">string</span>, ? } }</div></div>
+<a name="dictionary::opassign"></a><div class="block" name="dictionary::opassign">
+<div class="api"><span class="AS-classtype">dictionary</span>& <span class="AS-classtype">dictionary</span>::opAssign(<span class="AS-keyword">const</span> <span class="AS-classtype">dictionary</span>&<span class="AS-keyword">in</span>)</div></div>
+<a name="dictionary::set"></a><div class="block" name="dictionary::set">
+<div class="api"><span class="AS-keyword">void</span> <span class="AS-classtype">dictionary</span>::set(<span class="AS-keyword">const</span> <span class="AS-valuetype">string</span>&<span class="AS-keyword">in</span>, <span class="AS-keyword">const</span> ?&<span class="AS-keyword">in</span>)</div></div>
+<a name="dictionary::get"></a><div class="block" name="dictionary::get">
+<div class="api"><span class="AS-keyword">bool</span> <span class="AS-classtype">dictionary</span>::<span class="AS-keyword">get</span>(<span class="AS-keyword">const</span> <span class="AS-valuetype">string</span>&<span class="AS-keyword">in</span>, ?&<span class="AS-keyword">out</span>) <span class="AS-keyword">const</span></div></div>
+<a name="dictionary::set"></a><div class="block" name="dictionary::set">
+<div class="api"><span class="AS-keyword">void</span> <span class="AS-classtype">dictionary</span>::set(<span class="AS-keyword">const</span> <span class="AS-valuetype">string</span>&<span class="AS-keyword">in</span>, <span class="AS-keyword">const</span> <span class="AS-keyword">int64</span>&<span class="AS-keyword">in</span>)</div></div>
+<a name="dictionary::get"></a><div class="block" name="dictionary::get">
+<div class="api"><span class="AS-keyword">bool</span> <span class="AS-classtype">dictionary</span>::<span class="AS-keyword">get</span>(<span class="AS-keyword">const</span> <span class="AS-valuetype">string</span>&<span class="AS-keyword">in</span>, <span class="AS-keyword">int64</span>&<span class="AS-keyword">out</span>) <span class="AS-keyword">const</span></div></div>
+<a name="dictionary::set"></a><div class="block" name="dictionary::set">
+<div class="api"><span class="AS-keyword">void</span> <span class="AS-classtype">dictionary</span>::set(<span class="AS-keyword">const</span> <span class="AS-valuetype">string</span>&<span class="AS-keyword">in</span>, <span class="AS-keyword">const</span> <span class="AS-keyword">double</span>&<span class="AS-keyword">in</span>)</div></div>
+<a name="dictionary::get"></a><div class="block" name="dictionary::get">
+<div class="api"><span class="AS-keyword">bool</span> <span class="AS-classtype">dictionary</span>::<span class="AS-keyword">get</span>(<span class="AS-keyword">const</span> <span class="AS-valuetype">string</span>&<span class="AS-keyword">in</span>, <span class="AS-keyword">double</span>&<span class="AS-keyword">out</span>) <span class="AS-keyword">const</span></div></div>
+<a name="dictionary::exists"></a><div class="block" name="dictionary::exists">
+<div class="api"><span class="AS-keyword">bool</span> <span class="AS-classtype">dictionary</span>::exists(<span class="AS-keyword">const</span> <span class="AS-valuetype">string</span>&<span class="AS-keyword">in</span>) <span class="AS-keyword">const</span></div></div>
+<a name="dictionary::isempty"></a><div class="block" name="dictionary::isempty">
+<div class="api"><span class="AS-keyword">bool</span> <span class="AS-classtype">dictionary</span>::isEmpty() <span class="AS-keyword">const</span></div></div>
+<a name="dictionary::getsize"></a><div class="block" name="dictionary::getsize">
+<div class="api"><span class="AS-keyword">uint</span> <span class="AS-classtype">dictionary</span>::getSize() <span class="AS-keyword">const</span></div></div>
+<a name="dictionary::delete"></a><div class="block" name="dictionary::delete">
+<div class="api"><span class="AS-keyword">bool</span> <span class="AS-classtype">dictionary</span>::delete(<span class="AS-keyword">const</span> <span class="AS-valuetype">string</span>&<span class="AS-keyword">in</span>)</div></div>
+<a name="dictionary::deleteall"></a><div class="block" name="dictionary::deleteall">
+<div class="api"><span class="AS-keyword">void</span> <span class="AS-classtype">dictionary</span>::deleteAll()</div></div>
+<a name="dictionary::getkeys"></a><div class="block" name="dictionary::getkeys">
+<div class="api"><span class="AS-valuetype">string</span>[]@ <span class="AS-classtype">dictionary</span>::getKeys() <span class="AS-keyword">const</span></div></div>
+<a name="dictionary::opindex"></a><div class="block" name="dictionary::opindex">
+<div class="api"><span class="AS-valuetype">dictionaryValue</span>& <span class="AS-classtype">dictionary</span>::opIndex(<span class="AS-keyword">const</span> <span class="AS-valuetype">string</span>&<span class="AS-keyword">in</span>)</div></div>
+<a name="dictionary::opindex"></a><div class="block" name="dictionary::opindex">
+<div class="api"><span class="AS-keyword">const</span> <span class="AS-valuetype">dictionaryValue</span>& <span class="AS-classtype">dictionary</span>::opIndex(<span class="AS-keyword">const</span> <span class="AS-valuetype">string</span>&<span class="AS-keyword">in</span>) <span class="AS-keyword">const</span></div></div>
+</div></div><a name="___globalfunctions"></a><h1 name="global functions">Global Functions</h1>
+<div name="___globalfunctions"><a name="assignnode"></a><div class="block" name="assignnode">
+<div class="api"><span class="AS-keyword">bool</span> SceneManager::AssignNode(<span class="AS-classtype">Node</span>@, <span class="AS-keyword">uint</span>)</div></div>
+<a name="assignnode"></a><div class="block" name="assignnode">
+<div class="api"><span class="AS-keyword">bool</span> NodeManager::AssignNode(<span class="AS-classtype">Node</span>@, <span class="AS-keyword">uint</span>)</div></div>
+<a name="assignnodeat"></a><div class="block" name="assignnodeat">
+<div class="api"><span class="AS-keyword">bool</span> NodeManager::AssignNodeAt(<span class="AS-classtype">Node</span>@, <span class="AS-keyword">uint</span>, <span class="AS-keyword">uint</span>)</div></div>
+<a name="calculateframespersecond"></a><div class="block" name="calculateframespersecond">
+<div class="api"><span class="AS-keyword">double</span> CalculateFramesPerSecond(<span class="AS-keyword">uint</span> frameCount, <span class="AS-keyword">double</span> duration)</div></div>
+<a name="checkfororphans"></a><div class="block" name="checkfororphans">
+<div class="api"><span class="AS-keyword">void</span> NodeManager::CheckForOrphans()</div></div>
+<a name="createfog"></a><div class="block" name="createfog">
+<div class="api"><span class="AS-classtype">Fog</span>& NodeManager::CreateFog()</div></div>
+<a name="createlighting"></a><div class="block" name="createlighting">
+<div class="api"><span class="AS-classtype">Lighting</span>& NodeManager::CreateLighting()</div></div>
+<a name="createorthocamera"></a><div class="block" name="createorthocamera">
+<div class="api"><span class="AS-classtype">OrthoCamera</span>& NodeManager::CreateOrthoCamera()</div></div>
+<a name="createscene"></a><div class="block" name="createscene">
+<div class="api"><span class="AS-keyword">uint</span> SceneManager::CreateScene(<span class="AS-keyword">bool</span>)</div></div>
+<a name="createsprite"></a><div class="block" name="createsprite">
+<div class="api"><span class="AS-classtype">Sprite</span>& NodeManager::CreateSprite()</div></div>
+<a name="createtext"></a><div class="block" name="createtext">
+<div class="api"><span class="AS-classtype">Text</span>& NodeManager::CreateText()</div></div>
+<a name="debugprint"></a><div class="block" name="debugprint">
+<div class="api"><span class="AS-keyword">void</span> DebugPrint(<span class="AS-keyword">const</span> <span class="AS-keyword">int</span> logLevel, <span class="AS-keyword">const</span> <span class="AS-valuetype">string</span> message)</div></div>
+<a name="debugprintif"></a><div class="block" name="debugprintif">
+<div class="api"><span class="AS-keyword">void</span> DebugPrintIf(<span class="AS-keyword">const</span> <span class="AS-keyword">bool</span> condition, <span class="AS-keyword">const</span> <span class="AS-keyword">int</span> logLevel, <span class="AS-keyword">const</span> <span class="AS-valuetype">string</span> message)</div></div>
+<a name="deletenode"></a><div class="block" name="deletenode">
+<div class="api"><span class="AS-keyword">void</span> NodeManager::DeleteNode(<span class="AS-keyword">uint</span>)</div></div>
+<a name="getavailablemonitorcount"></a><div class="block" name="getavailablemonitorcount">
+<div class="api"><span class="AS-keyword">uint</span> GetAvailableMonitorCount()</div></div>
+<a name="getclipboardstring"></a><div class="block" name="getclipboardstring">
+<div class="api"><span class="AS-valuetype">string</span> GetClipboardString()</div></div>
+<a name="getdurationseconds"></a><div class="block" name="getdurationseconds">
+<div class="api"><span class="AS-keyword">double</span> GetDurationSeconds(<span class="AS-keyword">uint64</span> start, <span class="AS-keyword">uint64</span> end)</div></div>
+<a name="getfreephysicalmemory"></a><div class="block" name="getfreephysicalmemory">
+<div class="api"><span class="AS-keyword">uint</span> GetFreePhysicalMemory()</div></div>
+<a name="getfreevirtualmemory"></a><div class="block" name="getfreevirtualmemory">
+<div class="api"><span class="AS-keyword">uint</span> GetFreeVirtualMemory()</div></div>
+<a name="getjoystickaxisstates"></a><div class="block" name="getjoystickaxisstates">
+<div class="api"><span class="AS-valuetype">JoystickAxisStates</span> GetJoystickAxisStates(<span class="AS-keyword">uint</span> joystickID)</div></div>
+<a name="getjoystickbuttonstates"></a><div class="block" name="getjoystickbuttonstates">
+<div class="api"><span class="AS-valuetype">JoystickButtonStates</span> GetJoystickButtonStates(<span class="AS-keyword">uint</span> joystickID)</div></div>
+<a name="getjoystickhatcount"></a><div class="block" name="getjoystickhatcount">
+<div class="api"><span class="AS-keyword">uint</span> GetJoystickHatCount(<span class="AS-keyword">uint</span> joystickID)</div></div>
+<a name="getjoystickhatdirection"></a><div class="block" name="getjoystickhatdirection">
+<div class="api"><span class="AS-keyword">uint</span> GetJoystickHatDirection(<span class="AS-keyword">uint</span> joystickID, <span class="AS-keyword">uint</span> hatIndex)</div></div>
+<a name="getkeypressed"></a><div class="block" name="getkeypressed">
+<div class="api"><span class="AS-keyword">uint</span> GetKeyPressed(<span class="AS-keyword">uint</span> key)</div></div>
+<a name="getmillisecondsnow"></a><div class="block" name="getmillisecondsnow">
+<div class="api"><span class="AS-keyword">uint64</span> GetMillisecondsNow()</div></div>
+<a name="getmonitorvideomode"></a><div class="block" name="getmonitorvideomode">
+<div class="api"><span class="AS-valuetype">MonitorVideoMode</span> GetMonitorVideoMode(<span class="AS-keyword">uint</span> monitorIndex)</div></div>
+<a name="getmonitorvideomodes"></a><div class="block" name="getmonitorvideomodes">
+<div class="api"><span class="AS-valuetype">MonitorVideoMode</span>[]@ GetMonitorVideoModes(<span class="AS-keyword">uint</span> monitorIndex)</div></div>
+<a name="getmousebuttonpressed"></a><div class="block" name="getmousebuttonpressed">
+<div class="api"><span class="AS-keyword">uint</span> GetMouseButtonPressed(<span class="AS-keyword">uint</span> button)</div></div>
+<a name="getmousecursorposition"></a><div class="block" name="getmousecursorposition">
+<div class="api"><span class="AS-valuetype">Vec2D</span> GetMouseCursorPosition()</div></div>
+<a name="getnode"></a><div class="block" name="getnode">
+<div class="api"><span class="AS-classtype">Node</span>@ NodeManager::GetNode(<span class="AS-keyword">uint</span>)</div></div>
+<a name="getrandomdouble"></a><div class="block" name="getrandomdouble">
+<div class="api"><span class="AS-keyword">double</span> GetRandomDouble()</div></div>
+<a name="getrandomintinrange"></a><div class="block" name="getrandomintinrange">
+<div class="api"><span class="AS-keyword">int</span> GetRandomIntInRange(<span class="AS-keyword">int</span> start, <span class="AS-keyword">int</span> end)</div></div>
+<a name="gettimenow"></a><div class="block" name="gettimenow">
+<div class="api"><span class="AS-valuetype">Time</span> GetTimeNow()</div></div>
+<a name="gettotalphysicalmemory"></a><div class="block" name="gettotalphysicalmemory">
+<div class="api"><span class="AS-keyword">uint</span> GetTotalPhysicalMemory()</div></div>
+<a name="gettotalvirtualmemory"></a><div class="block" name="gettotalvirtualmemory">
+<div class="api"><span class="AS-keyword">uint</span> GetTotalVirtualMemory()</div></div>
+<a name="getwindowsize"></a><div class="block" name="getwindowsize">
+<div class="api"><span class="AS-valuetype">SizeI</span> GetWindowSize()</div></div>
+<a name="joystickisgamepad"></a><div class="block" name="joystickisgamepad">
+<div class="api"><span class="AS-keyword">bool</span> JoystickIsGamepad(<span class="AS-keyword">uint</span> joystickID)</div></div>
+<a name="joystickispresent"></a><div class="block" name="joystickispresent">
+<div class="api"><span class="AS-keyword">bool</span> JoystickIsPresent(<span class="AS-keyword">uint</span> joystickID)</div></div>
+<a name="loadfont"></a><div class="block" name="loadfont">
+<div class="api"><span class="AS-keyword">bool</span> FontManager::LoadFont(<span class="AS-valuetype">string</span>)</div></div>
+<a name="purgenodes"></a><div class="block" name="purgenodes">
+<div class="api"><span class="AS-keyword">void</span> NodeManager::PurgeNodes()</div></div>
+<a name="render"></a><div class="block" name="render">
+<div class="api"><span class="AS-keyword">bool</span> SceneManager::Render()</div></div>
+<a name="seedrandom"></a><div class="block" name="seedrandom">
+<div class="api"><span class="AS-keyword">void</span> SeedRandom()</div></div>
+<a name="seedrandomwithvalue"></a><div class="block" name="seedrandomwithvalue">
+<div class="api"><span class="AS-keyword">void</span> SeedRandomWithValue(<span class="AS-keyword">int</span> value)</div></div>
+<a name="setclipboardstring"></a><div class="block" name="setclipboardstring">
+<div class="api"><span class="AS-keyword">void</span> SetClipboardString(<span class="AS-valuetype">string</span>)</div></div>
+<a name="setcurrentscene"></a><div class="block" name="setcurrentscene">
+<div class="api"><span class="AS-keyword">void</span> SceneManager::SetCurrentScene(<span class="AS-keyword">uint</span>)</div></div>
+<a name="setcursormode"></a><div class="block" name="setcursormode">
+<div class="api"><span class="AS-keyword">void</span> SetCursorMode(CursorMode)</div></div>
+<a name="setjoystickconnectcallback"></a><div class="block" name="setjoystickconnectcallback">
+<div class="api"><span class="AS-keyword">void</span> SetJoystickConnectCallback(JoystickConnectCallback@ joystickConnectCallback)</div></div>
+<a name="setmousecursorposition"></a><div class="block" name="setmousecursorposition">
+<div class="api"><span class="AS-keyword">void</span> SetMouseCursorPosition(<span class="AS-keyword">double</span> xPos, <span class="AS-keyword">double</span> yPos)</div></div>
+<a name="setwindowdropcallback"></a><div class="block" name="setwindowdropcallback">
+<div class="api"><span class="AS-keyword">void</span> SetWindowDropCallback(WindowDropCallback@ windowDropCallback)</div></div>
+<a name="setwindowfocuscallback"></a><div class="block" name="setwindowfocuscallback">
+<div class="api"><span class="AS-keyword">void</span> SetWindowFocusCallback(WindowFocusCallback@ windowFocusCallback)</div></div>
+<a name="setwindowiconifycallback"></a><div class="block" name="setwindowiconifycallback">
+<div class="api"><span class="AS-keyword">void</span> SetWindowIconifyCallback(WindowIconifyCallback@ windowIconifyCallback)</div></div>
+<a name="setwindowkeyboardcharactercallback"></a><div class="block" name="setwindowkeyboardcharactercallback">
+<div class="api"><span class="AS-keyword">void</span> SetWindowKeyboardCharacterCallback(WindowKeyboardCharacterCallback@ windowKeyboardCharacterCallback)</div></div>
+<a name="setwindowkeyboardkeycallback"></a><div class="block" name="setwindowkeyboardkeycallback">
+<div class="api"><span class="AS-keyword">void</span> SetWindowKeyboardKeyCallback(WindowKeyboardKeyCallback@ windowKeyboardKeyCallback)</div></div>
+<a name="setwindowmaximizecallback"></a><div class="block" name="setwindowmaximizecallback">
+<div class="api"><span class="AS-keyword">void</span> SetWindowMaximizeCallback(WindowMaximizeCallback@ windowMaximizeCallback)</div></div>
+<a name="setwindowmousebuttoncallback"></a><div class="block" name="setwindowmousebuttoncallback">
+<div class="api"><span class="AS-keyword">void</span> SetWindowMouseButtonCallback(WindowMouseButtonCallback@ windowMouseButtonCallback)</div></div>
+<a name="setwindowmousecursorentercallback"></a><div class="block" name="setwindowmousecursorentercallback">
+<div class="api"><span class="AS-keyword">void</span> SetWindowMouseCursorEnterCallback(WindowMouseCursorEnterCallback@ windowMouseCursorEnterCallback)</div></div>
+<a name="setwindowmousecursorpositioncallback"></a><div class="block" name="setwindowmousecursorpositioncallback">
+<div class="api"><span class="AS-keyword">void</span> SetWindowMouseCursorPositionCallback(WindowMouseCursorPositionCallback@ windowMouseCursorPositionCallback)</div></div>
+<a name="setwindowmousescrollcallback"></a><div class="block" name="setwindowmousescrollcallback">
+<div class="api"><span class="AS-keyword">void</span> SetWindowMouseScrollCallback(WindowMouseScrollCallback@ windowMouseScrollCallback)</div></div>
+<a name="setwindowsizecallback"></a><div class="block" name="setwindowsizecallback">
+<div class="api"><span class="AS-keyword">void</span> SetWindowSizeCallback(WindowSizeCallback@ windowSizeCallback)</div></div>
+<a name="sleepmilliseconds"></a><div class="block" name="sleepmilliseconds">
+<div class="api"><span class="AS-keyword">void</span> SleepMilliseconds(<span class="AS-keyword">uint</span> milliseconds)</div></div>
+<a name="update"></a><div class="block" name="update">
+<div class="api"><span class="AS-keyword">bool</span> SceneManager::Update(<span class="AS-keyword">float</span>)</div></div>
+<a name="windowclose"></a><div class="block" name="windowclose">
+<div class="api"><span class="AS-keyword">void</span> WindowClose()</div></div>
+<a name="windowcreatewithsize"></a><div class="block" name="windowcreatewithsize">
+<div class="api"><span class="AS-keyword">void</span> WindowCreateWithSize(<span class="AS-keyword">uint</span> width, <span class="AS-keyword">uint</span> height, <span class="AS-valuetype">string</span>&<span class="AS-keyword">in</span> title)</div></div>
+<a name="windowcreatewithvideomode"></a><div class="block" name="windowcreatewithvideomode">
+<div class="api"><span class="AS-keyword">void</span> WindowCreateWithVideoMode(<span class="AS-valuetype">MonitorVideoMode</span> monitorVideoMode, <span class="AS-valuetype">string</span>&<span class="AS-keyword">in</span> title)</div></div>
+<a name="abs"></a><div class="block" name="abs">
+<div class="api"><span class="AS-keyword">float</span> abs(<span class="AS-keyword">float</span>)</div></div>
+<a name="acos"></a><div class="block" name="acos">
+<div class="api"><span class="AS-keyword">float</span> acos(<span class="AS-keyword">float</span>)</div></div>
+<a name="asin"></a><div class="block" name="asin">
+<div class="api"><span class="AS-keyword">float</span> asin(<span class="AS-keyword">float</span>)</div></div>
+<a name="atan"></a><div class="block" name="atan">
+<div class="api"><span class="AS-keyword">float</span> atan(<span class="AS-keyword">float</span>)</div></div>
+<a name="atan2"></a><div class="block" name="atan2">
+<div class="api"><span class="AS-keyword">float</span> atan2(<span class="AS-keyword">float</span>, <span class="AS-keyword">float</span>)</div></div>
+<a name="ceil"></a><div class="block" name="ceil">
+<div class="api"><span class="AS-keyword">float</span> ceil(<span class="AS-keyword">float</span>)</div></div>
+<a name="closeto"></a><div class="block" name="closeto">
+<div class="api"><span class="AS-keyword">bool</span> closeTo(<span class="AS-keyword">float</span>, <span class="AS-keyword">float</span>, <span class="AS-keyword">float</span> = <span class="AS-number">0</span>.<span class="AS-number">00001f</span>)</div></div>
+<a name="closeto"></a><div class="block" name="closeto">
+<div class="api"><span class="AS-keyword">bool</span> closeTo(<span class="AS-keyword">double</span>, <span class="AS-keyword">double</span>, <span class="AS-keyword">double</span> = <span class="AS-number">0</span>.<span class="AS-number">0000000001</span>)</div></div>
+<a name="cos"></a><div class="block" name="cos">
+<div class="api"><span class="AS-keyword">float</span> cos(<span class="AS-keyword">float</span>)</div></div>
+<a name="cosh"></a><div class="block" name="cosh">
+<div class="api"><span class="AS-keyword">float</span> cosh(<span class="AS-keyword">float</span>)</div></div>
+<a name="floor"></a><div class="block" name="floor">
+<div class="api"><span class="AS-keyword">float</span> floor(<span class="AS-keyword">float</span>)</div></div>
+<a name="formatfloat"></a><div class="block" name="formatfloat">
+<div class="api"><span class="AS-valuetype">string</span> formatFloat(<span class="AS-keyword">double</span> val, <span class="AS-keyword">const</span> <span class="AS-valuetype">string</span>&<span class="AS-keyword">in</span> options = "", <span class="AS-keyword">uint</span> width = <span class="AS-number">0</span>, <span class="AS-keyword">uint</span> precision = <span class="AS-number">0</span>)</div></div>
+<a name="formatint"></a><div class="block" name="formatint">
+<div class="api"><span class="AS-valuetype">string</span> formatInt(<span class="AS-keyword">int64</span> val, <span class="AS-keyword">const</span> <span class="AS-valuetype">string</span>&<span class="AS-keyword">in</span> options = "", <span class="AS-keyword">uint</span> width = <span class="AS-number">0</span>)</div></div>
+<a name="formatuint"></a><div class="block" name="formatuint">
+<div class="api"><span class="AS-valuetype">string</span> formatUInt(<span class="AS-keyword">uint64</span> val, <span class="AS-keyword">const</span> <span class="AS-valuetype">string</span>&<span class="AS-keyword">in</span> options = "", <span class="AS-keyword">uint</span> width = <span class="AS-number">0</span>)</div></div>
+<a name="fpfromieee"></a><div class="block" name="fpfromieee">
+<div class="api"><span class="AS-keyword">double</span> fpFromIEEE(<span class="AS-keyword">uint64</span>)</div></div>
+<a name="fpfromieee"></a><div class="block" name="fpfromieee">
+<div class="api"><span class="AS-keyword">float</span> fpFromIEEE(<span class="AS-keyword">uint</span>)</div></div>
+<a name="fptoieee"></a><div class="block" name="fptoieee">
+<div class="api"><span class="AS-keyword">uint64</span> fpToIEEE(<span class="AS-keyword">double</span>)</div></div>
+<a name="fptoieee"></a><div class="block" name="fptoieee">
+<div class="api"><span class="AS-keyword">uint</span> fpToIEEE(<span class="AS-keyword">float</span>)</div></div>
+<a name="fraction"></a><div class="block" name="fraction">
+<div class="api"><span class="AS-keyword">float</span> fraction(<span class="AS-keyword">float</span>)</div></div>
+<a name="log"></a><div class="block" name="log">
+<div class="api"><span class="AS-keyword">float</span> log(<span class="AS-keyword">float</span>)</div></div>
+<a name="log10"></a><div class="block" name="log10">
+<div class="api"><span class="AS-keyword">float</span> log10(<span class="AS-keyword">float</span>)</div></div>
+<a name="parsefloat"></a><div class="block" name="parsefloat">
+<div class="api"><span class="AS-keyword">double</span> parseFloat(<span class="AS-keyword">const</span> <span class="AS-valuetype">string</span>&<span class="AS-keyword">in</span>, <span class="AS-keyword">uint</span>&<span class="AS-keyword">out</span> byteCount = <span class="AS-number">0</span>)</div></div>
+<a name="parseint"></a><div class="block" name="parseint">
+<div class="api"><span class="AS-keyword">int64</span> parseInt(<span class="AS-keyword">const</span> <span class="AS-valuetype">string</span>&<span class="AS-keyword">in</span>, <span class="AS-keyword">uint</span> base = <span class="AS-number">10</span>, <span class="AS-keyword">uint</span>&<span class="AS-keyword">out</span> byteCount = <span class="AS-number">0</span>)</div></div>
+<a name="parseuint"></a><div class="block" name="parseuint">
+<div class="api"><span class="AS-keyword">uint64</span> parseUInt(<span class="AS-keyword">const</span> <span class="AS-valuetype">string</span>&<span class="AS-keyword">in</span>, <span class="AS-keyword">uint</span> base = <span class="AS-number">10</span>, <span class="AS-keyword">uint</span>&<span class="AS-keyword">out</span> byteCount = <span class="AS-number">0</span>)</div></div>
+<a name="pow"></a><div class="block" name="pow">
+<div class="api"><span class="AS-keyword">float</span> pow(<span class="AS-keyword">float</span>, <span class="AS-keyword">float</span>)</div></div>
+<a name="sin"></a><div class="block" name="sin">
+<div class="api"><span class="AS-keyword">float</span> sin(<span class="AS-keyword">float</span>)</div></div>
+<a name="sinh"></a><div class="block" name="sinh">
+<div class="api"><span class="AS-keyword">float</span> sinh(<span class="AS-keyword">float</span>)</div></div>
+<a name="sqrt"></a><div class="block" name="sqrt">
+<div class="api"><span class="AS-keyword">float</span> sqrt(<span class="AS-keyword">float</span>)</div></div>
+<a name="tan"></a><div class="block" name="tan">
+<div class="api"><span class="AS-keyword">float</span> tan(<span class="AS-keyword">float</span>)</div></div>
+<a name="tanh"></a><div class="block" name="tanh">
+<div class="api"><span class="AS-keyword">float</span> tanh(<span class="AS-keyword">float</span>)</div></div>
+</div></div>
+</body>
+</html>
