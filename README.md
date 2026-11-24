@@ -13,7 +13,7 @@
 </p>
 
 The web site for [Nexgen Redux](https://github.com/Team-Resurgent/NexgenRedux): a guide, a searchable script reference, and
-every demo with its whole script. The reference for the first engine is kept under `v1`.
+every demo with its whole script.
 
 **Read it at [team-resurgent.github.io/NexgenRedux-Docs](https://team-resurgent.github.io/NexgenRedux-Docs/).**
 
@@ -29,7 +29,6 @@ every demo with its whole script. The reference for the first engine is kept und
 | `index.html`, `guide.html` | Home and the guide | `docs/Guide.md` in NexgenRedux |
 | `reference.html` | Everything that scripts can call | `docs/ScriptReference.md`, which the engine writes |
 | `demos.html` | Every demo and its script | `engine/media/showcase` |
-| [`v1/index.html`](https://team-resurgent.github.io/NexgenRedux-Docs/v1/) | The first engine's reference | Kept as it was |
 
 Press **F4** to search. The pages need no server: clone the repository and open `index.html`.
 
