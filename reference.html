@@ -1,0 +1,343 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Nexgen Redux script reference</title>
+<style>
+:root { --back: #0f1219; --panel: #171c28; --line: #283044; --text: #dfe5f0; --dim: #93a0b8; --accent: #5b9bff; --code: #11151f; --kw: #7fb2ff; --type: #5fd6c0; --str: #f0b878; --num: #d6a6ff; --com: #6f7d96; }
+@media (prefers-color-scheme: light) { :root { --back: #fafbfd; --panel: #ffffff; --line: #d9dfea; --text: #1c2433; --dim: #5c687d; --accent: #1b62d6; --code: #f1f4f9; --kw: #1b4fb8; --type: #0b7a68; --str: #9a5a0c; --num: #7a35b8; --com: #77839a; } }
+* { box-sizing: border-box; }
+html { scroll-padding-top: 72px; }
+body { margin: 0; background: var(--back); color: var(--text); font: 16px/1.6 system-ui, "Segoe UI", Helvetica, Arial, sans-serif; }
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+header { position: sticky; top: 0; z-index: 2; display: flex; flex-wrap: wrap; gap: 4px 22px; align-items: center; padding: 10px 24px; background: var(--panel); border-bottom: 1px solid var(--line); }
+header .name { font-weight: 700; font-size: 20px; color: var(--text); margin-right: 10px; }
+header a.here { color: var(--text); border-bottom: 2px solid var(--accent); }
+header input { margin-left: auto; min-width: 200px; flex: 0 1 300px; padding: 7px 12px; border: 1px solid var(--line); border-radius: 8px; background: var(--back); color: var(--text); font: inherit; font-size: 15px; }
+.page { display: grid; grid-template-columns: 230px minmax(0, 1fr); max-width: 1240px; margin: 0 auto; }
+.page.wide { grid-template-columns: minmax(0, 1fr); }
+nav { position: sticky; top: 58px; align-self: start; max-height: calc(100vh - 58px); overflow: auto; padding: 24px 12px 40px 24px; font-size: 15px; }
+nav a { display: block; padding: 2px 0; color: var(--dim); overflow-wrap: anywhere; }
+main { padding: 24px 24px 80px; min-width: 0; }
+h1 { font-size: 34px; line-height: 1.2; margin: 8px 0 16px; }
+h2 { font-size: 24px; margin: 40px 0 8px; padding-top: 12px; border-top: 1px solid var(--line); }
+h3 { font-size: 18px; margin: 24px 0 4px; }
+.scroll { overflow-x: auto; }
+table { border-collapse: collapse; width: 100%; margin: 12px 0; }
+td, th { text-align: left; vertical-align: top; padding: 7px 12px 7px 0; border-bottom: 1px solid var(--line); }
+.api td:first-child { width: 52%; }
+code { font: 14px/1.5 ui-monospace, Consolas, Menlo, monospace; }
+p code, li code, td code { background: var(--code); border-radius: 5px; padding: 1px 5px; }
+.api td code { background: none; padding: 0; }
+pre { background: var(--code); border: 1px solid var(--line); border-radius: 10px; padding: 14px 16px; overflow-x: auto; }
+.k { color: var(--kw); } .t { color: var(--type); } .s { color: var(--str); } .n { color: var(--num); } .c { color: var(--com); font-style: italic; }
+.tag { font-size: 13px; color: var(--dim); }
+.shots { display: grid; grid-template-columns: repeat(auto-fill, minmax(270px, 1fr)); gap: 14px; margin: 20px 0; }
+.shots img { width: 100%; height: auto; border-radius: 10px; border: 1px solid var(--line); display: block; }
+.shots figure { margin: 0; } .shots figcaption { color: var(--dim); font-size: 14px; }
+.cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 14px; margin: 24px 0; }
+.cards a { display: block; padding: 16px 18px; background: var(--panel); border: 1px solid var(--line); border-radius: 12px; color: var(--dim); }
+.cards b { display: block; color: var(--text); font-size: 18px; }
+.lead { font-size: 19px; color: var(--dim); max-width: 46em; }
+details { border: 1px solid var(--line); border-radius: 10px; margin: 10px 0; background: var(--panel); }
+summary { cursor: pointer; padding: 10px 16px; } details pre { border-width: 1px 0 0; border-radius: 0 0 10px 10px; margin: 0; }
+.none { color: var(--dim); }
+[hidden] { display: none !important; }
+@media (max-width: 800px) { .page { grid-template-columns: minmax(0, 1fr); } nav { display: none; } main { padding: 16px 16px 60px; } header { padding: 10px 16px; } .api td { display: block; width: auto !important; border-bottom: 0; padding: 2px 0; } .api tr { display: block; padding: 8px 0; border-bottom: 1px solid var(--line); } }
+</style>
+</head>
+<body>
+<header><a class="name" href="index.html">Nexgen Redux</a> <a href="index.html">Home</a> <a href="guide.html">Guide</a> <a class="here" href="reference.html">Script reference</a> <a href="demos.html">Demos</a> <a href="https://github.com/Team-Resurgent/NexgenRedux">GitHub</a> <input id="search" type="search" placeholder="Search (F4)" aria-label="Search"></header>
+<div class="page"><nav><a href="#color">Color</a><a href="#texture">Texture</a><a href="#font">Font</a><a href="#sound">Sound</a><a href="#assets">assets</a><a href="#blend">Blend</a><a href="#filter">Filter</a><a href="#align">Align</a><a href="#canvas">Canvas</a><a href="#input">input</a><a href="#bus">Bus</a><a href="#voice">Voice</a><a href="#sound-more">Sound</a><a href="#audio">audio</a><a href="#coroutine">Coroutine</a><a href="#coroutines">Coroutines</a><a href="#save">save</a><a href="#screen">Screen</a><a href="#screens">screens</a><a href="#app">app</a><a href="#maths">Maths</a><a href="#ease">Ease</a><a href="#tween">Tween</a></nav><main><h1>Script reference</h1><p class="lead">Everything that scripts can call, written by the engine itself.</p><section id="color" data-title="color"><h2>Color</h2>
+<p>Red, green, blue and alpha, each 0 to 1.</p>
+<table class="api">
+<tr data-find="color() opaque black."><td><code><span class="t">Color</span>()</code></td><td>Opaque black.</td></tr>
+<tr data-find="color(float r, float g, float b, float a = 1) from its parts."><td><code><span class="t">Color</span>(<span class="k">float</span> r, <span class="k">float</span> g, <span class="k">float</span> b, <span class="k">float</span> a = <span class="n">1</span>)</code></td><td>From its parts.</td></tr>
+<tr data-find="float r red."><td><code><span class="k">float</span> r</code></td><td>Red.</td></tr>
+<tr data-find="float g green."><td><code><span class="k">float</span> g</code></td><td>Green.</td></tr>
+<tr data-find="float b blue."><td><code><span class="k">float</span> b</code></td><td>Blue.</td></tr>
+<tr data-find="float a alpha: 0 is invisible."><td><code><span class="k">float</span> a</code></td><td>Alpha: 0 is invisible.</td></tr>
+<tr data-find="const color white a ready-made colour."><td><code><span class="k">const</span> <span class="t">Color</span> <span class="t">White</span></code></td><td>A ready-made colour.</td></tr>
+<tr data-find="const color black a ready-made colour."><td><code><span class="k">const</span> <span class="t">Color</span> <span class="t">Black</span></code></td><td>A ready-made colour.</td></tr>
+<tr data-find="const color red a ready-made colour."><td><code><span class="k">const</span> <span class="t">Color</span> <span class="t">Red</span></code></td><td>A ready-made colour.</td></tr>
+<tr data-find="const color orange a ready-made colour."><td><code><span class="k">const</span> <span class="t">Color</span> <span class="t">Orange</span></code></td><td>A ready-made colour.</td></tr>
+<tr data-find="const color yellow a ready-made colour."><td><code><span class="k">const</span> <span class="t">Color</span> <span class="t">Yellow</span></code></td><td>A ready-made colour.</td></tr>
+<tr data-find="const color green a ready-made colour."><td><code><span class="k">const</span> <span class="t">Color</span> <span class="t">Green</span></code></td><td>A ready-made colour.</td></tr>
+<tr data-find="const color blue a ready-made colour."><td><code><span class="k">const</span> <span class="t">Color</span> <span class="t">Blue</span></code></td><td>A ready-made colour.</td></tr>
+<tr data-find="const color purple a ready-made colour."><td><code><span class="k">const</span> <span class="t">Color</span> <span class="t">Purple</span></code></td><td>A ready-made colour.</td></tr>
+<tr data-find="const color gray a ready-made colour."><td><code><span class="k">const</span> <span class="t">Color</span> <span class="t">Gray</span></code></td><td>A ready-made colour.</td></tr>
+<tr data-find="color hsv(float hue, float saturation, float value) a colour from its hue (0 to 1 around the wheel), saturation and brightness."><td><code><span class="t">Color</span> hsv(<span class="k">float</span> hue, <span class="k">float</span> saturation, <span class="k">float</span> value)</code></td><td>A colour from its hue (0 to 1 around the wheel), saturation and brightness.</td></tr>
+<tr data-find="color fade(const color &amp;in color, float alpha) the same colour, more transparent."><td><code><span class="t">Color</span> fade(<span class="k">const</span> <span class="t">Color</span> &amp;<span class="k">in</span> color, <span class="k">float</span> alpha)</code></td><td>The same colour, more transparent.</td></tr>
+</table></section>
+<section id="texture" data-title="texture"><h2>Texture</h2>
+<p>An image. Loaded once and shared by everyone who asks for it.</p>
+<table class="api">
+<tr data-find="float width width in its own pixels."><td><code><span class="k">float</span> width</code></td><td>Width in its own pixels.</td></tr>
+<tr data-find="float height height in its own pixels."><td><code><span class="k">float</span> height</code></td><td>Height in its own pixels.</td></tr>
+<tr data-find="bool failed whether the file could not be loaded. it then draws as a checkerboard."><td><code><span class="k">bool</span> failed</code></td><td>Whether the file could not be loaded. It then draws as a checkerboard.</td></tr>
+<tr data-find="bool ready whether it has arrived. until then it draws as nothing."><td><code><span class="k">bool</span> ready</code></td><td>Whether it has arrived. Until then it draws as nothing.</td></tr>
+</table></section>
+<section id="font" data-title="font"><h2>Font</h2>
+<p>A scalable SSFN font at one size.</p>
+<table class="api">
+<tr data-find="vec2 measure(const string &amp;in text) const how much room some text takes."><td><code><span class="t">Vec2</span> measure(<span class="k">const</span> <span class="k">string</span> &amp;<span class="k">in</span> text) <span class="k">const</span></code></td><td>How much room some text takes.</td></tr>
+<tr data-find="bool failed whether the file could not be loaded."><td><code><span class="k">bool</span> failed</code></td><td>Whether the file could not be loaded.</td></tr>
+</table></section>
+<section id="sound" data-title="sound"><h2>Sound</h2>
+<p>Something to play: WAV, Ogg Vorbis, MP3 or cooked. Short effects are kept ready; long music is decoded while it plays.</p>
+</section>
+<section id="assets" data-title="assets"><h2>assets</h2>
+<p>Loading. Names start with <code>asset:</code> for the screen&#x27;s own files or <code>global:</code> for shared ones.</p>
+<table class="api">
+<tr data-find="texture@ assets::texture(const string &amp;in name) an image: png, jpeg, tga, bmp or gif, up to 2048 pixels a side. what a screen asks for as it is made is ready by onenter(); later ones arrive in the background."><td><code><span class="t">Texture</span>@ assets::texture(<span class="k">const</span> <span class="k">string</span> &amp;<span class="k">in</span> name)</code></td><td>An image: PNG, JPEG, TGA, BMP or GIF, up to 2048 pixels a side. What a screen asks for as it is made is ready by onEnter(); later ones arrive in the background.</td></tr>
+<tr data-find="sound@ assets::sound(const string &amp;in name) a sound. arrives like an image."><td><code><span class="t">Sound</span>@ assets::sound(<span class="k">const</span> <span class="k">string</span> &amp;<span class="k">in</span> name)</code></td><td>A sound. Arrives like an image.</td></tr>
+<tr data-find="uint assets::pending() files still on their way."><td><code><span class="k">uint</span> assets::pending()</code></td><td>Files still on their way.</td></tr>
+<tr data-find="uint assets::texturekilobytes() memory that images and fonts take."><td><code><span class="k">uint</span> assets::textureKilobytes()</code></td><td>Memory that images and fonts take.</td></tr>
+<tr data-find="uint assets::soundkilobytes() memory that sounds take."><td><code><span class="k">uint</span> assets::soundKilobytes()</code></td><td>Memory that sounds take.</td></tr>
+<tr data-find="uint assets::soundbudgetkilobytes() memory that sounds may take."><td><code><span class="k">uint</span> assets::soundBudgetKilobytes()</code></td><td>Memory that sounds may take.</td></tr>
+<tr data-find="font@ assets::font(const string &amp;in name, uint size) a font at a size in design units."><td><code><span class="t">Font</span>@ assets::font(<span class="k">const</span> <span class="k">string</span> &amp;<span class="k">in</span> name, <span class="k">uint</span> size)</code></td><td>A font at a size in design units.</td></tr>
+<tr data-find="uint assets::inuse() assets that something is holding."><td><code><span class="k">uint</span> assets::inUse()</code></td><td>Assets that something is holding.</td></tr>
+<tr data-find="uint assets::warm() assets kept ready though nothing holds them."><td><code><span class="k">uint</span> assets::warm()</code></td><td>Assets kept ready though nothing holds them.</td></tr>
+<tr data-find="uint assets::hits() requests served without reading a file."><td><code><span class="k">uint</span> assets::hits()</code></td><td>Requests served without reading a file.</td></tr>
+<tr data-find="uint assets::loads() files read."><td><code><span class="k">uint</span> assets::loads()</code></td><td>Files read.</td></tr>
+<tr data-find="uint assets::evictions() assets unloaded to make room."><td><code><span class="k">uint</span> assets::evictions()</code></td><td>Assets unloaded to make room.</td></tr>
+<tr data-find="uint assets::kilobytes() memory the loaded assets take."><td><code><span class="k">uint</span> assets::kilobytes()</code></td><td>Memory the loaded assets take.</td></tr>
+<tr data-find="uint assets::budgetkilobytes() memory that images and fonts may take."><td><code><span class="k">uint</span> assets::budgetKilobytes()</code></td><td>Memory that images and fonts may take.</td></tr>
+<tr data-find="void assets::trim() unloads everything that isn&#x27;t held. rarely needed."><td><code><span class="k">void</span> assets::trim()</code></td><td>Unloads everything that isn&#x27;t held. Rarely needed.</td></tr>
+</table></section>
+<section id="blend" data-title="blend"><h2>Blend</h2>
+<p>How drawing combines with what is there.</p>
+<table class="api">
+<tr data-find="blendnone replaces it."><td><code><span class="t">BlendNone</span></code></td><td>Replaces it.</td></tr>
+<tr data-find="blendalpha covers it, by alpha."><td><code><span class="t">BlendAlpha</span></code></td><td>Covers it, by alpha.</td></tr>
+<tr data-find="blendadd adds light to it."><td><code><span class="t">BlendAdd</span></code></td><td>Adds light to it.</td></tr>
+</table></section>
+<section id="filter" data-title="filter"><h2>Filter</h2>
+<p>How images are scaled.</p>
+<table class="api">
+<tr data-find="filterlinear smoothly."><td><code><span class="t">FilterLinear</span></code></td><td>Smoothly.</td></tr>
+<tr data-find="filternearest as sharp pixels."><td><code><span class="t">FilterNearest</span></code></td><td>As sharp pixels.</td></tr>
+</table></section>
+<section id="align" data-title="align"><h2>Align</h2>
+<p>Which part of some text sits at its position.</p>
+<table class="api">
+<tr data-find="alignleft its left edge."><td><code><span class="t">AlignLeft</span></code></td><td>Its left edge.</td></tr>
+<tr data-find="aligncenter its middle."><td><code><span class="t">AlignCenter</span></code></td><td>Its middle.</td></tr>
+<tr data-find="alignright its right edge."><td><code><span class="t">AlignRight</span></code></td><td>Its right edge.</td></tr>
+</table></section>
+<section id="canvas" data-title="canvas"><h2>Canvas</h2>
+<p>2D drawing, passed to a screen&#x27;s draw(). Positions are in design units from the top left, y down.</p>
+<table class="api">
+<tr data-find="void design(float width, float height) draws on a screen of this size, fitted inside the real one. call it first."><td><code><span class="k">void</span> design(<span class="k">float</span> width, <span class="k">float</span> height)</code></td><td>Draws on a screen of this size, fitted inside the real one. Call it first.</td></tr>
+<tr data-find="void designheight(float height) the same, but as wide as the real screen&#x27;s shape allows. lay out by width."><td><code><span class="k">void</span> designHeight(<span class="k">float</span> height)</code></td><td>The same, but as wide as the real screen&#x27;s shape allows. Lay out by width.</td></tr>
+<tr data-find="float width design width."><td><code><span class="k">float</span> width</code></td><td>Design width.</td></tr>
+<tr data-find="float height design height."><td><code><span class="k">float</span> height</code></td><td>Design height.</td></tr>
+<tr data-find="void push() saves position, rotation, scale, alpha, blend, filter and clip."><td><code><span class="k">void</span> push()</code></td><td>Saves position, rotation, scale, alpha, blend, filter and clip.</td></tr>
+<tr data-find="void pop() goes back to the last push()."><td><code><span class="k">void</span> pop()</code></td><td>Goes back to the last push().</td></tr>
+<tr data-find="void translate(float x, float y) moves what is drawn next."><td><code><span class="k">void</span> translate(<span class="k">float</span> x, <span class="k">float</span> y)</code></td><td>Moves what is drawn next.</td></tr>
+<tr data-find="void rotate(float degrees) turns it clockwise."><td><code><span class="k">void</span> rotate(<span class="k">float</span> degrees)</code></td><td>Turns it clockwise.</td></tr>
+<tr data-find="void scale(float x, float y) resizes it."><td><code><span class="k">void</span> scale(<span class="k">float</span> x, <span class="k">float</span> y)</code></td><td>Resizes it.</td></tr>
+<tr data-find="void setalpha(float alpha) fades everything drawn next."><td><code><span class="k">void</span> setAlpha(<span class="k">float</span> alpha)</code></td><td>Fades everything drawn next.</td></tr>
+<tr data-find="void setblend(blend blend) chooses how it combines."><td><code><span class="k">void</span> setBlend(<span class="t">Blend</span> blend)</code></td><td>Chooses how it combines.</td></tr>
+<tr data-find="void setfilter(filter filter) chooses how images are scaled."><td><code><span class="k">void</span> setFilter(<span class="t">Filter</span> filter)</code></td><td>Chooses how images are scaled.</td></tr>
+<tr data-find="void clip(float x, float y, float w, float h) draws nothing outside an area. clips within clips overlap."><td><code><span class="k">void</span> clip(<span class="k">float</span> x, <span class="k">float</span> y, <span class="k">float</span> w, <span class="k">float</span> h)</code></td><td>Draws nothing outside an area. Clips within clips overlap.</td></tr>
+<tr data-find="void noclip() removes all clips."><td><code><span class="k">void</span> noClip()</code></td><td>Removes all clips.</td></tr>
+<tr data-find="void rect(float x, float y, float w, float h, const color &amp;in color) a filled rectangle."><td><code><span class="k">void</span> rect(<span class="k">float</span> x, <span class="k">float</span> y, <span class="k">float</span> w, <span class="k">float</span> h, <span class="k">const</span> <span class="t">Color</span> &amp;<span class="k">in</span> color)</code></td><td>A filled rectangle.</td></tr>
+<tr data-find="void rectline(float x, float y, float w, float h, float thickness, const color &amp;in color) a rectangle&#x27;s outline."><td><code><span class="k">void</span> rectLine(<span class="k">float</span> x, <span class="k">float</span> y, <span class="k">float</span> w, <span class="k">float</span> h, <span class="k">float</span> thickness, <span class="k">const</span> <span class="t">Color</span> &amp;<span class="k">in</span> color)</code></td><td>A rectangle&#x27;s outline.</td></tr>
+<tr data-find="void gradient(float x, float y, float w, float h, const color &amp;in top, const color &amp;in bottom) a rectangle fading from one colour to another."><td><code><span class="k">void</span> gradient(<span class="k">float</span> x, <span class="k">float</span> y, <span class="k">float</span> w, <span class="k">float</span> h, <span class="k">const</span> <span class="t">Color</span> &amp;<span class="k">in</span> top, <span class="k">const</span> <span class="t">Color</span> &amp;<span class="k">in</span> bottom)</code></td><td>A rectangle fading from one colour to another.</td></tr>
+<tr data-find="void roundrect(float x, float y, float w, float h, float radius, const color &amp;in color) a rectangle with round corners."><td><code><span class="k">void</span> roundRect(<span class="k">float</span> x, <span class="k">float</span> y, <span class="k">float</span> w, <span class="k">float</span> h, <span class="k">float</span> radius, <span class="k">const</span> <span class="t">Color</span> &amp;<span class="k">in</span> color)</code></td><td>A rectangle with round corners.</td></tr>
+<tr data-find="void line(float x1, float y1, float x2, float y2, float thickness, const color &amp;in color) a straight line."><td><code><span class="k">void</span> line(<span class="k">float</span> x1, <span class="k">float</span> y1, <span class="k">float</span> x2, <span class="k">float</span> y2, <span class="k">float</span> thickness, <span class="k">const</span> <span class="t">Color</span> &amp;<span class="k">in</span> color)</code></td><td>A straight line.</td></tr>
+<tr data-find="void circle(float x, float y, float radius, const color &amp;in color) a filled circle."><td><code><span class="k">void</span> circle(<span class="k">float</span> x, <span class="k">float</span> y, <span class="k">float</span> radius, <span class="k">const</span> <span class="t">Color</span> &amp;<span class="k">in</span> color)</code></td><td>A filled circle.</td></tr>
+<tr data-find="void ring(float x, float y, float radius, float thickness, const color &amp;in color) a circle&#x27;s outline."><td><code><span class="k">void</span> ring(<span class="k">float</span> x, <span class="k">float</span> y, <span class="k">float</span> radius, <span class="k">float</span> thickness, <span class="k">const</span> <span class="t">Color</span> &amp;<span class="k">in</span> color)</code></td><td>A circle&#x27;s outline.</td></tr>
+<tr data-find="void arc(float x, float y, float radius, float thickness, float from, float to, const color &amp;in color) part of a ring, or a slice of a circle, between two angles in degrees."><td><code><span class="k">void</span> arc(<span class="k">float</span> x, <span class="k">float</span> y, <span class="k">float</span> radius, <span class="k">float</span> thickness, <span class="k">float</span> from, <span class="k">float</span> to, <span class="k">const</span> <span class="t">Color</span> &amp;<span class="k">in</span> color)</code></td><td>Part of a ring, or a slice of a circle, between two angles in degrees.</td></tr>
+<tr data-find="void triangle(const vec2 &amp;in a, const vec2 &amp;in b, const vec2 &amp;in c, const color &amp;in ca, const color &amp;in cb, const color &amp;in cc) a triangle with a colour at each corner."><td><code><span class="k">void</span> triangle(<span class="k">const</span> <span class="t">Vec2</span> &amp;<span class="k">in</span> a, <span class="k">const</span> <span class="t">Vec2</span> &amp;<span class="k">in</span> b, <span class="k">const</span> <span class="t">Vec2</span> &amp;<span class="k">in</span> c, <span class="k">const</span> <span class="t">Color</span> &amp;<span class="k">in</span> ca, <span class="k">const</span> <span class="t">Color</span> &amp;<span class="k">in</span> cb, <span class="k">const</span> <span class="t">Color</span> &amp;<span class="k">in</span> cc)</code></td><td>A triangle with a colour at each corner.</td></tr>
+<tr data-find="void image(const texture@+ texture, float x, float y, const color &amp;in tint = white) an image at its own size."><td><code><span class="k">void</span> image(<span class="k">const</span> <span class="t">Texture</span>@+ texture, <span class="k">float</span> x, <span class="k">float</span> y, <span class="k">const</span> <span class="t">Color</span> &amp;<span class="k">in</span> tint = <span class="t">White</span>)</code></td><td>An image at its own size.</td></tr>
+<tr data-find="void image(const texture@+ texture, float x, float y, float w, float h, const color &amp;in tint = white) an image at any size."><td><code><span class="k">void</span> image(<span class="k">const</span> <span class="t">Texture</span>@+ texture, <span class="k">float</span> x, <span class="k">float</span> y, <span class="k">float</span> w, <span class="k">float</span> h, <span class="k">const</span> <span class="t">Color</span> &amp;<span class="k">in</span> tint = <span class="t">White</span>)</code></td><td>An image at any size.</td></tr>
+<tr data-find="void imagepart(const texture@+ texture, float x, float y, float w, float h, float sx, float sy, float sw, float sh, const color &amp;in tint = white) part of an image, given in its own pixels."><td><code><span class="k">void</span> imagePart(<span class="k">const</span> <span class="t">Texture</span>@+ texture, <span class="k">float</span> x, <span class="k">float</span> y, <span class="k">float</span> w, <span class="k">float</span> h, <span class="k">float</span> sx, <span class="k">float</span> sy, <span class="k">float</span> sw, <span class="k">float</span> sh, <span class="k">const</span> <span class="t">Color</span> &amp;<span class="k">in</span> tint = <span class="t">White</span>)</code></td><td>Part of an image, given in its own pixels.</td></tr>
+<tr data-find="void sprite(const texture@+ texture, uint columns, uint rows, uint frame, float x, float y, float w, float h, const color &amp;in tint = white) one frame from a sheet of equal frames."><td><code><span class="k">void</span> sprite(<span class="k">const</span> <span class="t">Texture</span>@+ texture, <span class="k">uint</span> columns, <span class="k">uint</span> rows, <span class="k">uint</span> frame, <span class="k">float</span> x, <span class="k">float</span> y, <span class="k">float</span> w, <span class="k">float</span> h, <span class="k">const</span> <span class="t">Color</span> &amp;<span class="k">in</span> tint = <span class="t">White</span>)</code></td><td>One frame from a sheet of equal frames.</td></tr>
+<tr data-find="void nineslice(const texture@+ texture, float x, float y, float w, float h, float corner, const color &amp;in tint = white) a stretchy panel whose corners keep their size."><td><code><span class="k">void</span> nineSlice(<span class="k">const</span> <span class="t">Texture</span>@+ texture, <span class="k">float</span> x, <span class="k">float</span> y, <span class="k">float</span> w, <span class="k">float</span> h, <span class="k">float</span> corner, <span class="k">const</span> <span class="t">Color</span> &amp;<span class="k">in</span> tint = <span class="t">White</span>)</code></td><td>A stretchy panel whose corners keep their size.</td></tr>
+<tr data-find="void tile(const texture@+ texture, float x, float y, float w, float h, float tilew, float tileh, float offsetx, float offsety, const color &amp;in tint = white) an image repeated over an area."><td><code><span class="k">void</span> tile(<span class="k">const</span> <span class="t">Texture</span>@+ texture, <span class="k">float</span> x, <span class="k">float</span> y, <span class="k">float</span> w, <span class="k">float</span> h, <span class="k">float</span> tileW, <span class="k">float</span> tileH, <span class="k">float</span> offsetX, <span class="k">float</span> offsetY, <span class="k">const</span> <span class="t">Color</span> &amp;<span class="k">in</span> tint = <span class="t">White</span>)</code></td><td>An image repeated over an area.</td></tr>
+<tr data-find="float text(const font@+ font, const string &amp;in text, float x, float y, const color &amp;in color = white, align align = alignleft) text from its top. returns its width."><td><code><span class="k">float</span> text(<span class="k">const</span> <span class="t">Font</span>@+ font, <span class="k">const</span> <span class="k">string</span> &amp;<span class="k">in</span> text, <span class="k">float</span> x, <span class="k">float</span> y, <span class="k">const</span> <span class="t">Color</span> &amp;<span class="k">in</span> color = <span class="t">White</span>, <span class="t">Align</span> align = <span class="t">AlignLeft</span>)</code></td><td>Text from its top. Returns its width.</td></tr>
+<tr data-find="float paragraph(const font@+ font, const string &amp;in text, float x, float y, float width, const color &amp;in color = white) text broken into lines to fit a width. returns its height."><td><code><span class="k">float</span> paragraph(<span class="k">const</span> <span class="t">Font</span>@+ font, <span class="k">const</span> <span class="k">string</span> &amp;<span class="k">in</span> text, <span class="k">float</span> x, <span class="k">float</span> y, <span class="k">float</span> width, <span class="k">const</span> <span class="t">Color</span> &amp;<span class="k">in</span> color = <span class="t">White</span>)</code></td><td>Text broken into lines to fit a width. Returns its height.</td></tr>
+</table></section>
+<section id="input" data-title="input"><h2>input</h2>
+<p>Actions are <code>up</code>, <code>down</code>, <code>left</code>, <code>right</code>, <code>accept</code>, <code>cancel</code>, <code>fire</code>, <code>alternate</code> and <code>menu</code>, from a keyboard, mouse or gamepad.</p>
+<table class="api">
+<tr data-find="bool input::held(const string &amp;in action) whether it is down now."><td><code><span class="k">bool</span> input::held(<span class="k">const</span> <span class="k">string</span> &amp;<span class="k">in</span> action)</code></td><td>Whether it is down now.</td></tr>
+<tr data-find="bool input::pressed(const string &amp;in action) whether it has just gone down."><td><code><span class="k">bool</span> input::pressed(<span class="k">const</span> <span class="k">string</span> &amp;<span class="k">in</span> action)</code></td><td>Whether it has just gone down.</td></tr>
+<tr data-find="bool input::released(const string &amp;in action) whether it has just been let go."><td><code><span class="k">bool</span> input::released(<span class="k">const</span> <span class="k">string</span> &amp;<span class="k">in</span> action)</code></td><td>Whether it has just been let go.</td></tr>
+<tr data-find="bool input::repeated(const string &amp;in action) pressed(), then again at intervals while held."><td><code><span class="k">bool</span> input::repeated(<span class="k">const</span> <span class="k">string</span> &amp;<span class="k">in</span> action)</code></td><td>pressed(), then again at intervals while held.</td></tr>
+<tr data-find="vec2 input::move() direction from keys, d-pad and left stick: x right, y down, never longer than 1."><td><code><span class="t">Vec2</span> input::move()</code></td><td>Direction from keys, d-pad and left stick: x right, y down, never longer than 1.</td></tr>
+<tr data-find="bool input::usingpad() whether a gamepad was used last."><td><code><span class="k">bool</span> input::usingPad()</code></td><td>Whether a gamepad was used last.</td></tr>
+<tr data-find="bool input::hasmouse() whether a mouse has moved."><td><code><span class="k">bool</span> input::hasMouse()</code></td><td>Whether a mouse has moved.</td></tr>
+<tr data-find="vec2 input::mouse() where the mouse is, in design units."><td><code><span class="t">Vec2</span> input::mouse()</code></td><td>Where the mouse is, in design units.</td></tr>
+<tr data-find="bool input::mousedown(uint button) left is 0, right 1, middle 2."><td><code><span class="k">bool</span> input::mouseDown(<span class="k">uint</span> button)</code></td><td>Left is 0, right 1, middle 2.</td></tr>
+<tr data-find="bool input::padconnected(uint pad) whether a gamepad (0 to 3) is plugged in."><td><code><span class="k">bool</span> input::padConnected(<span class="k">uint</span> pad)</code></td><td>Whether a gamepad (0 to 3) is plugged in.</td></tr>
+<tr data-find="vec2 input::padleft(uint pad) left stick, -1 to 1, y up."><td><code><span class="t">Vec2</span> input::padLeft(<span class="k">uint</span> pad)</code></td><td>Left stick, -1 to 1, y up.</td></tr>
+<tr data-find="vec2 input::padright(uint pad) right stick, -1 to 1, y up."><td><code><span class="t">Vec2</span> input::padRight(<span class="k">uint</span> pad)</code></td><td>Right stick, -1 to 1, y up.</td></tr>
+<tr data-find="vec2 input::padtriggers(uint pad) left and right triggers, 0 to 1."><td><code><span class="t">Vec2</span> input::padTriggers(<span class="k">uint</span> pad)</code></td><td>Left and right triggers, 0 to 1.</td></tr>
+<tr data-find="bool input::padbutton(uint pad, uint button) in order: up, down, left, right, start, back, left stick, right stick, a, b, x, y, left and right shoulder."><td><code><span class="k">bool</span> input::padButton(<span class="k">uint</span> pad, <span class="k">uint</span> button)</code></td><td>In order: up, down, left, right, Start, Back, left stick, right stick, A, B, X, Y, left and right shoulder.</td></tr>
+<tr data-find="void input::listen(const string &amp;in action) the next key or button pressed will do this. escape or start calls it off. not for `menu`."><td><code><span class="k">void</span> input::listen(<span class="k">const</span> <span class="k">string</span> &amp;<span class="k">in</span> action)</code></td><td>The next key or button pressed will do this. Escape or Start calls it off. Not for <code>menu</code>.</td></tr>
+<tr data-find="bool input::listening() whether it is still waiting for one."><td><code><span class="k">bool</span> input::listening()</code></td><td>Whether it is still waiting for one.</td></tr>
+<tr data-find="string input::keys(const string &amp;in action) the keys for an action, as text."><td><code><span class="k">string</span> input::keys(<span class="k">const</span> <span class="k">string</span> &amp;<span class="k">in</span> action)</code></td><td>The keys for an action, as text.</td></tr>
+<tr data-find="string input::buttons(const string &amp;in action) the gamepad buttons for an action, as text."><td><code><span class="k">string</span> input::buttons(<span class="k">const</span> <span class="k">string</span> &amp;<span class="k">in</span> action)</code></td><td>The gamepad buttons for an action, as text.</td></tr>
+<tr data-find="void input::resetbindings() puts them all back."><td><code><span class="k">void</span> input::resetBindings()</code></td><td>Puts them all back.</td></tr>
+</table></section>
+<section id="bus" data-title="bus"><h2>Bus</h2>
+<p>Groups of sounds with a volume each.</p>
+<table class="api">
+<tr data-find="buseffects sounds in the game."><td><code><span class="t">BusEffects</span></code></td><td>Sounds in the game.</td></tr>
+<tr data-find="busmusic music."><td><code><span class="t">BusMusic</span></code></td><td>Music.</td></tr>
+<tr data-find="businterface menus."><td><code><span class="t">BusInterface</span></code></td><td>Menus.</td></tr>
+</table></section>
+<section id="voice" data-title="voice"><h2>Voice</h2>
+<p>Something that is playing. Safe to use after it has ended.</p>
+<table class="api">
+<tr data-find="voice() nothing."><td><code><span class="t">Voice</span>()</code></td><td>Nothing.</td></tr>
+<tr data-find="bool playing whether it still is."><td><code><span class="k">bool</span> playing</code></td><td>Whether it still is.</td></tr>
+<tr data-find="float position seconds in."><td><code><span class="k">float</span> position</code></td><td>Seconds in.</td></tr>
+<tr data-find="void stop(float fadeseconds = 0) ends it."><td><code><span class="k">void</span> stop(<span class="k">float</span> fadeSeconds = <span class="n">0</span>)</code></td><td>Ends it.</td></tr>
+<tr data-find="void setvolume(float volume, float seconds = 0) changes how loud it is, over a time."><td><code><span class="k">void</span> setVolume(<span class="k">float</span> volume, <span class="k">float</span> seconds = <span class="n">0</span>)</code></td><td>Changes how loud it is, over a time.</td></tr>
+<tr data-find="void setpan(float pan) from -1, left, to 1, right."><td><code><span class="k">void</span> setPan(<span class="k">float</span> pan)</code></td><td>From -1, left, to 1, right.</td></tr>
+<tr data-find="void setpitch(float pitch) 1 is normal; 2 is an octave up, and twice as fast."><td><code><span class="k">void</span> setPitch(<span class="k">float</span> pitch)</code></td><td>1 is normal; 2 is an octave up, and twice as fast.</td></tr>
+<tr data-find="void setpaused(bool paused) holds it where it is."><td><code><span class="k">void</span> setPaused(<span class="k">bool</span> paused)</code></td><td>Holds it where it is.</td></tr>
+</table></section>
+<section id="sound-more" data-title="sound"><h2>Sound</h2>
+<table class="api">
+<tr data-find="voice play(float volume = 1, float pan = 0, float pitch = 1, bool loop = false) plays it as an effect. any number can play at once, up to the voices there are."><td><code><span class="t">Voice</span> play(<span class="k">float</span> volume = <span class="n">1</span>, <span class="k">float</span> pan = <span class="n">0</span>, <span class="k">float</span> pitch = <span class="n">1</span>, <span class="k">bool</span> loop = <span class="k">false</span>)</code></td><td>Plays it as an effect. Any number can play at once, up to the voices there are.</td></tr>
+<tr data-find="voice playmusic(float volume = 1, float fadeseconds = 0, bool loop = true) plays it as music, fading in."><td><code><span class="t">Voice</span> playMusic(<span class="k">float</span> volume = <span class="n">1</span>, <span class="k">float</span> fadeSeconds = <span class="n">0</span>, <span class="k">bool</span> loop = <span class="k">true</span>)</code></td><td>Plays it as music, fading in.</td></tr>
+<tr data-find="float seconds how long it is; 0 if that isn&#x27;t known."><td><code><span class="k">float</span> seconds</code></td><td>How long it is; 0 if that isn&#x27;t known.</td></tr>
+<tr data-find="bool ready whether it has arrived. until then it plays as silence."><td><code><span class="k">bool</span> ready</code></td><td>Whether it has arrived. Until then it plays as silence.</td></tr>
+<tr data-find="bool failed whether the file could not be loaded."><td><code><span class="k">bool</span> failed</code></td><td>Whether the file could not be loaded.</td></tr>
+</table></section>
+<section id="audio" data-title="audio"><h2>audio</h2>
+<p>Volumes, and what is being heard. A screen&#x27;s sounds pause while it is covered and stop when it closes.</p>
+<table class="api">
+<tr data-find="void audio::setvolume(bus bus, float volume) 0 to 1."><td><code><span class="k">void</span> audio::setVolume(<span class="t">Bus</span> bus, <span class="k">float</span> volume)</code></td><td>0 to 1.</td></tr>
+<tr data-find="float audio::volume(bus bus) 0 to 1."><td><code><span class="k">float</span> audio::volume(<span class="t">Bus</span> bus)</code></td><td>0 to 1.</td></tr>
+<tr data-find="void audio::setmastervolume(float volume) everything, 0 to 1."><td><code><span class="k">void</span> audio::setMasterVolume(<span class="k">float</span> volume)</code></td><td>Everything, 0 to 1.</td></tr>
+<tr data-find="float audio::mastervolume() 0 to 1."><td><code><span class="k">float</span> audio::masterVolume()</code></td><td>0 to 1.</td></tr>
+<tr data-find="float audio::level() how loud it has been lately, 0 to 1."><td><code><span class="k">float</span> audio::level()</code></td><td>How loud it has been lately, 0 to 1.</td></tr>
+<tr data-find="float audio::spectrum(uint band) how strong one of 32 bands is, low to high, 0 to 1."><td><code><span class="k">float</span> audio::spectrum(<span class="k">uint</span> band)</code></td><td>How strong one of 32 bands is, low to high, 0 to 1.</td></tr>
+<tr data-find="float audio::wave(uint index) one of the last 512 samples heard, -1 to 1."><td><code><span class="k">float</span> audio::wave(<span class="k">uint</span> index)</code></td><td>One of the last 512 samples heard, -1 to 1.</td></tr>
+<tr data-find="uint audio::voices() how many are playing."><td><code><span class="k">uint</span> audio::voices()</code></td><td>How many are playing.</td></tr>
+<tr data-find="uint audio::voicelimit() how many can."><td><code><span class="k">uint</span> audio::voiceLimit()</code></td><td>How many can.</td></tr>
+<tr data-find="string audio::output() what is playing it."><td><code><span class="k">string</span> audio::output()</code></td><td>What is playing it.</td></tr>
+</table></section>
+<section id="coroutine" data-title="void coroutine()"><h2>Coroutine</h2>
+<p>A function that can wait. It may be a method: <code>Coroutine(this.intro)</code>.</p>
+</section>
+<section id="coroutines" data-title="coroutines"><h2>Coroutines</h2>
+<p>Functions that run over many frames. They belong to their screen, pause with it and end with it.</p>
+<table class="api">
+<tr data-find="void start(coroutine@ function) runs it from the next update, alongside everything else."><td><code><span class="k">void</span> start(<span class="t">Coroutine</span>@ function)</code></td><td>Runs it from the next update, alongside everything else.</td></tr>
+<tr data-find="void wait(float seconds) inside a coroutine: carries on after a time."><td><code><span class="k">void</span> wait(<span class="k">float</span> seconds)</code></td><td>Inside a coroutine: carries on after a time.</td></tr>
+<tr data-find="void nextupdate() inside a coroutine: carries on at the next update."><td><code><span class="k">void</span> nextUpdate()</code></td><td>Inside a coroutine: carries on at the next update.</td></tr>
+<tr data-find="uint coroutines() how many are running."><td><code><span class="k">uint</span> coroutines()</code></td><td>How many are running.</td></tr>
+</table></section>
+<section id="save" data-title="save"><h2>save</h2>
+<p>Text that is kept between runs, by name.</p>
+<table class="api">
+<tr data-find="void save::set(const string &amp;in key, const string &amp;in value) keeps something."><td><code><span class="k">void</span> save::<span class="k">set</span>(<span class="k">const</span> <span class="k">string</span> &amp;<span class="k">in</span> key, <span class="k">const</span> <span class="k">string</span> &amp;<span class="k">in</span> value)</code></td><td>Keeps something.</td></tr>
+<tr data-find="string save::get(const string &amp;in key, const string &amp;in otherwise = &quot;&quot;) what was kept, or otherwise."><td><code><span class="k">string</span> save::<span class="k">get</span>(<span class="k">const</span> <span class="k">string</span> &amp;<span class="k">in</span> key, <span class="k">const</span> <span class="k">string</span> &amp;<span class="k">in</span> otherwise = <span class="s">&quot;&quot;</span>)</code></td><td>What was kept, or otherwise.</td></tr>
+<tr data-find="void save::remove(const string &amp;in key) forgets it."><td><code><span class="k">void</span> save::remove(<span class="k">const</span> <span class="k">string</span> &amp;<span class="k">in</span> key)</code></td><td>Forgets it.</td></tr>
+</table></section>
+<section id="screen" data-title="screen"><h2>Screen</h2>
+<p>One place in the app. A screen&#x27;s main.as has a class that implements this; it may have any of these methods.</p>
+<table class="api">
+<tr data-find="void onenter() called once, when it opens and everything it asked for has loaded."><td><code><span class="k">void</span> onEnter()</code></td><td>Called once, when it opens and everything it asked for has loaded.</td></tr>
+<tr data-find="void update(float dt) called 60 times a second. dt is in seconds."><td><code><span class="k">void</span> update(<span class="k">float</span> dt)</code></td><td>Called 60 times a second. dt is in seconds.</td></tr>
+<tr data-find="void draw(canvas@ canvas) called to draw each frame."><td><code><span class="k">void</span> draw(<span class="t">Canvas</span>@ canvas)</code></td><td>Called to draw each frame.</td></tr>
+<tr data-find="void onsuspend() called when another screen opens on top."><td><code><span class="k">void</span> onSuspend()</code></td><td>Called when another screen opens on top.</td></tr>
+<tr data-find="void onresume() called when that one closes again."><td><code><span class="k">void</span> onResume()</code></td><td>Called when that one closes again.</td></tr>
+<tr data-find="void onexit() called once, before it closes."><td><code><span class="k">void</span> onExit()</code></td><td>Called once, before it closes.</td></tr>
+</table></section>
+<section id="screens" data-title="screens"><h2>screens</h2>
+<p>Moving between screens. Changes happen after the current update.</p>
+<table class="api">
+<tr data-find="void screens::push(const string &amp;in id) opens a screen on top of this one."><td><code><span class="k">void</span> screens::push(<span class="k">const</span> <span class="k">string</span> &amp;<span class="k">in</span> id)</code></td><td>Opens a screen on top of this one.</td></tr>
+<tr data-find="void screens::pop() closes this screen and returns to the one below."><td><code><span class="k">void</span> screens::pop()</code></td><td>Closes this screen and returns to the one below.</td></tr>
+<tr data-find="void screens::replace(const string &amp;in id) closes this screen and opens another in its place."><td><code><span class="k">void</span> screens::replace(<span class="k">const</span> <span class="k">string</span> &amp;<span class="k">in</span> id)</code></td><td>Closes this screen and opens another in its place.</td></tr>
+<tr data-find="void screens::home() closes everything above the first screen."><td><code><span class="k">void</span> screens::home()</code></td><td>Closes everything above the first screen.</td></tr>
+<tr data-find="uint screens::count() how many screens can be opened."><td><code><span class="k">uint</span> screens::count()</code></td><td>How many screens can be opened.</td></tr>
+<tr data-find="string screens::id(uint index) the name to pass to push()."><td><code><span class="k">string</span> screens::id(<span class="k">uint</span> index)</code></td><td>The name to pass to push().</td></tr>
+<tr data-find="string screens::title(uint index) from its screen.json."><td><code><span class="k">string</span> screens::title(<span class="k">uint</span> index)</code></td><td>From its screen.json.</td></tr>
+<tr data-find="string screens::description(uint index) from its screen.json."><td><code><span class="k">string</span> screens::description(<span class="k">uint</span> index)</code></td><td>From its screen.json.</td></tr>
+<tr data-find="string screens::category(uint index) from its screen.json."><td><code><span class="k">string</span> screens::category(<span class="k">uint</span> index)</code></td><td>From its screen.json.</td></tr>
+</table></section>
+<section id="app" data-title="app"><h2>app</h2>
+<p>The machine and how it is doing.</p>
+<table class="api">
+<tr data-find="float app::time() seconds since the app started."><td><code><span class="k">float</span> app::time()</code></td><td>Seconds since the app started.</td></tr>
+<tr data-find="float app::fps() frames a second, averaged."><td><code><span class="k">float</span> app::fps()</code></td><td>Frames a second, averaged.</td></tr>
+<tr data-find="uint app::draws() draw calls in the last frame."><td><code><span class="k">uint</span> app::draws()</code></td><td>Draw calls in the last frame.</td></tr>
+<tr data-find="string app::platform() what it is running on."><td><code><span class="k">string</span> app::platform()</code></td><td>What it is running on.</td></tr>
+<tr data-find="string app::gpu() what is drawing."><td><code><span class="k">string</span> app::gpu()</code></td><td>What is drawing.</td></tr>
+<tr data-find="uint app::memorykilobytes() memory the engine has allocated, not counting video memory."><td><code><span class="k">uint</span> app::memoryKilobytes()</code></td><td>Memory the engine has allocated, not counting video memory.</td></tr>
+<tr data-find="uint app::scriptkilobytes() how much of that is scripts."><td><code><span class="k">uint</span> app::scriptKilobytes()</code></td><td>How much of that is scripts.</td></tr>
+<tr data-find="uint app::freekilobytes() memory the machine has left."><td><code><span class="k">uint</span> app::freeKilobytes()</code></td><td>Memory the machine has left.</td></tr>
+<tr data-find="bool app::development() whether it was started with --dev, so that changed files are reloaded."><td><code><span class="k">bool</span> app::development()</code></td><td>Whether it was started with --dev, so that changed files are reloaded.</td></tr>
+<tr data-find="uint app::reloads() how many times a script or image has been reloaded because its file changed."><td><code><span class="k">uint</span> app::reloads()</code></td><td>How many times a script or image has been reloaded because its file changed.</td></tr>
+</table></section>
+<section id="maths" data-title="maths"><h2>Maths</h2>
+<p>As well as AngelScript&#x27;s own <code>sin</code>, <code>cos</code>, <code>sqrt</code> and so on, in radians.</p>
+<table class="api">
+<tr data-find="float random() from 0 up to 1."><td><code><span class="k">float</span> random()</code></td><td>From 0 up to 1.</td></tr>
+<tr data-find="float random(float low, float high) between two numbers."><td><code><span class="k">float</span> random(<span class="k">float</span> low, <span class="k">float</span> high)</code></td><td>Between two numbers.</td></tr>
+<tr data-find="int randomint(int low, int high) a whole number from low to high, including both."><td><code><span class="k">int</span> randomInt(<span class="k">int</span> low, <span class="k">int</span> high)</code></td><td>A whole number from low to high, including both.</td></tr>
+<tr data-find="float lerp(float a, float b, float t) from a to b as t goes from 0 to 1."><td><code><span class="k">float</span> lerp(<span class="k">float</span> a, <span class="k">float</span> b, <span class="k">float</span> t)</code></td><td>From a to b as t goes from 0 to 1.</td></tr>
+<tr data-find="float clamp(float value, float low, float high) kept within limits."><td><code><span class="k">float</span> clamp(<span class="k">float</span> value, <span class="k">float</span> low, <span class="k">float</span> high)</code></td><td>Kept within limits.</td></tr>
+<tr data-find="float smooth(float t) 0 to 1, starting and ending gently."><td><code><span class="k">float</span> smooth(<span class="k">float</span> t)</code></td><td>0 to 1, starting and ending gently.</td></tr>
+<tr data-find="float bounce(float t) 0 to 1, bouncing as it lands."><td><code><span class="k">float</span> bounce(<span class="k">float</span> t)</code></td><td>0 to 1, bouncing as it lands.</td></tr>
+</table></section>
+<section id="ease" data-title="ease"><h2>Ease</h2>
+<p>Ways of getting from one value to another.</p>
+<table class="api">
+<tr data-find="easelinear steadily."><td><code><span class="t">EaseLinear</span></code></td><td>Steadily.</td></tr>
+<tr data-find="easesmooth starting and ending gently."><td><code><span class="t">EaseSmooth</span></code></td><td>Starting and ending gently.</td></tr>
+<tr data-find="easein starting gently."><td><code><span class="t">EaseIn</span></code></td><td>Starting gently.</td></tr>
+<tr data-find="easeout ending gently."><td><code><span class="t">EaseOut</span></code></td><td>Ending gently.</td></tr>
+<tr data-find="easebounce bouncing as it lands."><td><code><span class="t">EaseBounce</span></code></td><td>Bouncing as it lands.</td></tr>
+<tr data-find="easeovershoot going past and coming back."><td><code><span class="t">EaseOvershoot</span></code></td><td>Going past and coming back.</td></tr>
+<tr data-find="easeelastic springing."><td><code><span class="t">EaseElastic</span></code></td><td>Springing.</td></tr>
+</table></section>
+<section id="tween" data-title="tween"><h2>Tween</h2>
+<p>A number that moves by itself. There is nothing to update: just read its value.</p>
+<table class="api">
+<tr data-find="tween() resting at 0."><td><code><span class="t">Tween</span>()</code></td><td>Resting at 0.</td></tr>
+<tr data-find="tween(float value) resting at a value."><td><code><span class="t">Tween</span>(<span class="k">float</span> value)</code></td><td>Resting at a value.</td></tr>
+<tr data-find="tween(float from, float to, float seconds, ease ease = easesmooth) moving, from now."><td><code><span class="t">Tween</span>(<span class="k">float</span> from, <span class="k">float</span> to, <span class="k">float</span> seconds, <span class="t">Ease</span> ease = <span class="t">EaseSmooth</span>)</code></td><td>Moving, from now.</td></tr>
+<tr data-find="float value where it is now."><td><code><span class="k">float</span> value</code></td><td>Where it is now.</td></tr>
+<tr data-find="bool done whether it has arrived."><td><code><span class="k">bool</span> done</code></td><td>Whether it has arrived.</td></tr>
+<tr data-find="void go(float to, float seconds, ease ease = easesmooth) moves somewhere else, from wherever it is."><td><code><span class="k">void</span> go(<span class="k">float</span> to, <span class="k">float</span> seconds, <span class="t">Ease</span> ease = <span class="t">EaseSmooth</span>)</code></td><td>Moves somewhere else, from wherever it is.</td></tr>
+<tr data-find="float ease(ease ease, float t) the same curves, for your own use."><td><code><span class="k">float</span> ease(<span class="t">Ease</span> ease, <span class="k">float</span> t)</code></td><td>The same curves, for your own use.</td></tr>
+</table></section><p class="none" id="none" hidden>Nothing found.</p></main></div>
+<script>
+const box = document.getElementById('search');
+const none = document.getElementById('none');
+function filter() {
+  const words = box.value.toLowerCase().split(/\s+/).filter(Boolean);
+  let any = false;
+  for (const part of document.querySelectorAll('section')) {
+    const title = part.dataset.title || '';
+    const whole = words.every(w => title.includes(w));
+    let shown = whole;
+    for (const item of part.querySelectorAll('[data-find]')) {
+      const hit = whole || words.every(w => (title + ' ' + item.dataset.find).includes(w));
+      item.hidden = !hit;
+      shown = shown || hit;
+    }
+    part.hidden = !shown;
+    any = any || shown;
+  }
+  none.hidden = any;
+}
+box.addEventListener('input', filter);
+document.addEventListener('keydown', e => {
+  if (e.key === 'F4' || (e.key === '/' && document.activeElement !== box)) { e.preventDefault(); box.focus(); box.select(); }
+});
+</script>
+</body>
+</html>

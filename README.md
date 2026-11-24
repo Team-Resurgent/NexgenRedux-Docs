@@ -1,6 +1,6 @@
 <h1 align="center">NexgenRedux-Docs</h1>
 
-<p align="center"><b>The AngelScript reference for Nexgen Redux</b></p>
+<p align="center"><b>The documentation for Nexgen Redux</b></p>
 
 <p align="center">
   <a href="https://team-resurgent.github.io/NexgenRedux-Docs/"><img src="https://img.shields.io/badge/docs-online-brightgreen.svg" alt="Read online"></a>
@@ -12,26 +12,39 @@
   <a href="https://www.patreon.com/teamresurgent"><img src="https://img.shields.io/badge/Patreon-F96854?style=for-the-badge&logo=patreon&logoColor=white" alt="Patreon"></a>
 </p>
 
-Every type, method and function that scripts can use in the first
-[Nexgen Redux](https://github.com/Team-Resurgent/NexgenRedux) engine, on one searchable page.
+The web site for [Nexgen Redux](https://github.com/Team-Resurgent/NexgenRedux): a guide, a searchable script reference, and
+every demo with its whole script. The reference for the first engine is kept under `v1`.
 
 **Read it at [team-resurgent.github.io/NexgenRedux-Docs](https://team-resurgent.github.io/NexgenRedux-Docs/).**
 
 <p align="center">
-  <a href="https://team-resurgent.github.io/NexgenRedux-Docs/"><img src="screenshots/reference.png" alt="The script reference" width="80%"></a>
+  <a href="https://team-resurgent.github.io/NexgenRedux-Docs/"><img src="screenshots/site-home.png" alt="Home" width="48%"></a>
+  <a href="https://team-resurgent.github.io/NexgenRedux-Docs/reference.html"><img src="screenshots/site-reference.png" alt="Script reference" width="48%"></a>
 </p>
 
-## Using it
+## What is where
 
-- Press **F4** to search.
-- To read it offline, clone this repository and open `index.html`. It is a single file; only jQuery is fetched from the web.
+| Page | What it is | Made from |
+|---|---|---|
+| `index.html`, `guide.html` | Home and the guide | `docs/Guide.md` in NexgenRedux |
+| `reference.html` | Everything that scripts can call | `docs/ScriptReference.md`, which the engine writes |
+| `demos.html` | Every demo and its script | `engine/media/showcase` |
+| [`v1/index.html`](https://team-resurgent.github.io/NexgenRedux-Docs/v1/) | The first engine's reference | Kept as it was |
 
-## Which engine this is for
+Press **F4** to search. The pages need no server: clone the repository and open `index.html`.
 
-| Engine | Reference |
-|---|---|
-| The first engine (`NexgenRedux-Shared`, `-PC`, `-OG`, `-360`, `-UWP`) | This repository |
-| The new engine (`engine/`) | [docs/ScriptReference.md](https://github.com/Team-Resurgent/NexgenRedux/blob/main/docs/ScriptReference.md), written by the engine itself |
+## Updating it
+
+The new pages are generated, so change what they are made from, not the pages. In NexgenRedux, with this repository as its
+submodule:
+
+```powershell
+showcase --docs docs/ScriptReference.md
+```
+
+```powershell
+python engine/tools/make_docs.py NexgenRedux-Docs
+```
 
 ## Related repositories
 

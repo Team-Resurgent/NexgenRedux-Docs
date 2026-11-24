@@ -1,0 +1,132 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Nexgen Redux guide</title>
+<style>
+:root { --back: #0f1219; --panel: #171c28; --line: #283044; --text: #dfe5f0; --dim: #93a0b8; --accent: #5b9bff; --code: #11151f; --kw: #7fb2ff; --type: #5fd6c0; --str: #f0b878; --num: #d6a6ff; --com: #6f7d96; }
+@media (prefers-color-scheme: light) { :root { --back: #fafbfd; --panel: #ffffff; --line: #d9dfea; --text: #1c2433; --dim: #5c687d; --accent: #1b62d6; --code: #f1f4f9; --kw: #1b4fb8; --type: #0b7a68; --str: #9a5a0c; --num: #7a35b8; --com: #77839a; } }
+* { box-sizing: border-box; }
+html { scroll-padding-top: 72px; }
+body { margin: 0; background: var(--back); color: var(--text); font: 16px/1.6 system-ui, "Segoe UI", Helvetica, Arial, sans-serif; }
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+header { position: sticky; top: 0; z-index: 2; display: flex; flex-wrap: wrap; gap: 4px 22px; align-items: center; padding: 10px 24px; background: var(--panel); border-bottom: 1px solid var(--line); }
+header .name { font-weight: 700; font-size: 20px; color: var(--text); margin-right: 10px; }
+header a.here { color: var(--text); border-bottom: 2px solid var(--accent); }
+header input { margin-left: auto; min-width: 200px; flex: 0 1 300px; padding: 7px 12px; border: 1px solid var(--line); border-radius: 8px; background: var(--back); color: var(--text); font: inherit; font-size: 15px; }
+.page { display: grid; grid-template-columns: 230px minmax(0, 1fr); max-width: 1240px; margin: 0 auto; }
+.page.wide { grid-template-columns: minmax(0, 1fr); }
+nav { position: sticky; top: 58px; align-self: start; max-height: calc(100vh - 58px); overflow: auto; padding: 24px 12px 40px 24px; font-size: 15px; }
+nav a { display: block; padding: 2px 0; color: var(--dim); overflow-wrap: anywhere; }
+main { padding: 24px 24px 80px; min-width: 0; }
+h1 { font-size: 34px; line-height: 1.2; margin: 8px 0 16px; }
+h2 { font-size: 24px; margin: 40px 0 8px; padding-top: 12px; border-top: 1px solid var(--line); }
+h3 { font-size: 18px; margin: 24px 0 4px; }
+.scroll { overflow-x: auto; }
+table { border-collapse: collapse; width: 100%; margin: 12px 0; }
+td, th { text-align: left; vertical-align: top; padding: 7px 12px 7px 0; border-bottom: 1px solid var(--line); }
+.api td:first-child { width: 52%; }
+code { font: 14px/1.5 ui-monospace, Consolas, Menlo, monospace; }
+p code, li code, td code { background: var(--code); border-radius: 5px; padding: 1px 5px; }
+.api td code { background: none; padding: 0; }
+pre { background: var(--code); border: 1px solid var(--line); border-radius: 10px; padding: 14px 16px; overflow-x: auto; }
+.k { color: var(--kw); } .t { color: var(--type); } .s { color: var(--str); } .n { color: var(--num); } .c { color: var(--com); font-style: italic; }
+.tag { font-size: 13px; color: var(--dim); }
+.shots { display: grid; grid-template-columns: repeat(auto-fill, minmax(270px, 1fr)); gap: 14px; margin: 20px 0; }
+.shots img { width: 100%; height: auto; border-radius: 10px; border: 1px solid var(--line); display: block; }
+.shots figure { margin: 0; } .shots figcaption { color: var(--dim); font-size: 14px; }
+.cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 14px; margin: 24px 0; }
+.cards a { display: block; padding: 16px 18px; background: var(--panel); border: 1px solid var(--line); border-radius: 12px; color: var(--dim); }
+.cards b { display: block; color: var(--text); font-size: 18px; }
+.lead { font-size: 19px; color: var(--dim); max-width: 46em; }
+details { border: 1px solid var(--line); border-radius: 10px; margin: 10px 0; background: var(--panel); }
+summary { cursor: pointer; padding: 10px 16px; } details pre { border-width: 1px 0 0; border-radius: 0 0 10px 10px; margin: 0; }
+.none { color: var(--dim); }
+[hidden] { display: none !important; }
+@media (max-width: 800px) { .page { grid-template-columns: minmax(0, 1fr); } nav { display: none; } main { padding: 16px 16px 60px; } header { padding: 10px 16px; } .api td { display: block; width: auto !important; border-bottom: 0; padding: 2px 0; } .api tr { display: block; padding: 8px 0; border-bottom: 1px solid var(--line); } }
+</style>
+</head>
+<body>
+<header><a class="name" href="index.html">Nexgen Redux</a> <a href="index.html">Home</a> <a class="here" href="guide.html">Guide</a> <a href="reference.html">Script reference</a> <a href="demos.html">Demos</a> <a href="https://github.com/Team-Resurgent/NexgenRedux">GitHub</a> </header>
+<div class="page"><nav><a href="#your-first-screen">Your first screen</a><a href="#screens">Screens</a><a href="#drawing">Drawing</a><a href="#assets">Assets</a><a href="#sound">Sound</a><a href="#input">Input</a><a href="#coroutines-and-tweens">Coroutines and tweens</a><a href="#saving">Saving</a><a href="#on-the-original-xbox">On the original Xbox</a></nav><main><h1 id="guide">Guide</h1>
+<h2 id="your-first-screen">Your first screen</h2>
+<p>Download the showcase for your machine, or build it, and look in its <code>media/showcase</code> folder. Each folder there is a screen. Make a new one called <code>hello</code> with two files.</p>
+<p><code>screen.json</code> says how it appears in the menu:</p>
+<pre><code>{
+  <span class="s">&quot;title&quot;</span>: <span class="s">&quot;Hello&quot;</span>,
+  <span class="s">&quot;description&quot;</span>: <span class="s">&quot;My first screen&quot;</span>,
+  <span class="s">&quot;category&quot;</span>: <span class="s">&quot;Games&quot;</span>,
+  <span class="s">&quot;order&quot;</span>: <span class="n">200</span>
+}</code></pre>
+<p><code>main.as</code> is the screen:</p>
+<pre><code><span class="k">class</span> <span class="t">Hello</span> : <span class="t">Screen</span>
+{
+    <span class="t">Font</span>@ font = assets::font(<span class="s">&quot;global:freesans.sfn&quot;</span>, <span class="n">48</span>);
+    <span class="k">float</span> x = <span class="n">640</span>;
+
+    <span class="k">void</span> update(<span class="k">float</span> dt)
+    {
+        x += input::move().x * <span class="n">300</span> * dt;
+    }
+
+    <span class="k">void</span> draw(<span class="t">Canvas</span>@ c)
+    {
+        c.design(<span class="n">1280</span>, <span class="n">720</span>);
+        c.circle(x, <span class="n">360</span>, <span class="n">80</span>, <span class="t">Blue</span>);
+        c.text(font, <span class="s">&quot;Hello&quot;</span>, x, <span class="n">335</span>, <span class="t">White</span>, <span class="t">AlignCenter</span>);
+    }
+}</code></pre>
+<p>Start the showcase with <code>--dev</code> and it reloads the screen each time you save. If there is a mistake, the screen shows the file and the line; mend it, save, and it carries on.</p>
+<h2 id="screens">Screens</h2>
+<p>A screen is a class that implements <code>Screen</code>. The engine calls the methods it has:</p>
+<div class="scroll"><table><tr><th>Method</th><th>When</th></tr>
+<tr><td><code>onEnter()</code></td><td>Once, when everything the screen asked for has loaded</td></tr>
+<tr><td><code>update(dt)</code></td><td>60 times a second, whatever the display does</td></tr>
+<tr><td><code>draw(canvas)</code></td><td>Once for each frame shown</td></tr>
+<tr><td><code>onSuspend()</code>, <code>onResume()</code></td><td>When another screen opens on top, and closes again</td></tr>
+<tr><td><code>onExit()</code></td><td>Once, before it closes</td></tr>
+</table></div>
+<p>Move in <code>update</code> and draw in <code>draw</code>. Screens form a stack: <code>screens::push(&quot;id&quot;)</code> opens one on top, <code>screens::pop()</code> goes back. Each has its own script module, so nothing is shared by accident, and closing one gives back everything it had. Escape, Start, or holding Back always opens the engine&#x27;s menu: a script can&#x27;t block it.</p>
+<h2 id="drawing">Drawing</h2>
+<p>Call <code>design(1280, 720)</code> first and draw as if the screen were that size; it is fitted to the real one, with bars if the shape differs. <code>designHeight(720)</code> fills any shape instead, and you lay out by <code>width</code>.</p>
+<p><code>push()</code> saves position, rotation, scale, alpha, blend, filter and clip, and <code>pop()</code> goes back. Drawing that uses one image and</p>
+<p>one blend mode goes to the GPU together, so sort by image where you can.</p>
+<h2 id="assets">Assets</h2>
+<pre><code><span class="t">Texture</span>@ ship = assets::texture(<span class="s">&quot;asset:ship.png&quot;</span>);   <span class="c">// this screen&#x27;s asset folder</span>
+<span class="t">Sound</span>@ hit = assets::sound(<span class="s">&quot;global:sound/hit.wav&quot;</span>);  <span class="c">// shared by all screens</span></code></pre>
+<p>Ask for what a screen needs in its fields: <code>onEnter()</code> waits for those. Anything asked for later arrives in the background, and draws as nothing until <code>ready</code>. Asking twice gives the same one. Letting go doesn&#x27;t unload it: it stays warm, so going back to a screen is instant, until the budget needs the room. A missing image draws as a checkerboard.</p>
+<div class="scroll"><table><tr><th>What</th><th>Formats</th></tr>
+<tr><td>Images</td><td>PNG, JPEG, TGA, BMP and GIF, up to 2048 pixels a side</td></tr>
+<tr><td>Sounds</td><td>WAV, Ogg Vorbis and MP3</td></tr>
+<tr><td>Fonts</td><td>SSFN</td></tr>
+</table></div>
+<h2 id="sound">Sound</h2>
+<pre><code>hit.play();                      <span class="c">// as an effect</span>
+hit.play(<span class="n">0.5f</span>, -<span class="n">1</span>, <span class="n">1.2f</span>);        <span class="c">// quieter, from the left, higher</span>
+<span class="t">Voice</span> music = tune.playMusic(<span class="n">0.8f</span>, <span class="n">2</span>);
+music.stop(<span class="n">1.5f</span>);                <span class="c">// fading out</span></code></pre>
+<p>A <code>Voice</code> is safe to use after the sound has ended. A screen&#x27;s sounds pause while it is covered and stop when it closes.</p>
+<h2 id="input">Input</h2>
+<p>Scripts ask for actions, not keys: <code>up</code>, <code>down</code>, <code>left</code>, <code>right</code>, <code>accept</code>, <code>cancel</code>, <code>fire</code>, <code>alternate</code> and <code>menu</code>. Players can change every one except <code>menu</code>; the Settings demo shows how. <code>input::move()</code> gives a direction from keys, d-pad or stick.</p>
+<h2 id="coroutines-and-tweens">Coroutines and tweens</h2>
+<p>A coroutine is a function that can wait:</p>
+<pre><code><span class="k">void</span> onEnter() { start(<span class="t">Coroutine</span>(<span class="k">this</span>.intro)); }
+
+<span class="k">void</span> intro()
+{
+    title.go(<span class="n">1</span>, <span class="n">0.5f</span>, <span class="t">EaseOvershoot</span>);
+    wait(<span class="n">2</span>);
+    title.go(<span class="n">0</span>, <span class="n">0.3f</span>);
+    <span class="k">while</span> (!title.done) nextUpdate();
+    screens::replace(<span class="s">&quot;game&quot;</span>);
+}</code></pre>
+<p>A <code>Tween</code> is a number that moves by itself. There is nothing to update: read <code>value</code> when drawing. <code>go()</code> starts from wherever it is, so changing course never jumps.</p>
+<h2 id="saving">Saving</h2>
+<pre><code>save::<span class="k">set</span>(<span class="s">&quot;best&quot;</span>, formatInt(score));
+<span class="k">int</span> best = <span class="k">int</span>(parseInt(save::<span class="k">get</span>(<span class="s">&quot;best&quot;</span>, <span class="s">&quot;0&quot;</span>)));</code></pre>
+<h2 id="on-the-original-xbox">On the original Xbox</h2>
+<ul><li>64 MB in all. Images and fonts may take 20 MB and sounds 6 MB by default.</li><li>Build the disc with the cook tool, which makes images a quarter to an eighth of the size in memory and sounds a quarter, under the same names.</li><li>There is no live reload: edit on a PC and then build the disc.</li></ul></main></div>
+</body>
+</html>
