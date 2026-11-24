@@ -28,17 +28,17 @@ every demo with its whole script.
 |---|---|---|
 | `index.html`, `guide.html` | Home and the guide | `docs/Guide.md` in NexgenRedux |
 | `reference.html` | Everything that scripts can call | `docs/ScriptReference.md`, which the engine writes |
-| `demos.html` | Every demo and its script | `engine/media/showcase` |
+| `demos.html` | Every demo and its script | `media/showcase` in NexgenRedux-Media |
 
 Press **F4** to search. The pages need no server: clone the repository and open `index.html`.
 
 ## Updating it
 
-The new pages are generated, so change what they are made from, not the pages. In NexgenRedux, with this repository as its
+The new pages are generated, so change what they are made from, not the pages. In NexgenRedux, with this repository as a
 submodule:
 
 ```powershell
-showcase --docs docs/ScriptReference.md
+nexgen --docs docs/ScriptReference.md
 ```
 
 ```powershell
@@ -50,4 +50,4 @@ python engine/tools/make_docs.py NexgenRedux-Docs
 | Repository | What it is |
 |---|---|
 | [NexgenRedux](https://github.com/Team-Resurgent/NexgenRedux) | The engine |
-| [NexgenRedux-Media](https://github.com/Team-Resurgent/NexgenRedux-Media) | An example game |
+| [NexgenRedux-Media](https://github.com/Team-Resurgent/NexgenRedux-Media) | The demos: their scripts, pictures and sounds |
