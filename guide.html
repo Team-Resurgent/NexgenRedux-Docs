@@ -54,7 +54,7 @@ summary { cursor: pointer; padding: 10px 16px; } details pre { border-width: 1px
 </head>
 <body>
 <header><a class="name" href="index.html">Nexgen Redux</a> <a href="index.html">Home</a> <a class="here" href="guide.html">Guide</a> <a href="reference.html">Script reference</a> <a href="demos.html">Demos</a> <a href="https://github.com/Team-Resurgent/NexgenRedux">GitHub</a> </header>
-<div class="page"><nav><a href="#your-first-screen">Your first screen</a><a href="#screens">Screens</a><a href="#drawing">Drawing</a><a href="#scenes">Scenes</a><a href="#assets">Assets</a><a href="#sound">Sound</a><a href="#input">Input</a><a href="#coroutines-and-tweens">Coroutines and tweens</a><a href="#saving">Saving</a><a href="#on-the-original-xbox">On the original Xbox</a></nav><main><h1 id="guide">Guide</h1>
+<div class="page"><nav><a href="#your-first-screen">Your first screen</a><a href="#screens">Screens</a><a href="#drawing">Drawing</a><a href="#scenes">Scenes</a><a href="#three-dimensions">Three dimensions</a><a href="#assets">Assets</a><a href="#sound">Sound</a><a href="#input">Input</a><a href="#coroutines-and-tweens">Coroutines and tweens</a><a href="#saving">Saving</a><a href="#on-the-original-xbox">On the original Xbox</a></nav><main><h1 id="guide">Guide</h1>
 <h2 id="your-first-screen">Your first screen</h2>
 <p>Download the showcase for your machine, or build it, and look in its <code>media/showcase</code> folder. Each folder there is a screen. Make a new one called <code>hello</code> with two files.</p>
 <p><code>screen.json</code> says how it appears in the menu:</p>
@@ -170,6 +170,74 @@ rock.add(<span class="t">Rock</span>());</code></pre>
 <p>There are two kinds. A <b>solid</b> body is stopped by walls and tiles and never turns: use it for characters, with <code>onGround</code>,</p>
 <p><code>onWall</code> and <code>onCeiling</code>. A body with <b>mass</b> is rigid: it pushes, stacks, bounces and turns. <code>Scene::join</code> pins two together, for</p>
 <p>chains, hinges and wheels.</p>
+<h2 id="three-dimensions">Three dimensions</h2>
+<p>The same entities can be in space: x right, y up, z towards you, in metres. <code>Space::spawn</code> puts one there, and behaviours, parents, groups, <code>onHit</code> and <code>lifetime</code> work as they do on the plane.</p>
+<pre><code><span class="t">Model</span>@ robot = <span class="t">Assets</span>::model(<span class="s">&quot;global:model/robot.glb&quot;</span>);
+<span class="t">Entity</span>@ hero;
+
+<span class="k">void</span> onEnter()
+{
+    <span class="t">Space</span>::ground(<span class="n">0</span>);
+    <span class="t">Space</span>::sky(<span class="t">Color</span>(<span class="n">0.2f</span>, <span class="n">0.45f</span>, <span class="n">0.85f</span>), <span class="t">Color</span>(<span class="n">0.7f</span>, <span class="n">0.85f</span>, <span class="n">0.95f</span>));
+    @hero = <span class="t">Space</span>::spawn(<span class="t">Vec3</span>(<span class="n">0</span>, <span class="n">0</span>, <span class="n">0</span>));
+    hero.model(robot);
+    hero.animate(<span class="s">&quot;idle&quot;</span>);
+}
+
+<span class="k">void</span> update(<span class="k">float</span> dt)
+{
+    <span class="t">Space</span>::camera(hero.place + <span class="t">Vec3</span>(<span class="n">0</span>, <span class="n">3</span>, <span class="n">6</span>), hero.place + <span class="t">Vec3</span>(<span class="n">0</span>, <span class="n">1</span>, <span class="n">0</span>));
+}
+
+<span class="k">void</span> draw(<span class="t">Canvas</span>@ c)
+{
+    c.designHeight(<span class="n">720</span>);
+    <span class="t">Space</span>::draw(c);                        <span class="c">// all of the screen, or part of it</span>
+    c.text(font, <span class="s">&quot;In front of it&quot;</span>, <span class="n">40</span>, <span class="n">40</span>);
+}</code></pre>
+<div class="scroll"><table><tr><th>To look like</th><th>Use</th></tr>
+<tr><td>A glTF model</td><td><code>model</code>, and <code>animate(&quot;walk&quot;)</code> to play one of its animations, changing smoothly from the last</td></tr>
+<tr><td>A simple shape</td><td><code>shape(SolidBox, Red)</code>: a box, ball, cylinder, cone, ring, capsule or sheet</td></tr>
+<tr><td>A mesh of your own</td><td><code>mesh</code>, with a <code>Mesh</code> built from boxes, balls and triangles</td></tr>
+<tr><td>A soft light</td><td><code>glow</code>. <code>light</code> is what lights other things: the four strongest reach each thing</td></tr>
+</table></div>
+<p>A model is a <code>.glb</code>, or a <code>.gltf</code> with everything inside it, with up to 64 bones. The engine makes two simpler versions as it loads, and draws those when it is small on the screen. What can&#x27;t be seen isn&#x27;t drawn.</p>
+<p><code>Space::sun</code>, <code>ambient</code>, <code>sky</code>, <code>fog</code> and <code>shadows</code> set the scene. Real shadows need a GPU with shaders; the original Xbox draws soft</p>
+<p>patches instead.</p>
+<h3 id="a-world-to-walk-in">A world to walk in</h3>
+<pre><code><span class="t">Space</span>::land(<span class="n">21</span>, <span class="n">192</span>, <span class="n">1.5f</span>, <span class="n">34</span>, <span class="n">0.45f</span>, <span class="k">true</span>);   <span class="c">// a seed, squares, metres to each, height, roughness, an island</span>
+<span class="t">Space</span>::flatten(<span class="n">0</span>, <span class="n">0</span>, <span class="n">40</span>, <span class="n">3</span>);                   <span class="c">// somewhere to build</span>
+<span class="t">Space</span>::water(<span class="n">0</span>, <span class="t">Color</span>(<span class="n">0.16f</span>, <span class="n">0.42f</span>, <span class="n">0.55f</span>, <span class="n">0.8f</span>));
+
+hero.capsule(<span class="n">0.35f</span>, <span class="n">1.6f</span>, <span class="n">1</span>);
+hero.colliderAt = <span class="t">Vec3</span>(<span class="n">0</span>, <span class="n">0.8f</span>, <span class="n">0</span>);            <span class="c">// its place is at its feet</span>
+hero.walker = <span class="k">true</span>;</code></pre>
+<p>A <b>walker</b> stays upright, slides along walls, climbs small steps and pushes what has mass. Set <code>motion</code> each update, keeping its y so that it falls. Something with <b>mass</b> is a rigid body, as on the plane, with a <code>sphere</code>, <code>cube</code> or <code>capsule</code> collider; a collider with <code>wall</code> stops both. <code>Space::raycast</code> says what is on a line, including the land.</p>
+<h3 id="a-world-that-streams">A world that streams</h3>
+<p><code>Space::endlessLand</code> has no edge. Regions of 32 squares are made in the background as the camera comes near and go as it leaves. Ask</p>
+<p>which have come, fill them, and let what is in them go with them:</p>
+<pre><code><span class="k">int</span> x, z;
+<span class="k">bool</span> arrived;
+<span class="k">while</span> (<span class="t">Space</span>::nextRegion(x, z, arrived))
+    <span class="k">if</span> (arrived)
+        <span class="t">Space</span>::load(<span class="s">&quot;asset:region_&quot;</span> + x + <span class="s">&quot;_&quot;</span> + z + <span class="s">&quot;.json&quot;</span>, <span class="t">Vec3</span>(), <span class="k">true</span>);   <span class="c">// true: streamed</span></code></pre>
+<p>A region may come from a file, or be made up from its numbers so that it is the same each time. A file lists entities:</p>
+<pre><code>{ <span class="s">&quot;entities&quot;</span>: [
+  { <span class="s">&quot;model&quot;</span>: <span class="s">&quot;global:model/oak.glb&quot;</span>, <span class="s">&quot;place&quot;</span>: [<span class="n">4</span>, <span class="n">0</span>, <span class="n">2</span>], <span class="s">&quot;onLand&quot;</span>: <span class="k">true</span>, <span class="s">&quot;angles&quot;</span>: <span class="n">90</span>, <span class="s">&quot;size&quot;</span>: <span class="n">1.2</span>, <span class="s">&quot;capsule&quot;</span>: [<span class="n">0.3</span>, <span class="n">4</span>], <span class="s">&quot;wall&quot;</span>: <span class="k">true</span> },
+  { <span class="s">&quot;shape&quot;</span>: <span class="s">&quot;box&quot;</span>, <span class="s">&quot;color&quot;</span>: <span class="s">&quot;#b08048&quot;</span>, <span class="s">&quot;place&quot;</span>: [<span class="n">3</span>, <span class="n">0.5</span>, <span class="n">1</span>], <span class="s">&quot;cube&quot;</span>: [<span class="n">1</span>, <span class="n">1</span>, <span class="n">1</span>], <span class="s">&quot;mass&quot;</span>: <span class="n">5</span> },
+  { <span class="s">&quot;glow&quot;</span>: <span class="n">2</span>, <span class="s">&quot;light&quot;</span>: [<span class="n">1</span>, <span class="n">0.7</span>, <span class="n">0.3</span>], <span class="s">&quot;range&quot;</span>: <span class="n">8</span>, <span class="s">&quot;place&quot;</span>: [<span class="n">0</span>, <span class="n">3</span>, <span class="n">0</span>] }
+] }</code></pre>
+<div class="scroll"><table><tr><th>In such a file</th><th>What it does</th></tr>
+<tr><td><code>name</code>, <code>place</code>, <code>onLand</code>, <code>angles</code>, <code>size</code></td><td>Where it is; <code>onLand</code> measures up from the ground</td></tr>
+<tr><td><code>model</code>, <code>shape</code>, <code>glow</code>, <code>skin</code>, <code>color</code>, <code>shine</code>, <code>glowing</code>, <code>twoSided</code>, <code>shadow</code></td><td>What it looks like</td></tr>
+<tr><td><code>light</code>, <code>range</code></td><td>Lights other things</td></tr>
+<tr><td><code>sphere</code>, <code>cube</code>, <code>capsule</code>, <code>colliderAt</code>, <code>group</code>, <code>hits</code>, <code>wall</code></td><td>Its collider</td></tr>
+<tr><td><code>mass</code>, <code>friction</code>, <code>bounce</code>, <code>gravity</code>, <code>drag</code>, <code>walker</code></td><td>How it moves</td></tr>
+<tr><td><code>behaviour</code></td><td>A class in the script</td></tr>
+</table></div>
+<h3 id="shapes-that-melt">Shapes that melt</h3>
+<p><code>Space::shape</code> adds one of up to 24 shapes that are drawn by marching along rays, so that they join softly, cut each other and</p>
+<p>reflect. They mix with meshes. Clear them and add them again each update to move them. The original Xbox makes triangles of them.</p>
 <h2 id="assets">Assets</h2>
 <pre><code><span class="t">Texture</span>@ ship = <span class="t">Assets</span>::texture(<span class="s">&quot;asset:ship.png&quot;</span>);   <span class="c">// this screen&#x27;s asset folder</span>
 <span class="t">Sound</span>@ hit = <span class="t">Assets</span>::sound(<span class="s">&quot;global:sound/hit.wav&quot;</span>);  <span class="c">// shared by all screens</span></code></pre>
@@ -178,6 +246,7 @@ rock.add(<span class="t">Rock</span>());</code></pre>
 <tr><td>Images</td><td>PNG, JPEG, TGA, BMP and GIF, up to 2048 pixels a side</td></tr>
 <tr><td>Sounds</td><td>WAV, Ogg Vorbis and MP3</td></tr>
 <tr><td>Fonts</td><td>SSFN</td></tr>
+<tr><td>Models</td><td>glTF 2.0 (<code>.glb</code>)</td></tr>
 </table></div>
 <h2 id="sound">Sound</h2>
 <pre><code>hit.play();                      <span class="c">// as an effect</span>
@@ -204,6 +273,6 @@ music.stop(<span class="n">1.5f</span>);                <span class="c">// fadin
 <pre><code><span class="t">Save</span>::<span class="k">set</span>(<span class="s">&quot;best&quot;</span>, formatInt(score));
 <span class="k">int</span> best = <span class="k">int</span>(parseInt(<span class="t">Save</span>::<span class="k">get</span>(<span class="s">&quot;best&quot;</span>, <span class="s">&quot;0&quot;</span>)));</code></pre>
 <h2 id="on-the-original-xbox">On the original Xbox</h2>
-<ul><li>64 MB in all. Images and fonts may take 20 MB and sounds 6 MB by default.</li><li>A scene may have 4096 entities and 1500 particles at once; elsewhere 16384 and 8000.</li><li>Build the disc with the cook tool, which makes images a quarter to an eighth of the size in memory and sounds a quarter, under the same names.</li><li>There is no live reload: edit on a PC and then build the disc.</li></ul></main></div>
+<ul><li>64 MB in all. Images and fonts may take 20 MB and sounds 6 MB by default.</li><li>A scene may have 4096 entities and 1500 particles at once; elsewhere 16384 and 8000.</li><li>Build the disc with the cook tool, which makes images a quarter to an eighth of the size in memory and sounds a quarter, under the same names.</li><li>Three dimensions use the fixed pipeline: lights are worked out at corners, so give a floor plenty of squares. Ray-marched shapes become triangles.</li><li>There is no live reload: edit on a PC and then build the disc.</li></ul></main></div>
 </body>
 </html>
