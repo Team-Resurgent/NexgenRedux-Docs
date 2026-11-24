@@ -54,7 +54,7 @@ summary { cursor: pointer; padding: 10px 16px; } details pre { border-width: 1px
 </head>
 <body>
 <header><a class="name" href="index.html">Nexgen Redux</a> <a href="index.html">Home</a> <a href="guide.html">Guide</a> <a class="here" href="reference.html">Script reference</a> <a href="demos.html">Demos</a> <a href="https://github.com/Team-Resurgent/NexgenRedux">GitHub</a> <input id="search" type="search" placeholder="Search (F4)" aria-label="Search"></header>
-<div class="page"><nav><b>Screens</b><a href="#screen">Screen</a><a href="#ns-screens">Screens <i>Screens::</i></a><a href="#ns-app">App <i>App::</i></a><b>Drawing</b><a href="#canvas">Canvas</a><a href="#color">Color</a><a href="#texture">Texture</a><a href="#font">Font</a><a href="#blend">Blend</a><a href="#filter">Filter</a><a href="#align">Align</a><b>Scene</b><a href="#ns-scene">Scene <i>Scene::</i></a><a href="#entity">Entity</a><a href="#behaviour">Behaviour</a><b>Assets</b><a href="#ns-assets">Assets <i>Assets::</i></a><b>Sound</b><a href="#sound">Sound</a><a href="#voice">Voice</a><a href="#bus">Bus</a><a href="#ns-audio">Audio <i>Audio::</i></a><b>Input</b><a href="#ns-input">Input <i>Input::</i></a><b>Movement</b><a href="#tween">Tween</a><a href="#ease">Ease</a><a href="#coroutines">Coroutines</a><a href="#maths">Maths</a><b>Saving</b><a href="#ns-save">Save <i>Save::</i></a><b>More</b><a href="#ibehaviour">IBehaviour</a></nav><main><h1>Script reference</h1><p class="lead">Everything that scripts can call, written by the engine itself. Types, namespaces and constants begin with a capital; functions and properties don't. A tag like <code>Assets::</code> is a namespace: its calls are written <code>Assets::texture(...)</code>.</p><section id="screen" data-title="screens screen type"><h2>Screen <span class="kind">type</span></h2>
+<div class="page"><nav><b>Screens</b><a href="#screen">Screen</a><a href="#ns-screens">Screens <i>Screens::</i></a><a href="#ns-app">App <i>App::</i></a><b>Drawing</b><a href="#canvas">Canvas</a><a href="#color">Color</a><a href="#texture">Texture</a><a href="#font">Font</a><a href="#blend">Blend</a><a href="#filter">Filter</a><a href="#align">Align</a><b>Scene</b><a href="#ns-scene">Scene <i>Scene::</i></a><a href="#entity">Entity</a><a href="#behaviour">Behaviour</a><a href="#ibehaviour">IBehaviour</a><b>Assets</b><a href="#ns-assets">Assets <i>Assets::</i></a><b>Sound</b><a href="#sound">Sound</a><a href="#voice">Voice</a><a href="#bus">Bus</a><a href="#ns-audio">Audio <i>Audio::</i></a><b>Input</b><a href="#ns-input">Input <i>Input::</i></a><b>Movement</b><a href="#tween">Tween</a><a href="#ease">Ease</a><a href="#coroutines">Coroutines</a><a href="#vec2">Vec2</a><a href="#maths">Maths</a><b>Saving</b><a href="#ns-save">Save <i>Save::</i></a></nav><main><h1>Script reference</h1><p class="lead">Everything that scripts can call, written by the engine itself. Types, namespaces and constants begin with a capital; functions and properties don't. A tag like <code>Assets::</code> is a namespace: its calls are written <code>Assets::texture(...)</code>.</p><section id="screen" data-title="screens screen type"><h2>Screen <span class="kind">type</span></h2>
 <p>One place in the app. A screen&#x27;s main.as has a class that implements this; it may have any of these methods.</p>
 <table class="api">
 <tr data-find="void onenter() called once, when it opens and everything it asked for has loaded."><td><code><span class="k">void</span> onEnter()</code></td><td>Called once, when it opens and everything it asked for has loaded.</td></tr>
@@ -301,6 +301,9 @@ summary { cursor: pointer; padding: 10px 16px; } details pre { border-width: 1px
 <tr data-find="void ongone() called once, as the entity is destroyed."><td><code><span class="k">void</span> onGone()</code></td><td>Called once, as the entity is destroyed.</td></tr>
 </table>
 </section>
+<section id="ibehaviour" data-title="scene ibehaviour enum"><h2>IBehaviour <span class="kind">enum</span></h2>
+<p>What Behaviour comes from. Use Behaviour.</p>
+</section>
 <section id="ns-assets" data-title="assets assets assets::"><h2>Assets <span class="kind">Assets::</span></h2>
 <p>Loading. Names start with <code>asset:</code> for the screen&#x27;s own files or <code>global:</code> for shared ones.</p>
 <table class="api">
@@ -425,6 +428,18 @@ summary { cursor: pointer; padding: 10px 16px; } details pre { border-width: 1px
 <tr data-find="uint coroutines() how many are running."><td><code><span class="k">uint</span> coroutines()</code></td><td>How many are running.</td></tr>
 </table>
 </section>
+<section id="vec2" data-title="movement vec2 type"><h2>Vec2 <span class="kind">type</span></h2>
+<p>A place or a direction, across and down. Vec3 is the same with z.</p>
+<table class="api">
+<tr data-find="vec2() zero."><td><code><span class="t">Vec2</span>()</code></td><td>Zero.</td></tr>
+<tr data-find="vec2(float x, float y) from its parts."><td><code><span class="t">Vec2</span>(<span class="k">float</span> x, <span class="k">float</span> y)</code></td><td>From its parts.</td></tr>
+<tr data-find="float x across."><td><code><span class="k">float</span> x</code></td><td>Across.</td></tr>
+<tr data-find="float y down."><td><code><span class="k">float</span> y</code></td><td>Down.</td></tr>
+<tr data-find="vec2 + vec2, vec2 - vec2, -vec2 added, taken away, turned round. += and -= too."><td><code><span class="t">Vec2</span> + <span class="t">Vec2</span>, <span class="t">Vec2</span> - <span class="t">Vec2</span>, -<span class="t">Vec2</span></code></td><td>Added, taken away, turned round. += and -= too.</td></tr>
+<tr data-find="vec2 * float, vec2 / float longer or shorter. *= too."><td><code><span class="t">Vec2</span> * <span class="k">float</span>, <span class="t">Vec2</span> / <span class="k">float</span></code></td><td>Longer or shorter. *= too.</td></tr>
+<tr data-find="float dot(const vec2 &amp;in other) const how far one goes along the other."><td><code><span class="k">float</span> dot(<span class="k">const</span> <span class="t">Vec2</span> &amp;<span class="k">in</span> other) <span class="k">const</span></code></td><td>How far one goes along the other.</td></tr>
+</table>
+</section>
 <section id="maths" data-title="movement maths functions"><h2>Maths <span class="kind">functions</span></h2>
 <p>As well as AngelScript&#x27;s own <code>sin</code>, <code>cos</code>, <code>sqrt</code> and so on, in radians.</p>
 <table class="api">
@@ -444,9 +459,6 @@ summary { cursor: pointer; padding: 10px 16px; } details pre { border-width: 1px
 <tr data-find="string save::get(const string &amp;in key, const string &amp;in otherwise = &quot;&quot;) what was kept, or otherwise."><td><code><span class="k">string</span> <span class="t">Save</span>::<span class="k">get</span>(<span class="k">const</span> <span class="k">string</span> &amp;<span class="k">in</span> key, <span class="k">const</span> <span class="k">string</span> &amp;<span class="k">in</span> otherwise = <span class="s">&quot;&quot;</span>)</code></td><td>What was kept, or otherwise.</td></tr>
 <tr data-find="void save::remove(const string &amp;in key) forgets it."><td><code><span class="k">void</span> <span class="t">Save</span>::remove(<span class="k">const</span> <span class="k">string</span> &amp;<span class="k">in</span> key)</code></td><td>Forgets it.</td></tr>
 </table>
-</section>
-<section id="ibehaviour" data-title="more ibehaviour enum"><h2>IBehaviour <span class="kind">enum</span></h2>
-<p>What Behaviour comes from. Use Behaviour.</p>
 </section><p class="none" id="none" hidden>Nothing found.</p></main></div>
 <script>
 const box = document.getElementById('search');
