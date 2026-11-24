@@ -19,6 +19,10 @@ header input { margin-left: auto; min-width: 200px; flex: 0 1 300px; padding: 7p
 .page { display: grid; grid-template-columns: 230px minmax(0, 1fr); max-width: 1240px; margin: 0 auto; }
 .page.wide { grid-template-columns: minmax(0, 1fr); }
 nav { position: sticky; top: 58px; align-self: start; max-height: calc(100vh - 58px); overflow: auto; padding: 24px 12px 40px 24px; font-size: 15px; }
+nav b { display: block; margin: 16px 0 2px; font-size: 13px; text-transform: uppercase; letter-spacing: .06em; }
+nav b:first-child { margin-top: 0; }
+nav i, .kind { font: 13px ui-monospace, Consolas, Menlo, monospace; color: var(--dim); opacity: .8; }
+.kind { border: 1px solid var(--line); border-radius: 6px; padding: 2px 7px; vertical-align: middle; margin-left: 6px; }
 nav a { display: block; padding: 2px 0; color: var(--dim); overflow-wrap: anywhere; }
 main { padding: 24px 24px 80px; min-width: 0; }
 h1 { font-size: 34px; line-height: 1.2; margin: 8px 0 16px; }
