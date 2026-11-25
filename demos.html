@@ -7863,7 +7863,7 @@ summary { cursor: pointer; padding: 10px 16px; } details pre { border-width: 1px
         {
             <span class="k">uint</span> n = files[i].length();
             <span class="k">if</span> (n &gt; <span class="n">4</span> &amp;&amp; (files[i].substr(n - <span class="n">4</span>) == <span class="s">&quot;.xbe&quot;</span> || files[i].substr(n - <span class="n">4</span>) == <span class="s">&quot;.XBE&quot;</span>))
-                found(name == <span class="s">&quot;&quot;</span> ? files[i] : name, folder + <span class="s">&quot;\\&quot;</span> + files[i]);
+                found(name == <span class="s">&quot;&quot;</span> ? files[i] : name, folder + (name == <span class="s">&quot;&quot;</span> ? <span class="s">&quot;&quot;</span> : <span class="s">&quot;\\&quot;</span>) + files[i]);
         }
     }
 
