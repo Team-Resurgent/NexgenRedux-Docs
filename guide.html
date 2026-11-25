@@ -54,7 +54,7 @@ summary { cursor: pointer; padding: 10px 16px; } details pre { border-width: 1px
 </head>
 <body>
 <header><a class="name" href="index.html">Nexgen Redux</a> <a href="index.html">Home</a> <a class="here" href="guide.html">Guide</a> <a href="reference.html">Script reference</a> <a href="demos.html">Demos</a> <a href="https://github.com/Team-Resurgent/NexgenRedux">GitHub</a> </header>
-<div class="page"><nav><a href="#your-first-screen">Your first screen</a><a href="#screens">Screens</a><a href="#drawing">Drawing</a><a href="#scenes">Scenes</a><a href="#three-dimensions">Three dimensions</a><a href="#interfaces">Interfaces</a><a href="#shaders-and-bloom">Shaders and bloom</a><a href="#assets">Assets</a><a href="#sound">Sound</a><a href="#input">Input</a><a href="#coroutines-and-tweens">Coroutines and tweens</a><a href="#networking">Networking</a><a href="#what-only-an-xbox-can-do">What only an Xbox can do</a><a href="#saving">Saving</a><a href="#on-the-original-xbox">On the original Xbox</a></nav><main><h1 id="guide">Guide</h1>
+<div class="page"><nav><a href="#your-first-screen">Your first screen</a><a href="#screens">Screens</a><a href="#drawing">Drawing</a><a href="#scenes">Scenes</a><a href="#three-dimensions">Three dimensions</a><a href="#interfaces">Interfaces</a><a href="#shaders-and-bloom">Shaders and bloom</a><a href="#assets">Assets</a><a href="#sound">Sound</a><a href="#input">Input</a><a href="#coroutines-and-tweens">Coroutines and tweens</a><a href="#networking">Networking</a><a href="#what-only-an-xbox-can-do">What only an Xbox can do</a><a href="#saving">Saving</a><a href="#files-and-json">Files and JSON</a><a href="#on-the-original-xbox">On the original Xbox</a></nav><main><h1 id="guide">Guide</h1>
 <h2 id="your-first-screen">Your first screen</h2>
 <p>Download the showcase for your machine, or build it, and look in its <code>media/showcase</code> folder. Each folder there is a screen. Make a new one called <code>hello</code> with two files.</p>
 <p><code>screen.json</code> says how it appears in the menu:</p>
@@ -235,6 +235,9 @@ hero.walker = <span class="k">true</span>;</code></pre>
 <tr><td><code>mass</code>, <code>friction</code>, <code>bounce</code>, <code>gravity</code>, <code>drag</code>, <code>walker</code></td><td>How it moves</td></tr>
 <tr><td><code>behaviour</code></td><td>A class in the script</td></tr>
 </table></div>
+<p><code>Space::make</code> makes one entity from a <code>Json</code> of the same kind. The showcase&#x27;s <b>Scene editor</b> makes such files: fly about, add</p>
+<p>things, move, turn, size and colour them, try the place, and save it. It is a screen like any other, in</p>
+<p><code>showcase/editor</code>, and can be taken for your own tools.</p>
 <h3 id="particles-and-sounds-in-space">Particles and sounds in space</h3>
 <p>Particles are described in a scene file, as on the plane, with lengths in metres. <code>spread</code> is in degrees: 90 is a cone, and 360 goes every way. They face the camera, are lit by nothing, and hide behind things.</p>
 <pre><code><span class="t">Scene</span>::load(<span class="s">&quot;asset:scene.json&quot;</span>);                        <span class="c">// &quot;particles&quot;: { &quot;flame&quot;: {...}, &quot;sparks&quot;: {...} }</span>
@@ -406,9 +409,25 @@ room.send(m, <span class="k">false</span>);                          <span class
 }</code></pre>
 <p><code>Xbox::busRead</code> and <code>busWrite</code> reach anything on the SMBus but the console&#x27;s settings, where a mistake can&#x27;t be undone. Elsewhere</p>
 <p>readings are -1 or empty and the rest do nothing.</p>
+<p>Files can go to and from the console over the network. Nothing listens until it is asked to, and nothing can be changed unless that is asked for too:</p>
+<pre><code><span class="t">Xbox</span>::startFtp(<span class="s">&quot;xbox&quot;</span>, password, <span class="k">false</span>);             <span class="c">// drives E, F and G; true lets it write</span></code></pre>
+<p>Only machines on the same network are answered. FTP hides nothing from them, so start it when it is wanted and then <code>Xbox::stopFtp()</code>.</p>
 <h2 id="saving">Saving</h2>
 <pre><code><span class="t">Save</span>::<span class="k">set</span>(<span class="s">&quot;best&quot;</span>, formatInt(score));
 <span class="k">int</span> best = <span class="k">int</span>(parseInt(<span class="t">Save</span>::<span class="k">get</span>(<span class="s">&quot;best&quot;</span>, <span class="s">&quot;0&quot;</span>)));</code></pre>
+<h2 id="files-and-json">Files and JSON</h2>
+<p><code>Json</code> reads and makes JSON. What isn&#x27;t there is null, and can be asked things all the same:</p>
+<pre><code><span class="t">Json</span> j;
+<span class="k">string</span> error;
+<span class="k">if</span> (j.parse(<span class="t">Assets</span>::read(<span class="s">&quot;asset:level.json&quot;</span>), error))
+{
+    <span class="k">float</span> x = <span class="k">float</span>(j[<span class="s">&quot;player&quot;</span>][<span class="s">&quot;place&quot;</span>][<span class="n">0</span>].number());
+    <span class="t">Vec3</span> at = j[<span class="s">&quot;door&quot;</span>].vec3();                      <span class="c">// [x, y, z]</span>
+}
+j.<span class="k">set</span>(<span class="s">&quot;score&quot;</span>, <span class="n">40</span>);                                  <span class="c">// text, flags, places, colours and other Json too</span>
+<span class="t">Assets</span>::write(<span class="s">&quot;asset:level.json&quot;</span>, j.write());</code></pre>
+<p><code>Assets::write</code> writes only a screen&#x27;s own <code>asset:</code> files that end in <code>.json</code>. With <code>--dev</code> it is the file in the media; otherwise</p>
+<p>it is kept with the saves, on consoles too, and <code>Assets::read</code> and <code>Space::load</code> read that one from then on.</p>
 <h2 id="on-the-original-xbox">On the original Xbox</h2>
 <ul><li>64 MB in all. Images and fonts may take 20 MB and sounds 6 MB by default.</li><li>A scene may have 4096 entities and 1500 particles at once; elsewhere 16384 and 8000.</li><li>Build the disc with the cook tool, which makes images a quarter to an eighth of the size in memory and sounds a quarter, under the same names.</li><li>Three dimensions use the fixed pipeline: lights are worked out at corners, so give a floor plenty of squares. Ray-marched shapes become triangles. Effects are stand-ins.</li><li>There is no live reload: edit on a PC and then build the disc.</li></ul></main></div>
 </body>
