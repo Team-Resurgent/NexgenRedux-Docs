@@ -7911,7 +7911,7 @@ summary { cursor: pointer; padding: 10px 16px; } details pre { border-width: 1px
 </code></pre></details></div>
 <div data-find="scene editor build a place, try it and keep it editor"><h3 id="demo-editor">Scene editor</h3><p>Build a place, try it and keep it</p>
 <div class="shots"><img loading="lazy" src="screenshots/editor.png" alt="Scene editor"></div>
-<details><summary><code>editor/main.as</code> <span class="tag">1163 lines</span></summary><pre><code><span class="c">// A scene editor, written as any screen is. What it makes is a file that Space::load reads.</span>
+<details><summary><code>editor/main.as</code> <span class="tag">1176 lines</span></summary><pre><code><span class="c">// A scene editor, written as any screen is. What it makes is a file that Space::load reads.</span>
 
 <span class="k">class</span> <span class="t">Kind</span>
 {
@@ -8067,6 +8067,8 @@ summary { cursor: pointer; padding: 10px 16px; } details pre { border-width: 1px
         scene.toggle(<span class="s">&quot;Snap&quot;</span>, <span class="k">true</span>, <span class="t">WidgetEvent</span>(<span class="k">this</span>.onSnap));
         scene.button(<span class="s">&quot;As saved&quot;</span>, <span class="t">WidgetEvent</span>(<span class="k">this</span>.onRevert));
         scene.button(<span class="s">&quot;Clear&quot;</span>, <span class="t">WidgetEvent</span>(<span class="k">this</span>.onClear));
+        <span class="k">if</span> (!<span class="t">App</span>::development)
+            scene.button(<span class="s">&quot;Start again&quot;</span>, <span class="t">WidgetEvent</span>(<span class="k">this</span>.onFresh));
 
         sides.space();
         <span class="t">Widget</span>@ other = sides.panel();
@@ -8207,6 +8209,17 @@ summary { cursor: pointer; padding: 10px 16px; } details pre { border-width: 1px
             changed(<span class="s">&quot;revert&quot;</span>);
             dirty = <span class="k">false</span>;
             show();
+        }
+    }
+
+    <span class="c">// Back to what came with it.</span>
+    <span class="k">void</span> onFresh(<span class="t">Widget</span>@ w) { <span class="t">Ui</span>::dialog(<span class="s">&quot;Start again&quot;</span>, <span class="s">&quot;Go back to the first scene? What was saved is lost. Undo brings back what is here now.&quot;</span>, <span class="k">array</span>&lt;<span class="k">string</span>&gt; = { <span class="s">&quot;Start again&quot;</span>, <span class="s">&quot;Keep&quot;</span> }, <span class="t">WidgetAnswer</span>(<span class="k">this</span>.fresh)); }
+    <span class="k">void</span> fresh(<span class="k">int</span> answer)
+    {
+        <span class="k">if</span> (answer == <span class="n">0</span>)
+        {
+            <span class="t">Assets</span>::forget(file);
+            onRevert(<span class="k">null</span>);
         }
     }
 

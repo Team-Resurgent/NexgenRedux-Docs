@@ -427,7 +427,7 @@ room.send(m, <span class="k">false</span>);                          <span class
 j.<span class="k">set</span>(<span class="s">&quot;score&quot;</span>, <span class="n">40</span>);                                  <span class="c">// text, flags, places, colours and other Json too</span>
 <span class="t">Assets</span>::write(<span class="s">&quot;asset:level.json&quot;</span>, j.write());</code></pre>
 <p><code>Assets::write</code> writes only a screen&#x27;s own <code>asset:</code> files that end in <code>.json</code>. With <code>--dev</code> it is the file in the media; otherwise</p>
-<p>it is kept with the saves, on consoles too, and <code>Assets::read</code> and <code>Space::load</code> read that one from then on.</p>
+<p>it is kept with the saves, on consoles too, and <code>Assets::read</code> and <code>Space::load</code> read that one from then on. <code>Assets::forget</code> goes back to the one that came with the screen.</p>
 <h2 id="on-the-original-xbox">On the original Xbox</h2>
 <ul><li>64 MB in all. Images and fonts may take 20 MB and sounds 6 MB by default.</li><li>A scene may have 4096 entities and 1500 particles at once; elsewhere 16384 and 8000.</li><li>Build the disc with the cook tool, which makes images a quarter to an eighth of the size in memory and sounds a quarter, under the same names.</li><li>Three dimensions use the fixed pipeline: lights are worked out at corners, so give a floor plenty of squares. Ray-marched shapes become triangles. Effects are stand-ins.</li><li>There is no live reload: edit on a PC and then build the disc.</li></ul></main></div>
 </body>
