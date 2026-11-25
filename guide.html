@@ -54,7 +54,7 @@ summary { cursor: pointer; padding: 10px 16px; } details pre { border-width: 1px
 </head>
 <body>
 <header><a class="name" href="index.html">Nexgen Redux</a> <a href="index.html">Home</a> <a class="here" href="guide.html">Guide</a> <a href="reference.html">Script reference</a> <a href="demos.html">Demos</a> <a href="https://github.com/Team-Resurgent/NexgenRedux">GitHub</a> </header>
-<div class="page"><nav><a href="#your-first-screen">Your first screen</a><a href="#screens">Screens</a><a href="#drawing">Drawing</a><a href="#scenes">Scenes</a><a href="#three-dimensions">Three dimensions</a><a href="#assets">Assets</a><a href="#sound">Sound</a><a href="#input">Input</a><a href="#coroutines-and-tweens">Coroutines and tweens</a><a href="#saving">Saving</a><a href="#on-the-original-xbox">On the original Xbox</a></nav><main><h1 id="guide">Guide</h1>
+<div class="page"><nav><a href="#your-first-screen">Your first screen</a><a href="#screens">Screens</a><a href="#drawing">Drawing</a><a href="#scenes">Scenes</a><a href="#three-dimensions">Three dimensions</a><a href="#shaders-and-bloom">Shaders and bloom</a><a href="#assets">Assets</a><a href="#sound">Sound</a><a href="#input">Input</a><a href="#coroutines-and-tweens">Coroutines and tweens</a><a href="#networking">Networking</a><a href="#what-only-an-xbox-can-do">What only an Xbox can do</a><a href="#saving">Saving</a><a href="#on-the-original-xbox">On the original Xbox</a></nav><main><h1 id="guide">Guide</h1>
 <h2 id="your-first-screen">Your first screen</h2>
 <p>Download the showcase for your machine, or build it, and look in its <code>media/showcase</code> folder. Each folder there is a screen. Make a new one called <code>hello</code> with two files.</p>
 <p><code>screen.json</code> says how it appears in the menu:</p>
@@ -72,7 +72,7 @@ summary { cursor: pointer; padding: 10px 16px; } details pre { border-width: 1px
 
     <span class="k">void</span> update(<span class="k">float</span> dt)
     {
-        x += <span class="t">Input</span>::move().x * <span class="n">300</span> * dt;
+        x += <span class="t">Input</span>::move.x * <span class="n">300</span> * dt;
     }
 
     <span class="k">void</span> draw(<span class="t">Canvas</span>@ c)
@@ -235,12 +235,62 @@ hero.walker = <span class="k">true</span>;</code></pre>
 <tr><td><code>mass</code>, <code>friction</code>, <code>bounce</code>, <code>gravity</code>, <code>drag</code>, <code>walker</code></td><td>How it moves</td></tr>
 <tr><td><code>behaviour</code></td><td>A class in the script</td></tr>
 </table></div>
+<h3 id="particles-and-sounds-in-space">Particles and sounds in space</h3>
+<p>Particles are described in a scene file, as on the plane, with lengths in metres. <code>spread</code> is in degrees: 90 is a cone, and 360 goes every way. They face the camera, are lit by nothing, and hide behind things.</p>
+<pre><code><span class="t">Scene</span>::load(<span class="s">&quot;asset:scene.json&quot;</span>);                        <span class="c">// &quot;particles&quot;: { &quot;flame&quot;: {...}, &quot;sparks&quot;: {...} }</span>
+fire.emit(<span class="s">&quot;flame&quot;</span>, <span class="n">60</span>);                                 <span class="c">// steadily, upwards from it as it is turned</span>
+<span class="t">Space</span>::burst(<span class="s">&quot;sparks&quot;</span>, place, <span class="n">40</span>);                      <span class="c">// at once</span>
+fire.sound(crackle, <span class="n">0.9f</span>, <span class="n">18</span>);                          <span class="c">// heard from where it is, within 18 metres</span>
+boom.playAt(place, <span class="n">1</span>, <span class="n">60</span>);                              <span class="c">// once, from a place</span></code></pre>
+<p>What is heard fades with distance from the camera, and moves from one side to the other.</p>
 <h3 id="shapes-that-melt">Shapes that melt</h3>
-<p><code>Space::shape</code> adds one of up to 24 shapes that are drawn by marching along rays, so that they join softly, cut each other and</p>
+<p><code>Space::field</code> adds one of up to 24 shapes that are drawn by marching along rays, so that they join softly, cut each other and</p>
 <p>reflect. They mix with meshes. Clear them and add them again each update to move them. The original Xbox makes triangles of them.</p>
+<h2 id="shaders-and-bloom">Shaders and bloom</h2>
+<pre><code><span class="t">Effect</span>@ tube = <span class="t">Assets</span>::effect(<span class="s">&quot;global:effect/tube.fx&quot;</span>);
+<span class="t">Effect</span>@ flag = <span class="t">Assets</span>::effect(<span class="s">&quot;asset:flag.fx&quot;</span>);
+
+cloth.effect(flag);                <span class="c">// on a thing in space</span>
+flag.<span class="k">set</span>(<span class="n">0</span>, <span class="n">1</span>);                    <span class="c">// values[0].x</span>
+
+<span class="k">void</span> draw(<span class="t">Canvas</span>@ c)
+{
+    <span class="t">Space</span>::draw(c);
+    c.bloom(<span class="n">0.7f</span>, <span class="n">0.7f</span>);           <span class="c">// light spills from what is brighter than 0.7</span>
+    c.effect(tube);                <span class="c">// over all that has been drawn so far</span>
+    c.text(font, <span class="s">&quot;Not through it&quot;</span>, <span class="n">40</span>, <span class="n">40</span>);
+}</code></pre>
+<p>An effect is one file, for every GPU that has shaders: Direct3D 11 and OpenGL now. Where there are none, as on the original Xbox,</p>
+<p><code>bloom</code> and <code>effect</code> do nothing and give false, and things are drawn as they are, so a game need not ask. A mistake in one is in the</p>
+<p>log with its line, and it is left out.</p>
+<p>Over the picture:</p>
+<pre><code>float4 effect(float2 uv, float4 color)
+{
+    <span class="k">float</span> grey = dot(color.rgb, float3(<span class="n">0.3</span>, <span class="n">0.6</span>, <span class="n">0.1</span>));
+    <span class="k">return</span> float4(lerp(color.rgb, float3(grey, grey, grey), values[<span class="n">0</span>].x), <span class="n">1.0</span>);
+}</code></pre>
+<p>On a thing:</p>
+<pre><code>#define <span class="t">MOVES</span>                                     <span class="c">// only if it has move()</span>
+float3 move(float3 place, float3 normal, float2 uv)
+{
+    <span class="k">return</span> place + normal * sin(time * <span class="n">3.0</span> + place.y * <span class="n">4.0</span>) * values[<span class="n">0</span>].x;
+}
+
+float4 paint(float4 color, float2 uv, float3 place, float3 normal, inout <span class="k">float</span> glow)
+{
+    glow = max(glow, frac(uv.y * <span class="n">8.0</span> - time));    <span class="c">// 1 is bright whatever the light</span>
+    <span class="k">return</span> color;                                 <span class="c">// before it is lit</span>
+}</code></pre>
+<div class="scroll"><table><tr><th>There is</th><th>Which is</th></tr>
+<tr><td><code>picture(uv)</code></td><td>The picture so far, anywhere; <code>uv</code> is 0 to 1 from the top left</td></tr>
+<tr><td><code>size</code>, <code>time</code></td><td>Of the picture in pixels, and seconds</td></tr>
+<tr><td><code>values[0]</code> to <code>values[3]</code></td><td>Sixteen numbers, set with <code>Effect::set</code></td></tr>
+</table></div>
+<p>It is written as HLSL is, and every number with a point in it. <code>float2</code> to <code>float4</code>, <code>lerp</code>, <code>frac</code>, <code>saturate</code> and <code>fmod</code> have their OpenGL names put in for you; keep to what both have. Don&#x27;t name anything <code>out</code>, <code>in</code>, <code>sample</code> or <code>texture</code>.</p>
 <h2 id="assets">Assets</h2>
 <pre><code><span class="t">Texture</span>@ ship = <span class="t">Assets</span>::texture(<span class="s">&quot;asset:ship.png&quot;</span>);   <span class="c">// this screen&#x27;s asset folder</span>
 <span class="t">Sound</span>@ hit = <span class="t">Assets</span>::sound(<span class="s">&quot;global:sound/hit.wav&quot;</span>);  <span class="c">// shared by all screens</span></code></pre>
+<p>A name can be an address too: <code>Assets::texture(&quot;https://...&quot;)</code> fetches a picture from the web.</p>
 <p>Ask for what a screen needs in its fields: <code>onEnter()</code> waits for those. Anything asked for later arrives in the background, and draws as nothing until <code>ready</code>. Asking twice gives the same one. Letting go doesn&#x27;t unload it: it stays warm, so going back to a screen is instant, until the budget needs the room. A missing image draws as a checkerboard.</p>
 <div class="scroll"><table><tr><th>What</th><th>Formats</th></tr>
 <tr><td>Images</td><td>PNG, JPEG, TGA, BMP and GIF, up to 2048 pixels a side</td></tr>
@@ -255,7 +305,7 @@ hit.play(<span class="n">0.5f</span>, -<span class="n">1</span>, <span class="n"
 music.stop(<span class="n">1.5f</span>);                <span class="c">// fading out</span></code></pre>
 <p>A <code>Voice</code> is safe to use after the sound has ended. A screen&#x27;s sounds pause while it is covered and stop when it closes.</p>
 <h2 id="input">Input</h2>
-<p>Scripts ask for actions, not keys: <code>up</code>, <code>down</code>, <code>left</code>, <code>right</code>, <code>accept</code>, <code>cancel</code>, <code>fire</code>, <code>alternate</code> and <code>menu</code>. Players can change every one except <code>menu</code>; the Settings demo shows how. <code>Input::move()</code> gives a direction from keys, d-pad or stick.</p>
+<p>Scripts ask for actions, not keys: <code>up</code>, <code>down</code>, <code>left</code>, <code>right</code>, <code>accept</code>, <code>cancel</code>, <code>fire</code>, <code>alternate</code> and <code>menu</code>. Players can change every one except <code>menu</code>; the Settings demo shows how. <code>Input::move</code> gives a direction from keys, d-pad or stick.</p>
 <h2 id="coroutines-and-tweens">Coroutines and tweens</h2>
 <p>A coroutine is a function that can wait:</p>
 <pre><code><span class="k">void</span> onEnter() { start(<span class="t">Coroutine</span>(<span class="k">this</span>.intro)); }
@@ -269,10 +319,48 @@ music.stop(<span class="n">1.5f</span>);                <span class="c">// fadin
     <span class="t">Screens</span>::replace(<span class="s">&quot;game&quot;</span>);
 }</code></pre>
 <p>A <code>Tween</code> is a number that moves by itself. There is nothing to update: read <code>value</code> when drawing. <code>go()</code> starts from wherever it is, so changing course never jumps.</p>
+<h2 id="networking">Networking</h2>
+<p>Nothing here waits: ask, and look each update at what has come. Who sends what is up to you, so never trust what arrives.</p>
+<h3 id="playing-together">Playing together</h3>
+<p>A <code>Room</code> is a game on the local network. One player hosts; others find it by the game&#x27;s name and join.</p>
+<pre><code><span class="t">Room</span>@ room = <span class="t">Room</span>();
+
+room.host(<span class="s">&quot;my game&quot;</span>, <span class="s">&quot;Sam&quot;</span>);                  <span class="c">// or</span>
+room.find(<span class="s">&quot;my game&quot;</span>);                         <span class="c">// ...and then, when room.found &gt; 0,</span>
+room.join(<span class="s">&quot;my game&quot;</span>, <span class="n">0</span>, <span class="s">&quot;Alex&quot;</span>);
+
+<span class="t">Message</span>@ m = <span class="t">Message</span>();
+m.writeInt(<span class="n">1</span>);
+m.writeVec2(position);
+room.send(m, <span class="k">false</span>);                          <span class="c">// false: quickly; true: for sure, and in order</span>
+
+<span class="k">for</span> (<span class="t">Message</span>@ m = room.receive(); m !<span class="k">is</span> <span class="k">null</span>; @m = room.receive())
+    <span class="k">if</span> (m.readInt() == <span class="n">1</span>)
+        where[m.from] = m.readVec2();         <span class="c">// m.whole says whether it was all there</span></code></pre>
+<p><code>room.state</code> is <code>RoomIn</code> once you are in, and <code>RoomLost</code> if the host goes. <code>arrived()</code> and <code>departed()</code> say who has come and gone. Use</p>
+<p>quick messages for what is out of date in a moment, such as where things are, and sure ones for what happened.</p>
+<h3 id="the-web">The web</h3>
+<pre><code><span class="t">Request</span>@ request = <span class="t">Net</span>::<span class="k">get</span>(<span class="s">&quot;https://example.com/scores&quot;</span>);
+
+<span class="k">if</span> (request.done &amp;&amp; !request.failed)
+    show(request.status, request.text);</code></pre>
+<p>Certificates are checked, against those in <code>media/global/certificates.pem</code>: a server that can&#x27;t be trusted is refused, and <code>error</code> says why. An answer may be up to 4 MB. <code>Net::post</code> sends something.</p>
+<h3 id="anything-else">Anything else</h3>
+<p><code>Connection</code> is a stream of text over TCP, to a server or from those who connect to you; <code>Datagrams</code> sends short texts over UDP.</p>
+<h2 id="what-only-an-xbox-can-do">What only an Xbox can do</h2>
+<p><code>Xbox::available</code> is true on an original Xbox. Its temperatures, fan, light, tray, drives and files are there, as are ways out:</p>
+<pre><code><span class="k">if</span> (<span class="t">Xbox</span>::available)
+{
+    <span class="k">string</span> cpu = formatInt(<span class="t">Xbox</span>::cpuTemperature) + <span class="s">&quot; C&quot;</span>;
+    <span class="k">array</span>&lt;<span class="k">string</span>&gt;@ games = <span class="t">Xbox</span>::folders(<span class="s">&quot;E:\\Games&quot;</span>);
+    <span class="t">Xbox</span>::launch(<span class="s">&quot;E:\\Games\\Thing\\default.xbe&quot;</span>);   <span class="c">// or toDashboard(), toFirmware(), restart(), powerOff()</span>
+}</code></pre>
+<p><code>Xbox::busRead</code> and <code>busWrite</code> reach anything on the SMBus but the console&#x27;s settings, where a mistake can&#x27;t be undone. Elsewhere</p>
+<p>readings are -1 or empty and the rest do nothing.</p>
 <h2 id="saving">Saving</h2>
 <pre><code><span class="t">Save</span>::<span class="k">set</span>(<span class="s">&quot;best&quot;</span>, formatInt(score));
 <span class="k">int</span> best = <span class="k">int</span>(parseInt(<span class="t">Save</span>::<span class="k">get</span>(<span class="s">&quot;best&quot;</span>, <span class="s">&quot;0&quot;</span>)));</code></pre>
 <h2 id="on-the-original-xbox">On the original Xbox</h2>
-<ul><li>64 MB in all. Images and fonts may take 20 MB and sounds 6 MB by default.</li><li>A scene may have 4096 entities and 1500 particles at once; elsewhere 16384 and 8000.</li><li>Build the disc with the cook tool, which makes images a quarter to an eighth of the size in memory and sounds a quarter, under the same names.</li><li>Three dimensions use the fixed pipeline: lights are worked out at corners, so give a floor plenty of squares. Ray-marched shapes become triangles.</li><li>There is no live reload: edit on a PC and then build the disc.</li></ul></main></div>
+<ul><li>64 MB in all. Images and fonts may take 20 MB and sounds 6 MB by default.</li><li>A scene may have 4096 entities and 1500 particles at once; elsewhere 16384 and 8000.</li><li>Build the disc with the cook tool, which makes images a quarter to an eighth of the size in memory and sounds a quarter, under the same names.</li><li>Three dimensions use the fixed pipeline: lights are worked out at corners, so give a floor plenty of squares. Ray-marched shapes become triangles. There are no shaders, so no bloom or effects.</li><li>There is no live reload: edit on a PC and then build the disc.</li></ul></main></div>
 </body>
 </html>
