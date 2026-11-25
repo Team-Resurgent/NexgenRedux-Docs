@@ -7911,7 +7911,7 @@ summary { cursor: pointer; padding: 10px 16px; } details pre { border-width: 1px
 </code></pre></details></div>
 <div data-find="scene editor build a place, try it and keep it editor"><h3 id="demo-editor">Scene editor</h3><p>Build a place, try it and keep it</p>
 <div class="shots"><img loading="lazy" src="screenshots/editor.png" alt="Scene editor"></div>
-<details><summary><code>editor/main.as</code> <span class="tag">2751 lines</span></summary><pre><code><span class="c">// A scene editor, written as any screen is. What it makes is a file that Space::load reads.</span>
+<details><summary><code>editor/main.as</code> <span class="tag">2859 lines</span></summary><pre><code><span class="c">// A scene editor, written as any screen is. What it makes is a file that Space::load reads.</span>
 
 <span class="c">// Where a cave piece goes on.</span>
 <span class="k">class</span> <span class="t">Exit</span>
@@ -7941,7 +7941,7 @@ summary { cursor: pointer; padding: 10px 16px; } details pre { border-width: 1px
 {
     <span class="k">array</span>&lt;<span class="t">Vec3</span>&gt; points;
     <span class="k">float</span> width = <span class="n">7</span>;
-    <span class="k">bool</span> closed = <span class="k">true</span>;
+    <span class="k">bool</span> closed = <span class="k">false</span>;
     <span class="t">Entity</span>@ entity;
     <span class="k">array</span>&lt;<span class="t">Vec3</span>&gt; path;
 
@@ -8018,6 +8018,18 @@ summary { cursor: pointer; padding: 10px 16px; } details pre { border-width: 1px
     <span class="t">Font</span>@ font = <span class="t">Assets</span>::font(<span class="s">&quot;global:freesans.sfn&quot;</span>, <span class="n">20</span>);
     <span class="k">string</span> file = <span class="s">&quot;asset:scene.json&quot;</span>;
     <span class="k">array</span>&lt;<span class="t">Kind</span>@&gt; kinds = {
+        <span class="t">Kind</span>(<span class="s">&quot;Platforms&quot;</span>, <span class="s">&quot;Platform&quot;</span>, <span class="s">&quot;model&quot;</span>, <span class="s">&quot;platform&quot;</span>, <span class="t">Vec3</span>(-<span class="n">2</span>, <span class="n">0</span>, -<span class="n">2</span>), <span class="t">Vec3</span>(<span class="n">2</span>, <span class="n">0.53f</span>, <span class="n">2</span>), <span class="n">1</span>),
+        <span class="t">Kind</span>(<span class="s">&quot;Platforms&quot;</span>, <span class="s">&quot;Round one&quot;</span>, <span class="s">&quot;model&quot;</span>, <span class="s">&quot;platform-round&quot;</span>, <span class="t">Vec3</span>(-<span class="n">2</span>, <span class="n">0</span>, -<span class="n">2</span>), <span class="t">Vec3</span>(<span class="n">2</span>, <span class="n">0.5f</span>, <span class="n">2</span>), <span class="n">1</span>),
+        <span class="t">Kind</span>(<span class="s">&quot;Platforms&quot;</span>, <span class="s">&quot;Moving one&quot;</span>, <span class="s">&quot;moving&quot;</span>, <span class="s">&quot;platform&quot;</span>, <span class="t">Vec3</span>(-<span class="n">2</span>, <span class="n">0</span>, -<span class="n">2</span>), <span class="t">Vec3</span>(<span class="n">2</span>, <span class="n">0.53f</span>, <span class="n">2</span>), <span class="n">1</span>),
+        <span class="t">Kind</span>(<span class="s">&quot;Platforms&quot;</span>, <span class="s">&quot;Lift&quot;</span>, <span class="s">&quot;lift&quot;</span>, <span class="s">&quot;platform-round&quot;</span>, <span class="t">Vec3</span>(-<span class="n">2</span>, <span class="n">0</span>, -<span class="n">2</span>), <span class="t">Vec3</span>(<span class="n">2</span>, <span class="n">0.5f</span>, <span class="n">2</span>), <span class="n">1</span>),
+        <span class="t">Kind</span>(<span class="s">&quot;Platforms&quot;</span>, <span class="s">&quot;Ramp&quot;</span>, <span class="s">&quot;model&quot;</span>, <span class="s">&quot;ramp&quot;</span>, <span class="t">Vec3</span>(-<span class="n">1.5f</span>, <span class="n">0</span>, -<span class="n">2.5f</span>), <span class="t">Vec3</span>(<span class="n">1.5f</span>, <span class="n">2</span>, <span class="n">2.5f</span>), <span class="n">4</span>),
+        <span class="t">Kind</span>(<span class="s">&quot;Platforms&quot;</span>, <span class="s">&quot;Stairs&quot;</span>, <span class="s">&quot;model&quot;</span>, <span class="s">&quot;stairs&quot;</span>, <span class="t">Vec3</span>(-<span class="n">1.5f</span>, <span class="n">0</span>, -<span class="n">2</span>), <span class="t">Vec3</span>(<span class="n">1.5f</span>, <span class="n">2</span>, <span class="n">2</span>), <span class="n">4</span>),
+        <span class="t">Kind</span>(<span class="s">&quot;Platforms&quot;</span>, <span class="s">&quot;Bridge&quot;</span>, <span class="s">&quot;model&quot;</span>, <span class="s">&quot;bridge&quot;</span>, <span class="t">Vec3</span>(-<span class="n">1.4f</span>, -<span class="n">0.23f</span>, -<span class="n">5</span>), <span class="t">Vec3</span>(<span class="n">1.4f</span>, <span class="n">1.1f</span>, <span class="n">5</span>), <span class="n">4</span>),
+        <span class="t">Kind</span>(<span class="s">&quot;Roads&quot;</span>, <span class="s">&quot;Straight&quot;</span>, <span class="s">&quot;model&quot;</span>, <span class="s">&quot;road-straight&quot;</span>, <span class="t">Vec3</span>(-<span class="n">4</span>, <span class="n">0</span>, -<span class="n">4</span>), <span class="t">Vec3</span>(<span class="n">4</span>, <span class="n">0.12f</span>, <span class="n">4</span>)),
+        <span class="t">Kind</span>(<span class="s">&quot;Roads&quot;</span>, <span class="s">&quot;Corner&quot;</span>, <span class="s">&quot;model&quot;</span>, <span class="s">&quot;road-bend&quot;</span>, <span class="t">Vec3</span>(-<span class="n">4</span>, <span class="n">0</span>, -<span class="n">4</span>), <span class="t">Vec3</span>(<span class="n">4</span>, <span class="n">0.12f</span>, <span class="n">4</span>)),
+        <span class="t">Kind</span>(<span class="s">&quot;Roads&quot;</span>, <span class="s">&quot;Junction&quot;</span>, <span class="s">&quot;model&quot;</span>, <span class="s">&quot;road-t&quot;</span>, <span class="t">Vec3</span>(-<span class="n">4</span>, <span class="n">0</span>, -<span class="n">4</span>), <span class="t">Vec3</span>(<span class="n">4</span>, <span class="n">0.12f</span>, <span class="n">4</span>)),
+        <span class="t">Kind</span>(<span class="s">&quot;Roads&quot;</span>, <span class="s">&quot;Crossroads&quot;</span>, <span class="s">&quot;model&quot;</span>, <span class="s">&quot;road-cross&quot;</span>, <span class="t">Vec3</span>(-<span class="n">4</span>, <span class="n">0</span>, -<span class="n">4</span>), <span class="t">Vec3</span>(<span class="n">4</span>, <span class="n">0.12f</span>, <span class="n">4</span>)),
+        <span class="t">Kind</span>(<span class="s">&quot;Roads&quot;</span>, <span class="s">&quot;Dead end&quot;</span>, <span class="s">&quot;model&quot;</span>, <span class="s">&quot;road-end&quot;</span>, <span class="t">Vec3</span>(-<span class="n">4</span>, <span class="n">0</span>, -<span class="n">4</span>), <span class="t">Vec3</span>(<span class="n">4</span>, <span class="n">0.12f</span>, <span class="n">4</span>)),
         <span class="t">Kind</span>(<span class="s">&quot;Nature&quot;</span>, <span class="s">&quot;Oak&quot;</span>, <span class="s">&quot;model&quot;</span>, <span class="s">&quot;oak&quot;</span>, <span class="t">Vec3</span>(-<span class="n">1.8f</span>, -<span class="n">0.4f</span>, -<span class="n">1.9f</span>), <span class="t">Vec3</span>(<span class="n">2</span>, <span class="n">5.1f</span>, <span class="n">1.9f</span>), <span class="n">3</span>, <span class="n">0.35f</span>),
         <span class="t">Kind</span>(<span class="s">&quot;Nature&quot;</span>, <span class="s">&quot;Pine&quot;</span>, <span class="s">&quot;model&quot;</span>, <span class="s">&quot;pine&quot;</span>, <span class="t">Vec3</span>(-<span class="n">1.7f</span>, -<span class="n">0.4f</span>, -<span class="n">1.8f</span>), <span class="t">Vec3</span>(<span class="n">1.7f</span>, <span class="n">6</span>, <span class="n">1.7f</span>), <span class="n">3</span>, <span class="n">0.3f</span>),
         <span class="t">Kind</span>(<span class="s">&quot;Nature&quot;</span>, <span class="s">&quot;Bush&quot;</span>, <span class="s">&quot;model&quot;</span>, <span class="s">&quot;bush&quot;</span>, <span class="t">Vec3</span>(-<span class="n">0.9f</span>, -<span class="n">0.2f</span>, -<span class="n">0.9f</span>), <span class="t">Vec3</span>(<span class="n">1</span>, <span class="n">0.8f</span>, <span class="n">0.6f</span>)),
@@ -8032,13 +8044,6 @@ summary { cursor: pointer; padding: 10px 16px; } details pre { border-width: 1px
         <span class="t">Kind</span>(<span class="s">&quot;Buildings&quot;</span>, <span class="s">&quot;Gate&quot;</span>, <span class="s">&quot;model&quot;</span>, <span class="s">&quot;gate&quot;</span>, <span class="t">Vec3</span>(-<span class="n">4.9f</span>, -<span class="n">4.9f</span>, -<span class="n">0.4f</span>), <span class="t">Vec3</span>(<span class="n">4.9f</span>, <span class="n">4.9f</span>, <span class="n">0.4f</span>), <span class="n">4</span>),
         <span class="t">Kind</span>(<span class="s">&quot;Buildings&quot;</span>, <span class="s">&quot;Wall&quot;</span>, <span class="s">&quot;model&quot;</span>, <span class="s">&quot;wall&quot;</span>, <span class="t">Vec3</span>(-<span class="n">2</span>, <span class="n">0</span>, -<span class="n">0.2f</span>), <span class="t">Vec3</span>(<span class="n">2</span>, <span class="n">2.5f</span>, <span class="n">0.2f</span>), <span class="n">1</span>),
         <span class="t">Kind</span>(<span class="s">&quot;Buildings&quot;</span>, <span class="s">&quot;Column&quot;</span>, <span class="s">&quot;model&quot;</span>, <span class="s">&quot;column&quot;</span>, <span class="t">Vec3</span>(-<span class="n">0.55f</span>, <span class="n">0</span>, -<span class="n">0.55f</span>), <span class="t">Vec3</span>(<span class="n">0.55f</span>, <span class="n">3.9f</span>, <span class="n">0.55f</span>), <span class="n">3</span>),
-        <span class="t">Kind</span>(<span class="s">&quot;Platforms&quot;</span>, <span class="s">&quot;Platform&quot;</span>, <span class="s">&quot;model&quot;</span>, <span class="s">&quot;platform&quot;</span>, <span class="t">Vec3</span>(-<span class="n">2</span>, <span class="n">0</span>, -<span class="n">2</span>), <span class="t">Vec3</span>(<span class="n">2</span>, <span class="n">0.53f</span>, <span class="n">2</span>), <span class="n">1</span>),
-        <span class="t">Kind</span>(<span class="s">&quot;Platforms&quot;</span>, <span class="s">&quot;Round one&quot;</span>, <span class="s">&quot;model&quot;</span>, <span class="s">&quot;platform-round&quot;</span>, <span class="t">Vec3</span>(-<span class="n">2</span>, <span class="n">0</span>, -<span class="n">2</span>), <span class="t">Vec3</span>(<span class="n">2</span>, <span class="n">0.5f</span>, <span class="n">2</span>), <span class="n">1</span>),
-        <span class="t">Kind</span>(<span class="s">&quot;Platforms&quot;</span>, <span class="s">&quot;Moving one&quot;</span>, <span class="s">&quot;moving&quot;</span>, <span class="s">&quot;platform&quot;</span>, <span class="t">Vec3</span>(-<span class="n">2</span>, <span class="n">0</span>, -<span class="n">2</span>), <span class="t">Vec3</span>(<span class="n">2</span>, <span class="n">0.53f</span>, <span class="n">2</span>), <span class="n">1</span>),
-        <span class="t">Kind</span>(<span class="s">&quot;Platforms&quot;</span>, <span class="s">&quot;Lift&quot;</span>, <span class="s">&quot;lift&quot;</span>, <span class="s">&quot;platform-round&quot;</span>, <span class="t">Vec3</span>(-<span class="n">2</span>, <span class="n">0</span>, -<span class="n">2</span>), <span class="t">Vec3</span>(<span class="n">2</span>, <span class="n">0.5f</span>, <span class="n">2</span>), <span class="n">1</span>),
-        <span class="t">Kind</span>(<span class="s">&quot;Platforms&quot;</span>, <span class="s">&quot;Ramp&quot;</span>, <span class="s">&quot;model&quot;</span>, <span class="s">&quot;ramp&quot;</span>, <span class="t">Vec3</span>(-<span class="n">1.5f</span>, <span class="n">0</span>, -<span class="n">2.5f</span>), <span class="t">Vec3</span>(<span class="n">1.5f</span>, <span class="n">2</span>, <span class="n">2.5f</span>), <span class="n">4</span>),
-        <span class="t">Kind</span>(<span class="s">&quot;Platforms&quot;</span>, <span class="s">&quot;Stairs&quot;</span>, <span class="s">&quot;model&quot;</span>, <span class="s">&quot;stairs&quot;</span>, <span class="t">Vec3</span>(-<span class="n">1.5f</span>, <span class="n">0</span>, -<span class="n">2</span>), <span class="t">Vec3</span>(<span class="n">1.5f</span>, <span class="n">2</span>, <span class="n">2</span>), <span class="n">4</span>),
-        <span class="t">Kind</span>(<span class="s">&quot;Platforms&quot;</span>, <span class="s">&quot;Bridge&quot;</span>, <span class="s">&quot;model&quot;</span>, <span class="s">&quot;bridge&quot;</span>, <span class="t">Vec3</span>(-<span class="n">1.4f</span>, -<span class="n">0.23f</span>, -<span class="n">5</span>), <span class="t">Vec3</span>(<span class="n">1.4f</span>, <span class="n">1.1f</span>, <span class="n">5</span>), <span class="n">4</span>),
         <span class="t">Kind</span>(<span class="s">&quot;Caves&quot;</span>, <span class="s">&quot;Way down&quot;</span>, <span class="s">&quot;model&quot;</span>, <span class="s">&quot;cave-mouth&quot;</span>, <span class="t">Vec3</span>(-<span class="n">3.4f</span>, -<span class="n">5</span>, -<span class="n">4</span>), <span class="t">Vec3</span>(<span class="n">3.4f</span>, <span class="n">4.4f</span>, <span class="n">4.9f</span>), <span class="n">4</span>),
         <span class="t">Kind</span>(<span class="s">&quot;Caves&quot;</span>, <span class="s">&quot;Mine&quot;</span>, <span class="s">&quot;model&quot;</span>, <span class="s">&quot;cave-mouth-mine&quot;</span>, <span class="t">Vec3</span>(-<span class="n">3.4f</span>, -<span class="n">5</span>, -<span class="n">4</span>), <span class="t">Vec3</span>(<span class="n">3.4f</span>, <span class="n">4.4f</span>, <span class="n">4.9f</span>), <span class="n">4</span>),
         <span class="t">Kind</span>(<span class="s">&quot;Caves&quot;</span>, <span class="s">&quot;Tunnel&quot;</span>, <span class="s">&quot;model&quot;</span>, <span class="s">&quot;cave-tunnel&quot;</span>, <span class="t">Vec3</span>(-<span class="n">2.6f</span>, <span class="n">0</span>, -<span class="n">4</span>), <span class="t">Vec3</span>(<span class="n">2.6f</span>, <span class="n">3.6f</span>, <span class="n">4</span>), <span class="n">4</span>),
@@ -8059,7 +8064,7 @@ summary { cursor: pointer; padding: 10px 16px; } details pre { border-width: 1px
         <span class="t">Kind</span>(<span class="s">&quot;Others&quot;</span>, <span class="s">&quot;Engine&quot;</span>, <span class="s">&quot;sound&quot;</span>, <span class="s">&quot;global:sound/engine.wav&quot;</span>, <span class="t">Vec3</span>(-<span class="n">0.4f</span>, -<span class="n">0.4f</span>, -<span class="n">0.4f</span>), <span class="t">Vec3</span>(<span class="n">0.4f</span>, <span class="n">0.4f</span>, <span class="n">0.4f</span>)),
         <span class="t">Kind</span>(<span class="s">&quot;Others&quot;</span>, <span class="s">&quot;Light&quot;</span>, <span class="s">&quot;glow&quot;</span>, <span class="s">&quot;&quot;</span>, <span class="t">Vec3</span>(-<span class="n">0.4f</span>, -<span class="n">0.4f</span>, -<span class="n">0.4f</span>), <span class="t">Vec3</span>(<span class="n">0.4f</span>, <span class="n">0.4f</span>, <span class="n">0.4f</span>))
     };
-    <span class="k">array</span>&lt;<span class="k">string</span>&gt; groups = { <span class="s">&quot;Everything&quot;</span>, <span class="s">&quot;Nature&quot;</span>, <span class="s">&quot;Buildings&quot;</span>, <span class="s">&quot;Platforms&quot;</span>, <span class="s">&quot;Caves&quot;</span>, <span class="s">&quot;Shapes&quot;</span>, <span class="s">&quot;Others&quot;</span>, <span class="s">&quot;Mine&quot;</span> };
+    <span class="k">array</span>&lt;<span class="k">string</span>&gt; groups = { <span class="s">&quot;Everything&quot;</span>, <span class="s">&quot;Platforms&quot;</span>, <span class="s">&quot;Roads&quot;</span>, <span class="s">&quot;Nature&quot;</span>, <span class="s">&quot;Buildings&quot;</span>, <span class="s">&quot;Caves&quot;</span>, <span class="s">&quot;Shapes&quot;</span>, <span class="s">&quot;Others&quot;</span>, <span class="s">&quot;Mine&quot;</span> };
     <span class="k">int</span> group = <span class="n">0</span>;
     <span class="k">array</span>&lt;<span class="k">uint</span>&gt; listed;
     <span class="k">array</span>&lt;<span class="k">string</span>&gt; pictures = { <span class="s">&quot;&quot;</span> }, pictureNames = { <span class="s">&quot;None&quot;</span> };   <span class="c">// for things, and for the sky</span>
@@ -8305,14 +8310,14 @@ summary { cursor: pointer; padding: 10px 16px; } details pre { border-width: 1px
         @roadLabel = track.label(<span class="s">&quot;&quot;</span>, <span class="s">&quot;plain&quot;</span>);
         track.button(<span class="s">&quot;New road&quot;</span>, <span class="t">WidgetEvent</span>(<span class="k">this</span>.onRoadNew));
         track.button(<span class="s">&quot;Next road&quot;</span>, <span class="t">WidgetEvent</span>(<span class="k">this</span>.onRoadNext));
-        @roadClosed = track.toggle(<span class="s">&quot;Goes round&quot;</span>, <span class="k">true</span>, <span class="t">WidgetEvent</span>(<span class="k">this</span>.onRoad));
+        @roadClosed = track.toggle(<span class="s">&quot;Goes round&quot;</span>, <span class="k">false</span>, <span class="t">WidgetEvent</span>(<span class="k">this</span>.onRoad));
         track.label(<span class="s">&quot;How wide&quot;</span>, <span class="s">&quot;small&quot;</span>);
         @roadWidth = track.slider(<span class="n">7</span>, <span class="n">3</span>, <span class="n">16</span>, <span class="t">WidgetEvent</span>(<span class="k">this</span>.onRoad));
         roadWidth.step = <span class="n">1</span>;
         track.button(<span class="s">&quot;Shape the land&quot;</span>, <span class="t">WidgetEvent</span>(<span class="k">this</span>.onRoadLand));
         track.button(<span class="s">&quot;Take a point back&quot;</span>, <span class="t">WidgetEvent</span>(<span class="k">this</span>.onRoadBack));
         track.button(<span class="s">&quot;Delete road&quot;</span>, <span class="t">WidgetEvent</span>(<span class="k">this</span>.onRoadDelete));
-        track.paragraph(<span class="s">&quot;Press on the land for each point. With Drive, Play is a race against the clock.&quot;</span>, <span class="s">&quot;small&quot;</span>);
+        track.paragraph(<span class="s">&quot;Press on the land for each point; drag one to move it; press on the road to put one between. With Drive, Play is a race against the clock.&quot;</span>, <span class="s">&quot;small&quot;</span>);
 
         sides.space();
         <span class="t">Widget</span>@ other = sides.panel();
@@ -9356,7 +9361,7 @@ summary { cursor: pointer; padding: 10px 16px; } details pre { border-width: 1px
         {
             <span class="t">Road</span>@ r = <span class="t">Road</span>();
             r.width = clamp(<span class="k">float</span>(all[i][<span class="s">&quot;width&quot;</span>].number(<span class="n">7</span>)), <span class="n">2</span>, <span class="n">20</span>);
-            r.closed = all[i][<span class="s">&quot;closed&quot;</span>].flag(<span class="k">true</span>);
+            r.closed = all[i][<span class="s">&quot;closed&quot;</span>].flag(<span class="k">false</span>);
             <span class="k">for</span> (<span class="k">uint</span> k = <span class="n">0</span>; k &lt; all[i][<span class="s">&quot;points&quot;</span>].count &amp;&amp; k &lt; <span class="n">64</span>; k++)
                 r.points.insertLast(all[i][<span class="s">&quot;points&quot;</span>][k].vec3());
             roads.insertLast(r);
@@ -9385,8 +9390,14 @@ summary { cursor: pointer; padding: 10px 16px; } details pre { border-width: 1px
             <span class="k">for</span> (<span class="k">uint</span> k = <span class="n">0</span>; k &lt; <span class="n">6</span>; k++)
             {
                 <span class="t">Vec3</span> p = at + side * (offsets[k] * r.width);
-                <span class="k">float</span> y = <span class="t">Space</span>::height(p.x, p.z);
-                p.y = (y &lt; -<span class="n">1000</span> ? at.y : y) + <span class="n">0.09f</span>;
+                <span class="c">// The highest that is near, so that no bump of the land between comes through.</span>
+                <span class="k">float</span> y = -<span class="n">10000</span>;
+                <span class="k">for</span> (<span class="k">int</span> q = <span class="n">0</span>; q &lt; <span class="n">9</span>; q++)
+                {
+                    <span class="k">float</span> h = <span class="t">Space</span>::height(p.x + (q % <span class="n">3</span> - <span class="n">1</span>) * <span class="n">1.1f</span>, p.z + (q / <span class="n">3</span> - <span class="n">1</span>) * <span class="n">1.1f</span>);
+                    y = h &gt; y ? h : y;
+                }
+                p.y = (y &lt; -<span class="n">1000</span> ? at.y : y) + <span class="n">0.1f</span> + <span class="k">float</span>(roads.findByRef(r)) * <span class="n">0.012f</span>;
                 <span class="k">bool</span> kerb = k == <span class="n">0</span> || k == <span class="n">5</span>;
                 m.vertex(p, <span class="t">Vec3</span>(<span class="n">0</span>, <span class="n">1</span>, <span class="n">0</span>), kerb &amp;&amp; (i / <span class="n">2</span>) % <span class="n">2</span> == <span class="n">0</span> ? <span class="t">Color</span>(<span class="n">0.92f</span>, <span class="n">0.92f</span>, <span class="n">0.9f</span>) : kerb ? tints[k] : tints[k]);
             }
@@ -9410,7 +9421,7 @@ summary { cursor: pointer; padding: 10px 16px; } details pre { border-width: 1px
     {
         <span class="t">Road</span>@ r = roadNow();
         roadLabel.text = r <span class="k">is</span> <span class="k">null</span> ? <span class="s">&quot;No road yet&quot;</span> : <span class="s">&quot;Road &quot;</span> + (road + <span class="n">1</span>) + <span class="s">&quot; of &quot;</span> + roads.length() + <span class="s">&quot;: &quot;</span> + r.points.length() + <span class="s">&quot; points&quot;</span>;
-        roadClosed.checked = r <span class="k">is</span> <span class="k">null</span> || r.closed;
+        roadClosed.checked = r !<span class="k">is</span> <span class="k">null</span> &amp;&amp; r.closed;
         roadWidth.value = r <span class="k">is</span> <span class="k">null</span> ? <span class="n">7.0f</span> : r.width;
     }
 
@@ -9494,8 +9505,64 @@ summary { cursor: pointer; padding: 10px 16px; } details pre { border-width: 1px
         changed(<span class="s">&quot;land&quot;</span>);
     }
 
+    <span class="k">int</span> held = -<span class="n">1</span>;   <span class="c">// a point of the road that is being moved</span>
+
+    <span class="c">// Takes the nearest point, if one is near: true if it did.</span>
+    <span class="k">bool</span> takePoint(<span class="k">const</span> <span class="t">Vec3</span> &amp;<span class="k">in</span> p)
+    {
+        <span class="t">Road</span>@ r = roadNow();
+        held = -<span class="n">1</span>;
+        <span class="k">for</span> (<span class="k">uint</span> i = <span class="n">0</span>; r !<span class="k">is</span> <span class="k">null</span> &amp;&amp; i &lt; r.points.length(); i++)
+            <span class="k">if</span> (<span class="t">Vec3</span>(r.points[i].x - p.x, <span class="n">0</span>, r.points[i].z - p.z).length() &lt; <span class="n">2.5f</span> &amp;&amp; (held &lt; <span class="n">0</span> || (r.points[i] - p).length() &lt; (r.points[<span class="k">uint</span>(held)] - p).length()))
+                held = <span class="k">int</span>(i);
+        <span class="k">return</span> held &gt;= <span class="n">0</span>;
+    }
+
+    <span class="k">void</span> movePoint(<span class="k">const</span> <span class="t">Vec3</span> &amp;<span class="k">in</span> p)
+    {
+        <span class="t">Road</span>@ r = roadNow();
+        <span class="k">if</span> (r <span class="k">is</span> <span class="k">null</span> || held &lt; <span class="n">0</span>)
+            <span class="k">return</span>;
+        r.points[<span class="k">uint</span>(held)] = <span class="t">Vec3</span>(floor(p.x * <span class="n">2</span> + <span class="n">0.5f</span>) * <span class="n">0.5f</span>, <span class="n">0</span>, floor(p.z * <span class="n">2</span> + <span class="n">0.5f</span>) * <span class="n">0.5f</span>);
+        makeRoad(r);
+    }
+
+    <span class="k">void</span> putPoint()
+    {
+        <span class="k">if</span> (held &lt; <span class="n">0</span>)
+            <span class="k">return</span>;
+        held = -<span class="n">1</span>;
+        changed(<span class="s">&quot;road&quot;</span>);
+    }
+
+    <span class="c">// On the road between two points, it goes between them; elsewhere at the end.</span>
     <span class="k">void</span> addPoint(<span class="k">const</span> <span class="t">Vec3</span> &amp;<span class="k">in</span> p)
     {
+        <span class="t">Road</span>@ r0 = roadNow();
+        <span class="k">if</span> (r0 !<span class="k">is</span> <span class="k">null</span> &amp;&amp; r0.points.length() &gt;= <span class="n">2</span> &amp;&amp; r0.points.length() &lt; <span class="n">64</span>)
+        {
+            <span class="k">int</span> at = <span class="n">0</span>;
+            <span class="k">if</span> (r0.distance(p, at) &lt; r0.width * <span class="n">0.5f</span>)
+            {
+                <span class="c">// Which points it is between, as the path goes.</span>
+                <span class="k">uint</span> before = <span class="n">0</span>;
+                <span class="k">for</span> (<span class="k">uint</span> i = <span class="n">1</span>; i &lt; r0.points.length(); i++)
+                {
+                    <span class="k">int</span> there = <span class="n">0</span>;
+                    r0.distance(r0.points[i], there);
+                    <span class="k">if</span> (there &lt;= at)
+                        before = i;
+                }
+                <span class="k">if</span> (before + <span class="n">1</span> &lt; r0.points.length() || r0.closed)
+                {
+                    r0.points.insertAt(before + <span class="n">1</span>, <span class="t">Vec3</span>(floor(p.x * <span class="n">2</span> + <span class="n">0.5f</span>) * <span class="n">0.5f</span>, <span class="n">0</span>, floor(p.z * <span class="n">2</span> + <span class="n">0.5f</span>) * <span class="n">0.5f</span>));
+                    makeRoad(r0);
+                    held = <span class="k">int</span>(before) + <span class="n">1</span>;
+                    hop.play(<span class="n">0.15f</span>, <span class="n">0</span>, <span class="n">1.6f</span>);
+                    <span class="k">return</span>;
+                }
+            }
+        }
         <span class="k">if</span> (roadNow() <span class="k">is</span> <span class="k">null</span>)
             onRoadNew(<span class="k">null</span>);
         <span class="t">Road</span>@ r = roadNow();
@@ -9638,6 +9705,32 @@ summary { cursor: pointer; padding: 10px 16px; } details pre { border-width: 1px
         }
         <span class="k">if</span> (k.collider &gt; <span class="n">0</span>)
             setCollider(j, k.collider);
+        <span class="k">if</span> (k.group == <span class="s">&quot;Roads&quot;</span>)
+        {
+            <span class="c">// On a grid of 8 metres, the land flat under it; and on from the chosen one, where it is a road too.</span>
+            <span class="t">Vec3</span> at(floor(p.x / <span class="n">8</span> + <span class="n">0.5f</span>) * <span class="n">8</span>, <span class="n">0</span>, floor(p.z / <span class="n">8</span> + <span class="n">0.5f</span>) * <span class="n">8</span>);
+            <span class="k">float</span> turned = <span class="n">0</span>;
+            <span class="k">if</span> (chosen &gt;= <span class="n">0</span> &amp;&amp; kindOf(things[<span class="k">uint</span>(chosen)].json).group == <span class="s">&quot;Roads&quot;</span>)
+            {
+                <span class="t">Json</span>@ c = things[<span class="k">uint</span>(chosen)].json;
+                turned = angles(c).y;
+                at = worldPlace(c) + spun(<span class="t">Vec3</span>(<span class="n">0</span>, <span class="n">0</span>, -<span class="n">8</span>), turned);
+            }
+            <span class="k">else</span>
+                at.y = <span class="t">Space</span>::height(at.x, at.z);
+            <span class="k">for</span> (<span class="k">int</span> q = <span class="n">0</span>; q &lt; <span class="n">9</span>; q++)
+                <span class="t">Space</span>::level(at.x + (q % <span class="n">3</span> - <span class="n">1</span>) * <span class="n">3.5f</span>, at.z + (q / <span class="n">3</span> - <span class="n">1</span>) * <span class="n">3.5f</span>, <span class="n">5</span>, at.y - <span class="n">0.05f</span>, <span class="n">1</span>);
+            landText = <span class="t">Space</span>::landEdits;
+            place();
+            j.<span class="k">set</span>(<span class="s">&quot;place&quot;</span>, <span class="t">Vec3</span>(at.x, at.y, at.z));
+            j.<span class="k">set</span>(<span class="s">&quot;angles&quot;</span>, <span class="t">Vec3</span>(<span class="n">0</span>, turned, <span class="n">0</span>));
+            j.<span class="k">set</span>(<span class="s">&quot;shadow&quot;</span>, <span class="k">false</span>);
+            things.insertLast(<span class="t">Thing</span>(j));
+            make(things.length() - <span class="n">1</span>);
+            select(<span class="k">int</span>(things.length()) - <span class="n">1</span>);
+            changed(<span class="s">&quot;add&quot;</span>);
+            <span class="k">return</span>;
+        }
         <span class="k">if</span> (cave)
         {
             <span class="t">Vec3</span> at, turned;
@@ -10232,8 +10325,15 @@ summary { cursor: pointer; padding: 10px 16px; } details pre { border-width: 1px
                 <span class="k">return</span>;
             }
             aim(ahead);
+            <span class="k">if</span> (held &gt;= <span class="n">0</span> &amp;&amp; hasSpot)
+                movePoint(spot);
             <span class="k">if</span> (<span class="t">Input</span>::pressed(<span class="s">&quot;accept&quot;</span>) &amp;&amp; hasSpot)
-                addPoint(spot);
+            {
+                <span class="k">if</span> (held &gt;= <span class="n">0</span>)
+                    putPoint();
+                <span class="k">else</span> <span class="k">if</span> (!takePoint(spot))
+                    addPoint(spot);
+            }
             <span class="k">if</span> (<span class="t">Input</span>::pressed(<span class="s">&quot;cancel&quot;</span>))
                 onRoadBack(<span class="k">null</span>);
             <span class="k">return</span>;
@@ -10412,7 +10512,15 @@ summary { cursor: pointer; padding: 10px 16px; } details pre { border-width: 1px
             hasSpot = <span class="k">false</span>;
             <span class="k">if</span> (overView(mouse))
                 aim(<span class="t">Space</span>::ray(mouse));
-            <span class="k">if</span> (pressed &amp;&amp; hasSpot)
+            <span class="k">if</span> (held &gt;= <span class="n">0</span>)
+            {
+                <span class="k">if</span> (<span class="t">Input</span>::mouseDown(<span class="n">0</span>) &amp;&amp; hasSpot)
+                    movePoint(spot);
+                <span class="k">else</span> <span class="k">if</span> (!<span class="t">Input</span>::mouseDown(<span class="n">0</span>))
+                    putPoint();
+                <span class="k">return</span>;
+            }
+            <span class="k">if</span> (pressed &amp;&amp; hasSpot &amp;&amp; !takePoint(spot))
                 addPoint(spot);
             <span class="k">return</span>;
         }
@@ -10623,7 +10731,7 @@ summary { cursor: pointer; padding: 10px 16px; } details pre { border-width: 1px
                     <span class="t">Vec2</span> at;
                     p.y = <span class="t">Space</span>::height(p.x, p.z) + <span class="n">0.2f</span>;
                     <span class="k">if</span> (<span class="t">Space</span>::toScreen(p, at))
-                        c.circle(at.x, at.y, <span class="n">6</span>, i == <span class="n">0</span> ? <span class="t">Color</span>(<span class="n">0.4f</span>, <span class="n">1</span>, <span class="n">0.5f</span>) : <span class="t">Color</span>(<span class="n">1</span>, <span class="n">0.9f</span>, <span class="n">0.4f</span>));
+                        c.circle(at.x, at.y, <span class="k">int</span>(i) == held ? <span class="n">9</span> : <span class="n">6</span>, <span class="k">int</span>(i) == held ? <span class="t">White</span> : i == <span class="n">0</span> ? <span class="t">Color</span>(<span class="n">0.4f</span>, <span class="n">1</span>, <span class="n">0.5f</span>) : <span class="t">Color</span>(<span class="n">1</span>, <span class="n">0.9f</span>, <span class="n">0.4f</span>));
                 }
             <span class="k">if</span> (chosen &gt;= <span class="n">0</span> &amp;&amp; !sculpting &amp;&amp; !roading)
             {
@@ -10651,7 +10759,7 @@ summary { cursor: pointer; padding: 10px 16px; } details pre { border-width: 1px
             }
             <span class="k">string</span> text = playing &amp;&amp; hero !<span class="k">is</span> <span class="k">null</span> ? (way == <span class="n">1</span> ? (racing ? <span class="s">&quot;Lap &quot;</span> + formatFloat(lap, <span class="s">&quot;&quot;</span>, <span class="n">0</span>, <span class="n">1</span>) + (best &gt; <span class="n">0</span> ? <span class="s">&quot;      Best &quot;</span> + formatFloat(best, <span class="s">&quot;&quot;</span>, <span class="n">0</span>, <span class="n">2</span>) : <span class="s">&quot;&quot;</span>) + <span class="s">&quot;      &quot;</span> : <span class="s">&quot;&quot;</span>) + <span class="s">&quot;Cancel goes back to editing&quot;</span> : <span class="s">&quot;Accept jumps      Right trigger throws a ball      Cancel goes back to editing&quot;</span>)
                 : playing ? <span class="s">&quot;Accept throws a ball      Cancel goes back to editing&quot;</span>
-                : roading ? <span class="s">&quot;Accept adds a point      Cancel takes one back      Alternate brings the panels back&quot;</span>
+                : roading ? held &gt;= <span class="n">0</span> ? <span class="s">&quot;Accept puts the point down&quot;</span> : <span class="s">&quot;Accept adds a point, or takes one      Cancel takes the last back      Alternate brings the panels back&quot;</span>
                 : sculpting ? brushes[<span class="k">uint</span>(brush)] + <span class="s">&quot;      Hold Accept to change the land      Cancel or shoulders for another brush&quot;</span>
                 : carrying ? <span class="s">&quot;Accept puts it down      Shoulders turn it      Cancel puts it back&quot;</span>
                 : <span class="s">&quot;Accept takes what is in the middle      Alternate brings the panels back&quot;</span>;

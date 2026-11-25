@@ -252,7 +252,7 @@ hero.walker = <span class="k">true</span>;</code></pre>
 <span class="t">Space</span>::restoreLand(kept);                            <span class="c">// on land of as many squares</span></code></pre>
 <p><code>Space::hole(x, z, 3)</code> opens the land, so that there can be something under it: the cave pieces in <code>global:model</code> (<code>cave-mouth</code>,</p>
 <p><code>cave-tunnel</code>, <code>cave-bend</code>, <code>cave-slope</code>, <code>cave-room</code> and <code>cave-end</code>) meet on a grid of 4 metres. A model of your own whose name begins with one of those joins them in the editor, so an entrance can look</p>
-<p>like anything. The sun doesn&#x27;t reach what has a material whose name begins with <code>indoors</code>. <code>Space::edges = true</code> puts walls that can&#x27;t be seen at the sides of the land.</p>
+<p>like anything. Road pieces (<code>road-straight</code>, <code>road-bend</code>, <code>road-t</code>, <code>road-cross</code> and <code>road-end</code>) meet on a grid of 8 metres. The sun doesn&#x27;t reach what has a material whose name begins with <code>indoors</code>. <code>Space::edges = true</code> puts walls that can&#x27;t be seen at the sides of the land.</p>
 <p><code>Space::lines = true</code> draws only the edges of triangles, to see how things are made.</p>
 <h3 id="files-that-players-bring">Files that players bring</h3>
 <p><code>Assets::list(&quot;own:&quot;)</code> has the names of the player&#x27;s own files, and <code>Assets::dropped()</code> those that were just dropped on the window. They</p>
