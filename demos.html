@@ -8382,6 +8382,80 @@ summary { cursor: pointer; padding: 10px 16px; } details pre { border-width: 1px
     }
 }
 </code></pre></details></div>
+<div data-find="transfer an original xbox&#x27;s drives, over ftp transfer"><h3 id="demo-transfer">Transfer</h3><p>An original Xbox&#x27;s drives, over FTP</p>
+<details><summary><code>transfer/main.as</code> <span class="tag">72 lines</span></summary><pre><code><span class="c">// Serves the drives of an original Xbox to FTP programs on the same network, for as long as this is open.</span>
+
+<span class="k">class</span> <span class="t">TransferScreen</span> : <span class="t">Screen</span>
+{
+    <span class="t">Widget</span>@ go;
+    <span class="t">Widget</span>@ write;
+    <span class="t">Widget</span>@ state;
+    <span class="t">Widget</span>@ last;
+    <span class="t">Widget</span>@ much;
+    <span class="k">string</span> password;
+
+    <span class="k">void</span> onEnter()
+    {
+        <span class="c">// A new one each time, as FTP sends it for anyone to see.</span>
+        <span class="k">for</span> (<span class="k">int</span> i = <span class="n">0</span>; i &lt; <span class="n">6</span>; i++)
+            password += formatInt(randomInt(<span class="n">0</span>, <span class="n">9</span>));
+        <span class="t">Widget</span>@ page = <span class="t">Ui</span>::root;
+        page.padding = <span class="n">44</span>;
+        page.gap = <span class="n">16</span>;
+        page.label(<span class="s">&quot;Transfer&quot;</span>, <span class="s">&quot;title&quot;</span>);
+        <span class="t">Widget</span>@ panel = page.panel();
+        panel.grow = <span class="n">1</span>;
+        say(panel, <span class="s">&quot;Address&quot;</span>).text = <span class="t">Net</span>::address == <span class="s">&quot;&quot;</span> ? <span class="s">&quot;No network&quot;</span> : <span class="s">&quot;ftp://&quot;</span> + <span class="t">Net</span>::address;
+        say(panel, <span class="s">&quot;User&quot;</span>).text = <span class="s">&quot;xbox&quot;</span>;
+        say(panel, <span class="s">&quot;Password&quot;</span>).text = password;
+        @state = say(panel, <span class="s">&quot;State&quot;</span>);
+        @last = say(panel, <span class="s">&quot;Latest&quot;</span>);
+        @much = say(panel, <span class="s">&quot;Moved&quot;</span>);
+        panel.line();
+        panel.paragraph(<span class="s">&quot;Only machines on this network are answered. Anyone on it could read what is sent, so stop it when you are done: it stops by itself when you leave.&quot;</span>, <span class="s">&quot;small&quot;</span>);
+        <span class="t">Widget</span>@ row = page.row();
+        @go = row.button(<span class="s">&quot;Start&quot;</span>, <span class="t">WidgetEvent</span>(<span class="k">this</span>.onGo));
+        go.grow = <span class="n">1</span>;
+        @write = row.toggle(<span class="s">&quot;Let it change files&quot;</span>, <span class="k">false</span>);
+        write.grow = <span class="n">1</span>;
+        go.enabled = <span class="t">Xbox</span>::available;
+        write.enabled = <span class="t">Xbox</span>::available;
+    }
+
+    <span class="k">void</span> onExit() { <span class="t">Xbox</span>::stopFtp(); }
+
+    <span class="t">Widget</span>@ say(<span class="t">Widget</span>@ into, <span class="k">const</span> <span class="k">string</span> &amp;<span class="k">in</span> name)
+    {
+        <span class="t">Widget</span>@ row = into.row();
+        row.label(name, <span class="s">&quot;small&quot;</span>).width = <span class="n">160</span>;
+        <span class="k">return</span> row.label(<span class="s">&quot;&quot;</span>);
+    }
+
+    <span class="k">void</span> onGo(<span class="t">Widget</span>@ w)
+    {
+        <span class="k">if</span> (<span class="t">Xbox</span>::ftpRunning)
+            <span class="t">Xbox</span>::stopFtp();
+        <span class="k">else</span> <span class="k">if</span> (!<span class="t">Xbox</span>::startFtp(<span class="s">&quot;xbox&quot;</span>, password, write.checked))
+            <span class="t">Ui</span>::toast(<span class="s">&quot;It couldn&#x27;t be started&quot;</span>);
+        go.text = <span class="t">Xbox</span>::ftpRunning ? <span class="s">&quot;Stop&quot;</span> : <span class="s">&quot;Start&quot;</span>;
+        write.enabled = <span class="t">Xbox</span>::available &amp;&amp; !<span class="t">Xbox</span>::ftpRunning;
+    }
+
+    <span class="k">void</span> update(<span class="k">float</span> dt)
+    {
+        state.text = !<span class="t">Xbox</span>::available ? <span class="s">&quot;There are drives to serve only on an original Xbox&quot;</span> : !<span class="t">Xbox</span>::ftpRunning ? <span class="s">&quot;Stopped&quot;</span> : formatInt(<span class="k">int</span>(<span class="t">Xbox</span>::ftpClients)) + <span class="s">&quot; connected&quot;</span>;
+        last.text = <span class="t">Xbox</span>::ftpLast;
+        much.text = formatInt(<span class="k">int</span>(<span class="t">Xbox</span>::ftpKilobytes)) + <span class="s">&quot; KB&quot;</span>;
+    }
+
+    <span class="k">void</span> draw(<span class="t">Canvas</span>@ c)
+    {
+        c.designHeight(<span class="n">720</span>);
+        c.gradient(<span class="n">0</span>, <span class="n">0</span>, c.width, <span class="n">720</span>, <span class="t">Color</span>(<span class="n">0.05f</span>, <span class="n">0.09f</span>, <span class="n">0.16f</span>), <span class="t">Color</span>(<span class="n">0.02f</span>, <span class="n">0.03f</span>, <span class="n">0.06f</span>));
+        <span class="t">Ui</span>::draw(c);
+    }
+}
+</code></pre></details></div>
 </section><p class="none" id="none" hidden>Nothing found.</p></main></div>
 <script>
 const box = document.getElementById('search');
