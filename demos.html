@@ -7911,12 +7911,14 @@ summary { cursor: pointer; padding: 10px 16px; } details pre { border-width: 1px
 </code></pre></details></div>
 <div data-find="scene editor build a place, try it and keep it editor"><h3 id="demo-editor">Scene editor</h3><p>Build a place, try it and keep it</p>
 <div class="shots"><img loading="lazy" src="screenshots/editor.png" alt="Scene editor"></div>
-<details><summary><code>editor/main.as</code> <span class="tag">1176 lines</span></summary><pre><code><span class="c">// A scene editor, written as any screen is. What it makes is a file that Space::load reads.</span>
+<details><summary><code>editor/main.as</code> <span class="tag">1447 lines</span></summary><pre><code><span class="c">// A scene editor, written as any screen is. What it makes is a file that Space::load reads.</span>
 
 <span class="k">class</span> <span class="t">Kind</span>
 {
     <span class="k">string</span> label, key, name;
     <span class="t">Vec3</span> low, high;
+    <span class="k">float</span> size = <span class="n">1</span>;            <span class="c">// it starts at</span>
+    <span class="t">Model</span>@ own;                <span class="c">// until its size is known</span>
     <span class="t">Kind</span>(<span class="k">const</span> <span class="k">string</span> &amp;<span class="k">in</span> l, <span class="k">const</span> <span class="k">string</span> &amp;<span class="k">in</span> k, <span class="k">const</span> <span class="k">string</span> &amp;<span class="k">in</span> n, <span class="k">const</span> <span class="t">Vec3</span> &amp;<span class="k">in</span> a, <span class="k">const</span> <span class="t">Vec3</span> &amp;<span class="k">in</span> b)
     {
         label = l; key = k; name = n; low = a; high = b;
@@ -7957,16 +7959,27 @@ summary { cursor: pointer; padding: 10px 16px; } details pre { border-width: 1px
         <span class="t">Kind</span>(<span class="s">&quot;Light&quot;</span>, <span class="s">&quot;glow&quot;</span>, <span class="s">&quot;&quot;</span>, <span class="t">Vec3</span>(-<span class="n">0.4f</span>, -<span class="n">0.4f</span>, -<span class="n">0.4f</span>), <span class="t">Vec3</span>(<span class="n">0.4f</span>, <span class="n">0.4f</span>, <span class="n">0.4f</span>))
     };
     <span class="k">array</span>&lt;<span class="t">Model</span>@&gt; models;
+    <span class="k">uint</span> builtIn = <span class="n">0</span>;          <span class="c">// how many kinds there are besides the player&#x27;s own</span>
+    <span class="t">Widget</span>@ addList;
     <span class="k">array</span>&lt;<span class="t">Color</span>&gt; colors = { <span class="t">Color</span>(<span class="n">1</span>, <span class="n">1</span>, <span class="n">1</span>), <span class="t">Color</span>(<span class="n">0.35f</span>, <span class="n">0.37f</span>, <span class="n">0.42f</span>), <span class="t">Color</span>(<span class="n">0.9f</span>, <span class="n">0.3f</span>, <span class="n">0.26f</span>), <span class="t">Color</span>(<span class="n">0.97f</span>, <span class="n">0.62f</span>, <span class="n">0.2f</span>), <span class="t">Color</span>(<span class="n">0.98f</span>, <span class="n">0.86f</span>, <span class="n">0.35f</span>),
         <span class="t">Color</span>(<span class="n">0.38f</span>, <span class="n">0.75f</span>, <span class="n">0.36f</span>), <span class="t">Color</span>(<span class="n">0.3f</span>, <span class="n">0.75f</span>, <span class="n">0.85f</span>), <span class="t">Color</span>(<span class="n">0.3f</span>, <span class="n">0.48f</span>, <span class="n">0.95f</span>), <span class="t">Color</span>(<span class="n">0.66f</span>, <span class="n">0.4f</span>, <span class="n">0.9f</span>), <span class="t">Color</span>(<span class="n">0.95f</span>, <span class="n">0.5f</span>, <span class="n">0.72f</span>) };
     <span class="k">array</span>&lt;<span class="k">string</span>&gt; grounds = { <span class="s">&quot;Flat&quot;</span>, <span class="s">&quot;Hills&quot;</span>, <span class="s">&quot;Island&quot;</span> };
     <span class="k">array</span>&lt;<span class="k">string</span>&gt; hours = { <span class="s">&quot;Day&quot;</span>, <span class="s">&quot;Evening&quot;</span>, <span class="s">&quot;Night&quot;</span> };
+    <span class="k">array</span>&lt;<span class="k">string</span>&gt; brushes = { <span class="s">&quot;Raise&quot;</span>, <span class="s">&quot;Lower&quot;</span>, <span class="s">&quot;Smooth&quot;</span>, <span class="s">&quot;Level&quot;</span>, <span class="s">&quot;Paint&quot;</span>, <span class="s">&quot;Wipe paint&quot;</span> };
     <span class="k">array</span>&lt;<span class="k">string</span>&gt; tools = { <span class="s">&quot;Move&quot;</span>, <span class="s">&quot;Turn&quot;</span>, <span class="s">&quot;Size&quot;</span> };
 
     <span class="k">array</span>&lt;<span class="t">Thing</span>@&gt; things;
     <span class="k">array</span>&lt;<span class="t">Entity</span>@&gt; thrown;
     <span class="k">int</span> chosen = -<span class="n">1</span>, under = -<span class="n">1</span>;
     <span class="k">int</span> ground = <span class="n">0</span>, hour = <span class="n">0</span>, tool = <span class="n">0</span>;
+    <span class="k">int</span> made = -<span class="n">1</span>;             <span class="c">// the ground there is now</span>
+    <span class="k">string</span> landText;           <span class="c">// what was done to it by hand</span>
+    <span class="k">int</span> brush = <span class="n">0</span>;
+    <span class="k">float</span> brushSize = <span class="n">6</span>, brushForce = <span class="n">0.5f</span>, levelTo = <span class="n">0</span>;
+    <span class="t">Color</span> brushColor(<span class="n">0.55f</span>, <span class="n">0.42f</span>, <span class="n">0.28f</span>);
+    <span class="k">int</span> paintWith = <span class="n">0</span>;
+    <span class="k">bool</span> stroking = <span class="k">false</span>, hasSpot = <span class="k">false</span>;
+    <span class="t">Vec3</span> spot;
     <span class="k">bool</span> snap = <span class="k">true</span>, playing = <span class="k">false</span>, viewing = <span class="k">false</span>, flying = <span class="k">false</span>, dirty = <span class="k">false</span>;
 
     <span class="c">// What there was, as text.</span>
@@ -7989,6 +8002,10 @@ summary { cursor: pointer; padding: 10px 16px; } details pre { border-width: 1px
     <span class="t">Vec2</span> crossAt;
     <span class="k">float</span> shownFor = <span class="n">0</span>;
 
+    <span class="t">Widget</span>@ tabs;
+    <span class="t">Widget</span>@ brushChoice;
+    <span class="k">array</span>&lt;<span class="t">Color</span>&gt; earths = { <span class="t">Color</span>(<span class="n">0.55f</span>, <span class="n">0.42f</span>, <span class="n">0.28f</span>), <span class="t">Color</span>(<span class="n">0.78f</span>, <span class="n">0.7f</span>, <span class="n">0.48f</span>), <span class="t">Color</span>(<span class="n">0.36f</span>, <span class="n">0.52f</span>, <span class="n">0.28f</span>), <span class="t">Color</span>(<span class="n">0.2f</span>, <span class="n">0.36f</span>, <span class="n">0.2f</span>), <span class="t">Color</span>(<span class="n">0.45f</span>, <span class="n">0.42f</span>, <span class="n">0.4f</span>),
+        <span class="t">Color</span>(<span class="n">0.92f</span>, <span class="n">0.94f</span>, <span class="n">0.97f</span>), <span class="t">Color</span>(<span class="n">0.25f</span>, <span class="n">0.22f</span>, <span class="n">0.22f</span>), <span class="t">Color</span>(<span class="n">0.75f</span>, <span class="n">0.35f</span>, <span class="n">0.22f</span>), <span class="t">Color</span>(<span class="n">0.62f</span>, <span class="n">0.66f</span>, <span class="n">0.3f</span>), <span class="t">Color</span>(<span class="n">0.4f</span>, <span class="n">0.4f</span>, <span class="n">0.48f</span>) };
     <span class="t">Widget</span>@ last;
     <span class="t">Widget</span>@ inspector;
     <span class="t">Widget</span>@ nothing;
@@ -8013,12 +8030,14 @@ summary { cursor: pointer; padding: 10px 16px; } details pre { border-width: 1px
     {
         <span class="k">for</span> (<span class="k">uint</span> i = <span class="n">0</span>; i &lt; kinds.length(); i++)
             models.insertLast(kinds[i].key == <span class="s">&quot;model&quot;</span> ? <span class="t">Assets</span>::model(<span class="s">&quot;global:model/&quot;</span> + kinds[i].name + <span class="s">&quot;.glb&quot;</span>) : <span class="k">null</span>);
+        builtIn = kinds.length();
         most = <span class="t">App</span>::freeKilobytes &gt; <span class="n">0</span> &amp;&amp; <span class="t">App</span>::freeKilobytes &lt; <span class="n">64000</span> ? <span class="n">12</span> : <span class="n">40</span>;
     }
 
     <span class="k">void</span> onEnter()
     {
         <span class="t">Ui</span>::theme(<span class="s">&quot;asset:theme.json&quot;</span>);
+        findOwn();
         build();
         <span class="t">Json</span> j;
         <span class="k">string</span> error;
@@ -8052,11 +8071,11 @@ summary { cursor: pointer; padding: 10px 16px; } details pre { border-width: 1px
         sides.align = <span class="t">PlaceStretch</span>;
         <span class="t">Widget</span>@ first = sides.panel();
         first.style = <span class="s">&quot;side&quot;</span>;
-        first.width = <span class="n">216</span>;
-        <span class="t">Widget</span>@ tabs = first.tabs();
+        first.width = <span class="n">240</span>;
+        @tabs = first.tabs();
         tabs.grow = <span class="n">1</span>;
         <span class="t">Widget</span>@ add = tabs.tab(<span class="s">&quot;Add&quot;</span>);
-        <span class="t">Widget</span>@ list = add.list(kinds.length(), <span class="n">42</span>, <span class="t">WidgetRow</span>(<span class="k">this</span>.fill));
+        <span class="t">Widget</span>@ list = @addList = add.list(kinds.length(), <span class="n">42</span>, <span class="t">WidgetRow</span>(<span class="k">this</span>.fill));
         list.grow = <span class="n">1</span>;
         list.onClick(<span class="t">WidgetEvent</span>(<span class="k">this</span>.onAdd));
         <span class="t">Widget</span>@ scene = tabs.tab(<span class="s">&quot;Scene&quot;</span>);
@@ -8069,6 +8088,28 @@ summary { cursor: pointer; padding: 10px 16px; } details pre { border-width: 1px
         scene.button(<span class="s">&quot;Clear&quot;</span>, <span class="t">WidgetEvent</span>(<span class="k">this</span>.onClear));
         <span class="k">if</span> (!<span class="t">App</span>::development)
             scene.button(<span class="s">&quot;Start again&quot;</span>, <span class="t">WidgetEvent</span>(<span class="k">this</span>.onFresh));
+        scene.toggle(<span class="s">&quot;Wireframe&quot;</span>, <span class="k">false</span>, <span class="t">WidgetEvent</span>(<span class="k">this</span>.onLines));
+        <span class="t">Widget</span>@ earth = tabs.tab(<span class="s">&quot;Land&quot;</span>);
+        @brushChoice = earth.choice(brushes, <span class="n">0</span>, <span class="t">WidgetEvent</span>(<span class="k">this</span>.onBrush));
+        earth.label(<span class="s">&quot;Size&quot;</span>, <span class="s">&quot;small&quot;</span>);
+        <span class="t">Widget</span>@ wideOf = earth.slider(brushSize, <span class="n">2</span>, <span class="n">24</span>, <span class="t">WidgetEvent</span>(<span class="k">this</span>.onBrushSize));
+        wideOf.step = <span class="n">1</span>;
+        earth.label(<span class="s">&quot;Force&quot;</span>, <span class="s">&quot;small&quot;</span>);
+        <span class="t">Widget</span>@ force = earth.slider(brushForce, <span class="n">0.1f</span>, <span class="n">1</span>, <span class="t">WidgetEvent</span>(<span class="k">this</span>.onBrushForce));
+        force.step = <span class="n">0.1f</span>;
+        earth.label(<span class="s">&quot;Paint&quot;</span>, <span class="s">&quot;small&quot;</span>);
+        <span class="t">Widget</span>@ paints = earth.grid(<span class="n">5</span>, <span class="n">6</span>);
+        <span class="k">for</span> (<span class="k">uint</span> i = <span class="n">0</span>; i &lt; earths.length(); i++)
+        {
+            <span class="t">Widget</span>@ b = paints.button(<span class="s">&quot;&quot;</span>, <span class="t">WidgetEvent</span>(<span class="k">this</span>.onEarth));
+            b.style = <span class="s">&quot;swatch&quot;</span>;
+            b.tag = <span class="k">int</span>(i);
+            <span class="t">Widget</span>@ c = b.custom(<span class="t">WidgetDraw</span>(<span class="k">this</span>.earthSwatch));
+            c.height = <span class="n">22</span>;
+            c.grow = <span class="n">1</span>;
+        }
+        earth.button(<span class="s">&quot;As it was made&quot;</span>, <span class="t">WidgetEvent</span>(<span class="k">this</span>.onLandFresh));
+        earth.paragraph(<span class="s">&quot;Hold on the land to change it.&quot;</span>, <span class="s">&quot;small&quot;</span>);
 
         sides.space();
         <span class="t">Widget</span>@ other = sides.panel();
@@ -8121,6 +8162,84 @@ summary { cursor: pointer; padding: 10px 16px; } details pre { border-width: 1px
         list.focus();
     }
 
+    <span class="c">// --- Models that the player brought ---</span>
+
+    <span class="k">bool</span> isModel(<span class="k">const</span> <span class="k">string</span> &amp;<span class="k">in</span> file)
+    {
+        <span class="k">array</span>&lt;<span class="k">string</span>&gt; endings = { <span class="s">&quot;.glb&quot;</span>, <span class="s">&quot;.gltf&quot;</span>, <span class="s">&quot;.fbx&quot;</span>, <span class="s">&quot;.obj&quot;</span>, <span class="s">&quot;.stl&quot;</span>, <span class="s">&quot;.ply&quot;</span> };
+        <span class="k">for</span> (<span class="k">uint</span> i = <span class="n">0</span>; i &lt; endings.length(); i++)
+            <span class="k">if</span> (file.length() &gt; endings[i].length() &amp;&amp; file.substr(file.length() - endings[i].length()) == endings[i])
+                <span class="k">return</span> <span class="k">true</span>;
+        <span class="k">return</span> <span class="k">false</span>;
+    }
+
+    <span class="k">void</span> findOwn()
+    {
+        <span class="k">array</span>&lt;<span class="k">string</span>&gt; folders = { <span class="s">&quot;asset:model/&quot;</span>, <span class="s">&quot;own:&quot;</span> };
+        <span class="k">for</span> (<span class="k">uint</span> f = <span class="n">0</span>; f &lt; folders.length(); f++)
+        {
+            <span class="k">array</span>&lt;<span class="k">string</span>&gt;@ files = <span class="t">Assets</span>::list(folders[f]);
+            <span class="k">for</span> (<span class="k">uint</span> i = <span class="n">0</span>; i &lt; files.length(); i++)
+                addOwn(folders[f] + files[i], files[i]);
+        }
+    }
+
+    <span class="k">void</span> addOwn(<span class="k">const</span> <span class="k">string</span> &amp;<span class="k">in</span> path, <span class="k">const</span> <span class="k">string</span> &amp;<span class="k">in</span> file)
+    {
+        <span class="k">if</span> (!isModel(file) || kinds.length() &gt;= builtIn + <span class="n">60</span>)
+            <span class="k">return</span>;
+        <span class="k">for</span> (<span class="k">uint</span> i = <span class="n">0</span>; i &lt; kinds.length(); i++)
+            <span class="k">if</span> (kinds[i].key == <span class="s">&quot;own&quot;</span> &amp;&amp; kinds[i].name == path)
+                <span class="k">return</span>;
+        <span class="k">string</span> label = file.substr(<span class="n">0</span>, file.findLast(<span class="s">&quot;.&quot;</span>));
+        kinds.insertLast(<span class="t">Kind</span>(label.length() &gt; <span class="n">18</span> ? label.substr(<span class="n">0</span>, <span class="n">17</span>) + <span class="s">&quot;...&quot;</span> : label, <span class="s">&quot;own&quot;</span>, path, <span class="t">Vec3</span>(-<span class="n">0.5f</span>, -<span class="n">0.5f</span>, -<span class="n">0.5f</span>), <span class="t">Vec3</span>(<span class="n">0.5f</span>, <span class="n">0.5f</span>, <span class="n">0.5f</span>)));
+        @kinds[kinds.length() - <span class="n">1</span>].own = <span class="t">Assets</span>::model(path);
+    }
+
+    <span class="c">// As they arrive: how big each is. Those made in other units are brought to a size that can be seen.</span>
+    <span class="k">void</span> measureOwn()
+    {
+        <span class="k">for</span> (<span class="k">uint</span> i = builtIn; i &lt; kinds.length(); i++)
+        {
+            <span class="t">Kind</span>@ k = kinds[i];
+            <span class="k">if</span> (k.own <span class="k">is</span> <span class="k">null</span> || !(k.own.ready || k.own.failed))
+                <span class="k">continue</span>;
+            <span class="k">if</span> (!k.own.failed)
+            {
+                k.low = k.own.low;
+                k.high = k.own.high;
+                <span class="t">Vec3</span> s = k.high - k.low;
+                <span class="k">float</span> longest = s.x &gt; s.y ? s.x : s.y;
+                longest = s.z &gt; longest ? s.z : longest;
+                <span class="k">if</span> (longest &gt; <span class="n">15</span> || longest &lt; <span class="n">0.2f</span>)
+                    k.size = <span class="n">3</span> / (longest &gt; <span class="n">0.0001f</span> ? longest : <span class="n">1.0f</span>);
+            }
+            <span class="k">else</span>
+                <span class="t">Ui</span>::toast(k.label + <span class="s">&quot; can&#x27;t be used: see the log&quot;</span>);
+            models.insertLast(k.own);
+            @k.own = <span class="k">null</span>;
+            <span class="k">for</span> (<span class="k">uint</span> n = <span class="n">0</span>; n &lt; things.length(); n++)
+                <span class="k">if</span> (kindOf(things[n].json) <span class="k">is</span> k)
+                    make(n);
+        }
+    }
+
+    <span class="k">void</span> takeDropped()
+    {
+        <span class="k">array</span>&lt;<span class="k">string</span>&gt;@ files = <span class="t">Assets</span>::dropped();
+        <span class="k">uint</span> had = kinds.length();
+        <span class="k">for</span> (<span class="k">uint</span> i = <span class="n">0</span>; i &lt; files.length(); i++)
+            addOwn(<span class="s">&quot;own:&quot;</span> + files[i], files[i]);
+        <span class="k">if</span> (kinds.length() == had)
+        {
+            <span class="k">if</span> (files.length() &gt; <span class="n">0</span>)
+                <span class="t">Ui</span>::toast(<span class="s">&quot;Nothing new to add in that&quot;</span>);
+            <span class="k">return</span>;
+        }
+        addList.count = kinds.length();
+        <span class="t">Ui</span>::toast(kinds[had].label + (kinds.length() &gt; had + <span class="n">1</span> ? <span class="s">&quot; and others are&quot;</span> : <span class="s">&quot; is&quot;</span>) + <span class="s">&quot; at the end of the list&quot;</span>);
+    }
+
     <span class="k">void</span> fill(<span class="t">Widget</span>@ row, <span class="k">int</span> i) { row.label(kinds[<span class="k">uint</span>(i)].label); }
 
     <span class="k">void</span> swatch(<span class="t">Canvas</span>@ c, <span class="t">Widget</span>@ w)
@@ -8128,6 +8247,16 @@ summary { cursor: pointer; padding: 10px 16px; } details pre { border-width: 1px
         <span class="t">Vec2</span> p = w.place, s = w.size;
         c.roundRect(p.x, p.y, s.x, s.y, <span class="n">5</span>, colors[<span class="k">uint</span>(w.parent.tag)]);
     }
+
+    <span class="k">void</span> earthSwatch(<span class="t">Canvas</span>@ c, <span class="t">Widget</span>@ w)
+    {
+        <span class="t">Vec2</span> p = w.place, s = w.size;
+        c.roundRect(p.x, p.y, s.x, s.y, <span class="n">5</span>, earths[<span class="k">uint</span>(w.parent.tag)]);
+        <span class="k">if</span> (w.parent.tag == paintWith)
+            c.circle(p.x + s.x * <span class="n">0.5f</span>, p.y + s.y * <span class="n">0.5f</span>, <span class="n">4</span>, <span class="t">White</span>);
+    }
+
+    <span class="k">bool</span> sculpting { <span class="k">get</span> { <span class="k">return</span> tabs.chosen == <span class="n">2</span> &amp;&amp; !playing; } }
 
     <span class="c">// What the panel says, from what is chosen.</span>
     <span class="k">void</span> show()
@@ -8170,6 +8299,24 @@ summary { cursor: pointer; padding: 10px 16px; } details pre { border-width: 1px
     <span class="k">void</span> onPlay(<span class="t">Widget</span>@ w) { play(<span class="k">true</span>); }
     <span class="k">void</span> onAdd(<span class="t">Widget</span>@ w) { add(<span class="k">uint</span>(w.chosen)); }
     <span class="k">void</span> onGround(<span class="t">Widget</span>@ w) { ground = w.chosen; land(); place(); changed(<span class="s">&quot;ground&quot;</span>); }
+    <span class="k">void</span> onLines(<span class="t">Widget</span>@ w) { <span class="t">Space</span>::lines = w.checked; }
+    <span class="k">void</span> onBrush(<span class="t">Widget</span>@ w) { brush = w.chosen; }
+    <span class="k">void</span> onBrushSize(<span class="t">Widget</span>@ w) { brushSize = w.value; }
+    <span class="k">void</span> onBrushForce(<span class="t">Widget</span>@ w) { brushForce = w.value; }
+    <span class="k">void</span> onEarth(<span class="t">Widget</span>@ w)
+    {
+        paintWith = w.tag;
+        brushColor = earths[<span class="k">uint</span>(w.tag)];
+        brush = <span class="n">4</span>;
+        brushChoice.chosen = <span class="n">4</span>;
+    }
+    <span class="k">void</span> onLandFresh(<span class="t">Widget</span>@ w)
+    {
+        landText = <span class="s">&quot;&quot;</span>;
+        <span class="t">Space</span>::restoreLand(<span class="s">&quot;&quot;</span>);
+        place();
+        changed(<span class="s">&quot;land&quot;</span>);
+    }
     <span class="k">void</span> onHour(<span class="t">Widget</span>@ w) { hour = w.chosen; light(); changed(<span class="s">&quot;hour&quot;</span>); }
     <span class="k">void</span> onCopy(<span class="t">Widget</span>@ w) { copy(); }
     <span class="k">void</span> onDelete(<span class="t">Widget</span>@ w) { remove(); }
@@ -8326,10 +8473,10 @@ summary { cursor: pointer; padding: 10px 16px; } details pre { border-width: 1px
         <span class="k">for</span> (<span class="k">uint</span> i = <span class="n">0</span>; i &lt; kinds.length(); i++)
         {
             <span class="t">Kind</span>@ k = kinds[i];
-            <span class="k">if</span> (k.key == <span class="s">&quot;model&quot;</span> ? model == <span class="s">&quot;global:model/&quot;</span> + k.name + <span class="s">&quot;.glb&quot;</span> : k.key == <span class="s">&quot;shape&quot;</span> &amp;&amp; shape == k.name)
+            <span class="k">if</span> (k.key == <span class="s">&quot;own&quot;</span> ? model == k.name : k.key == <span class="s">&quot;model&quot;</span> ? model == <span class="s">&quot;global:model/&quot;</span> + k.name + <span class="s">&quot;.glb&quot;</span> : k.key == <span class="s">&quot;shape&quot;</span> &amp;&amp; shape == k.name)
                 <span class="k">return</span> k;
         }
-        <span class="k">return</span> kinds[kinds.length() - <span class="n">1</span>];
+        <span class="k">return</span> kinds[builtIn - <span class="n">1</span>];
     }
 
     <span class="t">Vec3</span> angles(<span class="t">Json</span>@ j) { <span class="k">return</span> j[<span class="s">&quot;angles&quot;</span>].isNumber ? <span class="t">Vec3</span>(<span class="n">0</span>, <span class="k">float</span>(j[<span class="s">&quot;angles&quot;</span>].number()), <span class="n">0</span>) : j[<span class="s">&quot;angles&quot;</span>].vec3(); }
@@ -8341,7 +8488,7 @@ summary { cursor: pointer; padding: 10px 16px; } details pre { border-width: 1px
     }
     <span class="k">void</span> resize(<span class="t">Json</span>@ j, <span class="t">Vec3</span> s)
     {
-        s = <span class="t">Vec3</span>(clamp(s.x, <span class="n">0.05f</span>, <span class="n">40</span>), clamp(s.y, <span class="n">0.05f</span>, <span class="n">40</span>), clamp(s.z, <span class="n">0.05f</span>, <span class="n">40</span>));
+        s = <span class="t">Vec3</span>(clamp(s.x, <span class="n">0.0005f</span>, <span class="n">400</span>), clamp(s.y, <span class="n">0.0005f</span>, <span class="n">400</span>), clamp(s.z, <span class="n">0.0005f</span>, <span class="n">400</span>));
         <span class="k">if</span> (j.has(<span class="s">&quot;glow&quot;</span>))
             j.<span class="k">set</span>(<span class="s">&quot;glow&quot;</span>, s.x);
         <span class="k">else</span>
@@ -8361,6 +8508,8 @@ summary { cursor: pointer; padding: 10px 16px; } details pre { border-width: 1px
         <span class="t">Json</span> all;
         all.<span class="k">set</span>(<span class="s">&quot;ground&quot;</span>, ground);
         all.<span class="k">set</span>(<span class="s">&quot;hour&quot;</span>, hour);
+        <span class="k">if</span> (landText != <span class="s">&quot;&quot;</span>)
+            all.<span class="k">set</span>(<span class="s">&quot;land&quot;</span>, landText);
         <span class="t">Json</span> list;
         <span class="k">for</span> (<span class="k">uint</span> i = <span class="n">0</span>; i &lt; things.length(); i++)
             list.add(things[i].json);
@@ -8379,6 +8528,7 @@ summary { cursor: pointer; padding: 10px 16px; } details pre { border-width: 1px
         hour = <span class="k">int</span>(clamp(<span class="k">float</span>(all[<span class="s">&quot;hour&quot;</span>].number()), <span class="n">0</span>, <span class="n">2</span>));
         groundChoice.chosen = ground;
         hourChoice.chosen = hour;
+        landText = all[<span class="s">&quot;land&quot;</span>].text();
         land();
         light();
         <span class="t">Json</span>@ list = all[<span class="s">&quot;entities&quot;</span>];
@@ -8446,11 +8596,24 @@ summary { cursor: pointer; padding: 10px 16px; } details pre { border-width: 1px
             put(things[i]);
     }
 
+    <span class="c">// Made only when it is another, as that takes a while; what was done by hand is put back each time.</span>
     <span class="k">void</span> land()
+    {
+        <span class="k">if</span> (made != ground)
+            makeGround();
+        made = ground;
+        <span class="k">if</span> (!<span class="t">Space</span>::restoreLand(landText))
+        {
+            landText = <span class="s">&quot;&quot;</span>;
+            <span class="t">Space</span>::restoreLand(<span class="s">&quot;&quot;</span>);
+        }
+    }
+
+    <span class="k">void</span> makeGround()
     {
         <span class="k">if</span> (ground == <span class="n">0</span>)
         {
-            <span class="t">Space</span>::land(<span class="n">1</span>, <span class="n">32</span>, <span class="n">4</span>, <span class="n">0.001f</span>);
+            <span class="t">Space</span>::land(<span class="n">1</span>, <span class="n">64</span>, <span class="n">2</span>, <span class="n">0.001f</span>);
             <span class="t">Space</span>::landColors(<span class="t">Color</span>(<span class="n">0.42f</span>, <span class="n">0.56f</span>, <span class="n">0.34f</span>), <span class="t">Color</span>(<span class="n">0.42f</span>, <span class="n">0.56f</span>, <span class="n">0.34f</span>), <span class="t">Color</span>(<span class="n">0.42f</span>, <span class="n">0.56f</span>, <span class="n">0.34f</span>), <span class="t">Color</span>(<span class="n">0.4f</span>, <span class="n">0.4f</span>, <span class="n">0.4f</span>), -<span class="n">1</span>, <span class="n">1</span>);
         }
         <span class="k">else</span>
@@ -8559,6 +8722,12 @@ summary { cursor: pointer; padding: 10px 16px; } details pre { border-width: 1px
         <span class="t">Json</span> j;
         <span class="k">if</span> (k.key == <span class="s">&quot;model&quot;</span>)
             j.<span class="k">set</span>(<span class="s">&quot;model&quot;</span>, <span class="s">&quot;global:model/&quot;</span> + k.name + <span class="s">&quot;.glb&quot;</span>);
+        <span class="k">else</span> <span class="k">if</span> (k.key == <span class="s">&quot;own&quot;</span>)
+        {
+            j.<span class="k">set</span>(<span class="s">&quot;model&quot;</span>, k.name);
+            <span class="k">if</span> (k.size != <span class="n">1</span>)
+                j.<span class="k">set</span>(<span class="s">&quot;size&quot;</span>, <span class="t">Vec3</span>(k.size, k.size, k.size));
+        }
         <span class="k">else</span> <span class="k">if</span> (k.key == <span class="s">&quot;shape&quot;</span>)
         {
             j.<span class="k">set</span>(<span class="s">&quot;shape&quot;</span>, k.name);
@@ -8571,7 +8740,7 @@ summary { cursor: pointer; padding: 10px 16px; } details pre { border-width: 1px
             j.<span class="k">set</span>(<span class="s">&quot;light&quot;</span>, <span class="t">Color</span>(<span class="n">1</span>, <span class="n">0.75f</span>, <span class="n">0.45f</span>));
             j.<span class="k">set</span>(<span class="s">&quot;range&quot;</span>, <span class="n">9</span>);
         }
-        j.<span class="k">set</span>(<span class="s">&quot;place&quot;</span>, snapped(<span class="t">Vec3</span>(p.x, k.key == <span class="s">&quot;model&quot;</span> ? <span class="n">0.0f</span> : k.key == <span class="s">&quot;shape&quot;</span> ? -k.low.y : <span class="n">1.5f</span>, p.z)));
+        j.<span class="k">set</span>(<span class="s">&quot;place&quot;</span>, snapped(<span class="t">Vec3</span>(p.x, k.key == <span class="s">&quot;model&quot;</span> ? <span class="n">0.0f</span> : k.key == <span class="s">&quot;own&quot;</span> ? -k.low.y * k.size : k.key == <span class="s">&quot;shape&quot;</span> ? -k.low.y : <span class="n">1.5f</span>, p.z)));
         j.<span class="k">set</span>(<span class="s">&quot;onLand&quot;</span>, <span class="k">true</span>);
         things.insertLast(<span class="t">Thing</span>(j));
         make(things.length() - <span class="n">1</span>);
@@ -8700,6 +8869,8 @@ summary { cursor: pointer; padding: 10px 16px; } details pre { border-width: 1px
     <span class="k">void</span> update(<span class="k">float</span> dt)
     {
         shownFor += dt;
+        measureOwn();
+        takeDropped();
         <span class="t">Vec2</span> m = <span class="t">Input</span>::mouse;
         <span class="t">Vec2</span> moved = m - mouse;
         mouse = m;
@@ -8763,7 +8934,7 @@ summary { cursor: pointer; padding: 10px 16px; } details pre { border-width: 1px
             enterView(<span class="k">true</span>);
             <span class="k">return</span>;
         }
-        withMouse(pressed);
+        withMouse(pressed, dt);
     }
 
     <span class="k">void</span> enterView(<span class="k">bool</span> on)
@@ -8799,6 +8970,25 @@ summary { cursor: pointer; padding: 10px 16px; } details pre { border-width: 1px
     <span class="k">void</span> inView(<span class="k">float</span> dt)
     {
         <span class="t">Vec3</span> ahead = look();
+        <span class="k">if</span> (sculpting)
+        {
+            <span class="k">if</span> (<span class="t">Input</span>::pressed(<span class="s">&quot;alternate&quot;</span>) || tapped(<span class="n">5</span>, <span class="s">&quot;Tab&quot;</span>))
+            {
+                endStroke();
+                enterView(<span class="k">false</span>);
+                <span class="k">return</span>;
+            }
+            <span class="k">bool</span> sooner = padTapped(<span class="n">0</span>, <span class="n">12</span>), later = padTapped(<span class="n">1</span>, <span class="n">13</span>);
+            <span class="k">if</span> (<span class="t">Input</span>::pressed(<span class="s">&quot;cancel&quot;</span>) || sooner || later)
+            {
+                endStroke();
+                brush = (brush + (sooner ? <span class="n">5</span> : <span class="n">1</span>)) % <span class="n">6</span>;
+                brushChoice.chosen = brush;
+            }
+            aim(ahead);
+            stroke(<span class="t">Input</span>::held(<span class="s">&quot;accept&quot;</span>), dt);
+            <span class="k">return</span>;
+        }
         under = carrying ? chosen : at(ahead);
         <span class="k">if</span> (<span class="t">Input</span>::pressed(<span class="s">&quot;alternate&quot;</span>) || tapped(<span class="n">5</span>, <span class="s">&quot;Tab&quot;</span>))
         {
@@ -8868,13 +9058,91 @@ summary { cursor: pointer; padding: 10px 16px; } details pre { border-width: 1px
         }
     }
 
-    <span class="k">bool</span> overView(<span class="k">const</span> <span class="t">Vec2</span> &amp;<span class="k">in</span> p) { <span class="k">return</span> p.y &gt; <span class="n">82</span> &amp;&amp; p.x &gt; <span class="n">240</span> &amp;&amp; p.x &lt; wide - <span class="n">308</span>; }
+    <span class="c">// --- The land ---</span>
+
+    <span class="k">void</span> aim(<span class="k">const</span> <span class="t">Vec3</span> &amp;<span class="k">in</span> along)
+    {
+        hasSpot = onGround(eye, along, spot) &amp;&amp; (spot - eye).length() &lt; <span class="n">120</span>;
+    }
+
+    <span class="c">// While it is held down, it goes on.</span>
+    <span class="k">void</span> stroke(<span class="k">bool</span> held, <span class="k">float</span> dt)
+    {
+        <span class="k">if</span> (!held || !hasSpot)
+        {
+            <span class="k">if</span> (!held)
+                endStroke();
+            <span class="k">return</span>;
+        }
+        <span class="k">if</span> (!stroking)
+            levelTo = spot.y;
+        stroking = <span class="k">true</span>;
+        <span class="k">float</span> s = brushForce;
+        <span class="k">if</span> (brush &lt; <span class="n">2</span>)
+            <span class="t">Space</span>::raise(spot.x, spot.z, brushSize, (brush == <span class="n">0</span> ? <span class="n">5</span> : -<span class="n">5</span>) * s * dt);
+        <span class="k">else</span> <span class="k">if</span> (brush == <span class="n">2</span>)
+            <span class="t">Space</span>::smooth(spot.x, spot.z, brushSize, clamp(s * dt * <span class="n">25</span>, <span class="n">0</span>, <span class="n">1</span>));
+        <span class="k">else</span> <span class="k">if</span> (brush == <span class="n">3</span>)
+            <span class="t">Space</span>::level(spot.x, spot.z, brushSize, levelTo, clamp(s * dt * <span class="n">8</span>, <span class="n">0</span>, <span class="n">1</span>));
+        <span class="k">else</span>
+            <span class="t">Space</span>::paint(spot.x, spot.z, brushSize, brush == <span class="n">4</span> ? brushColor : <span class="t">Color</span>(<span class="n">0</span>, <span class="n">0</span>, <span class="n">0</span>, <span class="n">0</span>), clamp(s * dt * <span class="n">10</span>, <span class="n">0</span>, <span class="n">1</span>));
+        <span class="c">// What is near goes with it.</span>
+        <span class="k">for</span> (<span class="k">uint</span> i = <span class="n">0</span>; brush &lt; <span class="n">4</span> &amp;&amp; i &lt; things.length(); i++)
+        {
+            <span class="t">Vec3</span> d = things[i].json[<span class="s">&quot;place&quot;</span>].vec3() - spot;
+            <span class="k">if</span> (d.x * d.x + d.z * d.z &lt; (brushSize + <span class="n">3</span>) * (brushSize + <span class="n">3</span>))
+                put(things[i]);
+        }
+    }
+
+    <span class="k">void</span> endStroke()
+    {
+        <span class="k">if</span> (!stroking)
+            <span class="k">return</span>;
+        stroking = <span class="k">false</span>;
+        landText = <span class="t">Space</span>::landEdits;
+        place();
+        changed(<span class="s">&quot;land&quot;</span>);
+    }
+
+    <span class="k">void</span> ring(<span class="t">Canvas</span>@ c)
+    {
+        <span class="t">Vec2</span> from, to;
+        <span class="k">bool</span> had = <span class="k">false</span>;
+        <span class="t">Color</span> color = brush == <span class="n">4</span> ? brushColor : brush == <span class="n">1</span> ? <span class="t">Color</span>(<span class="n">1</span>, <span class="n">0.6f</span>, <span class="n">0.4f</span>) : <span class="t">White</span>;
+        <span class="k">for</span> (<span class="k">int</span> i = <span class="n">0</span>; i &lt;= <span class="n">40</span>; i++)
+        {
+            <span class="k">float</span> a = i * <span class="n">0.15708f</span>;
+            <span class="k">float</span> x = spot.x + cos(a) * brushSize, z = spot.z + sin(a) * brushSize;
+            <span class="k">float</span> y = <span class="t">Space</span>::height(x, z);
+            <span class="k">bool</span> has = y &gt; -<span class="n">1000</span> &amp;&amp; <span class="t">Space</span>::toScreen(<span class="t">Vec3</span>(x, y + <span class="n">0.1f</span>, z), to);
+            <span class="k">if</span> (has &amp;&amp; had)
+                c.line(from.x, from.y, to.x, to.y, stroking ? <span class="n">3.5f</span> : <span class="n">2</span>, color);
+            from = to;
+            had = has;
+        }
+    }
+
+    <span class="k">bool</span> overView(<span class="k">const</span> <span class="t">Vec2</span> &amp;<span class="k">in</span> p) { <span class="k">return</span> p.y &gt; <span class="n">82</span> &amp;&amp; p.x &gt; <span class="n">264</span> &amp;&amp; p.x &lt; wide - <span class="n">308</span>; }
     <span class="k">float</span> wide = <span class="n">1280</span>;
 
-    <span class="k">void</span> withMouse(<span class="k">bool</span> pressed)
+    <span class="k">void</span> withMouse(<span class="k">bool</span> pressed, <span class="k">float</span> dt)
     {
         <span class="k">if</span> (!<span class="t">Input</span>::hasMouse)
+        {
+            hasSpot = <span class="k">false</span>;
             <span class="k">return</span>;
+        }
+        <span class="k">if</span> (sculpting)
+        {
+            hover = -<span class="n">1</span>;
+            hasSpot = <span class="k">false</span>;
+            <span class="k">if</span> (overView(mouse))
+                aim(<span class="t">Space</span>::ray(mouse));
+            <span class="k">if</span> (stroking || pressed)
+                stroke(<span class="t">Input</span>::mouseDown(<span class="n">0</span>) &amp;&amp; (stroking || overView(mouse)), dt);
+            <span class="k">return</span>;
+        }
         <span class="k">if</span> (dragging)
         {
             <span class="k">if</span> (<span class="t">Input</span>::mouseDown(<span class="n">0</span>))
@@ -9061,9 +9329,11 @@ summary { cursor: pointer; padding: 10px 16px; } details pre { border-width: 1px
         <span class="t">Space</span>::draw(c);
         <span class="k">if</span> (!playing)
         {
-            <span class="k">if</span> (viewing &amp;&amp; under &gt;= <span class="n">0</span> &amp;&amp; under != chosen &amp;&amp; under &lt; <span class="k">int</span>(things.length()))
+            <span class="k">if</span> (sculpting &amp;&amp; hasSpot)
+                ring(c);
+            <span class="k">if</span> (viewing &amp;&amp; !sculpting &amp;&amp; under &gt;= <span class="n">0</span> &amp;&amp; under != chosen &amp;&amp; under &lt; <span class="k">int</span>(things.length()))
                 box(c, things[<span class="k">uint</span>(under)], <span class="t">Color</span>(<span class="n">1</span>, <span class="n">1</span>, <span class="n">1</span>, <span class="n">0.5f</span>));
-            <span class="k">if</span> (chosen &gt;= <span class="n">0</span>)
+            <span class="k">if</span> (chosen &gt;= <span class="n">0</span> &amp;&amp; !sculpting)
             {
                 box(c, things[<span class="k">uint</span>(chosen)], <span class="t">Color</span>(<span class="n">1</span>, <span class="n">0.75f</span>, <span class="n">0.25f</span>, <span class="n">0.9f</span>));
                 <span class="k">if</span> (!viewing)
@@ -9078,6 +9348,7 @@ summary { cursor: pointer; padding: 10px 16px; } details pre { border-width: 1px
             c.line(x, <span class="n">349</span>, x, <span class="n">356</span>, <span class="n">2</span>, <span class="t">Color</span>(<span class="n">1</span>, <span class="n">1</span>, <span class="n">1</span>, <span class="n">0.8f</span>));
             c.line(x, <span class="n">364</span>, x, <span class="n">371</span>, <span class="n">2</span>, <span class="t">Color</span>(<span class="n">1</span>, <span class="n">1</span>, <span class="n">1</span>, <span class="n">0.8f</span>));
             <span class="k">string</span> text = playing ? <span class="s">&quot;Accept throws a ball      Cancel goes back to editing&quot;</span>
+                : sculpting ? brushes[<span class="k">uint</span>(brush)] + <span class="s">&quot;      Hold Accept to change the land      Cancel or shoulders for another brush&quot;</span>
                 : carrying ? <span class="s">&quot;Accept puts it down      Shoulders turn it      Cancel puts it back&quot;</span>
                 : <span class="s">&quot;Accept takes what is in the middle      Alternate brings the panels back&quot;</span>;
             <span class="t">Vec2</span> s = font.measure(text);

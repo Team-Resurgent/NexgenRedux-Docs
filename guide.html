@@ -196,12 +196,12 @@ rock.add(<span class="t">Rock</span>());</code></pre>
     c.text(font, <span class="s">&quot;In front of it&quot;</span>, <span class="n">40</span>, <span class="n">40</span>);
 }</code></pre>
 <div class="scroll"><table><tr><th>To look like</th><th>Use</th></tr>
-<tr><td>A glTF model</td><td><code>model</code>, and <code>animate(&quot;walk&quot;)</code> to play one of its animations, changing smoothly from the last</td></tr>
+<tr><td>A model</td><td><code>model</code>, and <code>animate(&quot;walk&quot;)</code> to play one of its animations, changing smoothly from the last</td></tr>
 <tr><td>A simple shape</td><td><code>shape(SolidBox, Red)</code>: a box, ball, cylinder, cone, ring, capsule or sheet</td></tr>
 <tr><td>A mesh of your own</td><td><code>mesh</code>, with a <code>Mesh</code> built from boxes, balls and triangles</td></tr>
 <tr><td>A soft light</td><td><code>glow</code>. <code>light</code> is what lights other things: the four strongest reach each thing</td></tr>
 </table></div>
-<p>A model is a <code>.glb</code>, or a <code>.gltf</code> with everything inside it, with up to 64 bones. The engine makes two simpler versions as it loads, and draws those when it is small on the screen. What can&#x27;t be seen isn&#x27;t drawn.</p>
+<p>A model is a glTF (<code>.glb</code> or <code>.gltf</code>), FBX, OBJ, STL or PLY file, with up to 128 bones and 65536 vertices, and the files it names in its own folder. Anything but a <code>.glb</code> is turned into one as it loads; the cook tool does it beforehand, and has to for an FBX on the original Xbox. FBX and glTF bring bones and animations; OBJ brings materials and pictures; STL and PLY are shapes. The engine makes two simpler versions as it loads, and draws those when it is small on the screen. What can&#x27;t be seen isn&#x27;t drawn.</p>
 <p><code>Space::sun</code>, <code>ambient</code>, <code>sky</code>, <code>fog</code> and <code>shadows</code> set the scene. Shadows are the shape of what casts them, on the original Xbox too,</p>
 <p>where the land casts none.</p>
 <h3 id="a-world-to-walk-in">A world to walk in</h3>
@@ -236,8 +236,21 @@ hero.walker = <span class="k">true</span>;</code></pre>
 <tr><td><code>behaviour</code></td><td>A class in the script</td></tr>
 </table></div>
 <p><code>Space::make</code> makes one entity from a <code>Json</code> of the same kind. The showcase&#x27;s <b>Scene editor</b> makes such files: fly about, add</p>
-<p>things, move, turn, size and colour them, try the place, and save it. It is a screen like any other, in</p>
-<p><code>showcase/editor</code>, and can be taken for your own tools.</p>
+<p>things, move, turn, size and colour them, shape and paint the land, try the place, and save it. It is a screen like any other, in</p>
+<p><code>showcase/editor</code>, and can be taken for your own tools. Models of your own appear at the end of its list: drop them on the window (on</p>
+<p>Windows), or put them in the folder <code>own</code> beside the saves, or in <code>media/own</code> on the original Xbox. Names there are small letters, digits, dots and dashes.</p>
+<h3 id="land-by-hand">Land by hand</h3>
+<p>Land that has an end can be changed, while a game runs too, and things on it follow:</p>
+<pre><code><span class="t">Space</span>::raise(x, z, <span class="n">6</span>, <span class="n">2</span>);                            <span class="c">// a hill six metres round; less than 0 digs</span>
+<span class="t">Space</span>::smooth(x, z, <span class="n">6</span>, <span class="n">0.5f</span>);
+<span class="t">Space</span>::level(x, z, <span class="n">6</span>, height, <span class="n">1</span>);                    <span class="c">// somewhere to build</span>
+<span class="t">Space</span>::paint(x, z, <span class="n">4</span>, <span class="t">Color</span>(<span class="n">0.55f</span>, <span class="n">0.42f</span>, <span class="n">0.28f</span>), <span class="n">1</span>);  <span class="c">// a path; a clear colour takes it away</span>
+<span class="k">string</span> kept = <span class="t">Space</span>::landEdits;                      <span class="c">// all of it, as text for a Json</span>
+<span class="t">Space</span>::restoreLand(kept);                            <span class="c">// on land of as many squares</span></code></pre>
+<p><code>Space::lines = true</code> draws only the edges of triangles, to see how things are made.</p>
+<h3 id="files-that-players-bring">Files that players bring</h3>
+<p><code>Assets::list(&quot;own:&quot;)</code> has the names of the player&#x27;s own files, and <code>Assets::dropped()</code> those that were just dropped on the window. They</p>
+<p>are loaded like any others: <code>Assets::model(&quot;own:chair.obj&quot;)</code>.</p>
 <h3 id="particles-and-sounds-in-space">Particles and sounds in space</h3>
 <p>Particles are described in a scene file, as on the plane, with lengths in metres. <code>spread</code> is in degrees: 90 is a cone, and 360 goes every way. They face the camera, are lit by nothing, and hide behind things.</p>
 <pre><code><span class="t">Scene</span>::load(<span class="s">&quot;asset:scene.json&quot;</span>);                        <span class="c">// &quot;particles&quot;: { &quot;flame&quot;: {...}, &quot;sparks&quot;: {...} }</span>
@@ -348,7 +361,7 @@ float4 paint(float4 color, float2 uv, float3 place, float3 normal, inout <span c
 <tr><td>Images</td><td>PNG, JPEG, TGA, BMP and GIF, up to 2048 pixels a side</td></tr>
 <tr><td>Sounds</td><td>WAV, Ogg Vorbis and MP3</td></tr>
 <tr><td>Fonts</td><td>SSFN</td></tr>
-<tr><td>Models</td><td>glTF 2.0 (<code>.glb</code>)</td></tr>
+<tr><td>Models</td><td>glTF 2.0 (<code>.glb</code>, <code>.gltf</code>), FBX, OBJ, STL and PLY. Pictures in them up to 4096 pixels a side, made smaller if need be</td></tr>
 </table></div>
 <h2 id="sound">Sound</h2>
 <pre><code>hit.play();                      <span class="c">// as an effect</span>
