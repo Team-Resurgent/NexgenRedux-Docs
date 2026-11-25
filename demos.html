@@ -187,7 +187,7 @@ summary { cursor: pointer; padding: 10px 16px; } details pre { border-width: 1px
             <span class="k">float</span> y = top + <span class="k">float</span>(i / columns) * (tileH + gap) - scroll;
             <span class="k">if</span> (y &gt; <span class="n">720</span> || y + tileH &lt; top - <span class="n">40</span>)
                 <span class="k">continue</span>;
-            <span class="k">float</span> appear = smooth(shown * <span class="n">2</span> - <span class="k">float</span>(i) * <span class="n">0.06f</span>);
+            <span class="k">float</span> appear = smooth(shown * <span class="n">2</span> - clamp((y - top) / <span class="n">720</span>, <span class="n">0</span>, <span class="n">0.9f</span>) - <span class="k">float</span>(i % columns) * <span class="n">0.03f</span>);
             drawTile(c, tiles[i], x, y + (<span class="n">1</span> - appear) * <span class="n">40</span>, i == chosen, appear);
         }
         c.pop();
@@ -7348,7 +7348,7 @@ summary { cursor: pointer; padding: 10px 16px; } details pre { border-width: 1px
 </code></pre></details></div>
 <div data-find="embers fire, smoke, snow and sparks in space embers"><h3 id="demo-embers">Embers</h3><p>Fire, smoke, snow and sparks in space</p>
 <div class="shots"><img loading="lazy" src="screenshots/embers.png" alt="Embers"></div>
-<details><summary><code>embers/main.as</code> <span class="tag">148 lines</span></summary><pre><code><span class="c">// Particles in space. How each kind looks is in scene.json; a burst throws some, and an emitter keeps on.</span>
+<details><summary><code>embers/main.as</code> <span class="tag">150 lines</span></summary><pre><code><span class="c">// Particles in space. How each kind looks is in scene.json; a burst throws some, and an emitter keeps on.</span>
 
 <span class="k">class</span> <span class="t">EmbersScreen</span> : <span class="t">Screen</span>
 {
@@ -7386,6 +7386,8 @@ summary { cursor: pointer; padding: 10px 16px; } details pre { border-width: 1px
         <span class="k">for</span> (<span class="k">uint</span> i = <span class="n">0</span>; i &lt; things.length(); i++)
             things[i].destroy();
         things.resize(<span class="n">0</span>);
+        <span class="c">// Snow falls for a long time, and would leave no room for anything else.</span>
+        <span class="t">Scene</span>::clearParticles();
         next = <span class="n">0</span>;
         <span class="k">bool</span> dark = kind != <span class="n">3</span>;
         <span class="t">Space</span>::sky(dark ? <span class="t">Color</span>(<span class="n">0.02f</span>, <span class="n">0.025f</span>, <span class="n">0.06f</span>) : <span class="t">Color</span>(<span class="n">0.3f</span>, <span class="n">0.36f</span>, <span class="n">0.46f</span>), dark ? <span class="t">Color</span>(<span class="n">0.07f</span>, <span class="n">0.07f</span>, <span class="n">0.13f</span>) : <span class="t">Color</span>(<span class="n">0.5f</span>, <span class="n">0.56f</span>, <span class="n">0.64f</span>));
