@@ -57,100 +57,14 @@ summary { cursor: pointer; padding: 10px 16px; } details pre { border-width: 1px
 <div class="page"><nav><a href="#main-menu">Main menu</a><a href="#drawing">Drawing</a><a href="#sprites">Sprites</a><a href="#effects">Effects</a><a href="#interface">Interface</a><a href="#engine">Engine</a><a href="#games">Games</a><a href="#sound">Sound</a><a href="#scene">Scene</a><a href="#3d">3D</a><a href="#network">Network</a></nav><main><h1>Demos</h1><p class="lead">Every screen of the showcase, with its whole script.</p><section id="main-menu" data-title="main menu"><h2>Main menu</h2>
 <div data-find="nexgen showcase everything the engine can do main"><h3 id="demo-main">Nexgen showcase</h3><p>Everything the engine can do</p>
 <div class="shots"><img loading="lazy" src="screenshots/main.png" alt="Nexgen showcase"></div>
-<details><summary><code>main/main.as</code> <span class="tag">159 lines</span></summary><pre><code><span class="c">// The home screen: a tile for every other screen that was found.</span>
+<details><summary><code>main/main.as</code> <span class="tag">85 lines</span></summary><pre><code><span class="c">// The home screen: a tile for every other screen that was found.</span>
 
 <span class="k">class</span> <span class="t">MainScreen</span> : <span class="t">Screen</span>
 {
-    <span class="t">Font</span>@ title = <span class="t">Assets</span>::font(<span class="s">&quot;global:freesans.sfn&quot;</span>, <span class="n">60</span>);
-    <span class="t">Font</span>@ name = <span class="t">Assets</span>::font(<span class="s">&quot;global:freesans.sfn&quot;</span>, <span class="n">30</span>);
-    <span class="t">Font</span>@ small = <span class="t">Assets</span>::font(<span class="s">&quot;global:freesans.sfn&quot;</span>, <span class="n">18</span>);
-
-    <span class="t">Sound</span>@ moveSound = <span class="t">Assets</span>::sound(<span class="s">&quot;global:sound/move.wav&quot;</span>);
-    <span class="t">Sound</span>@ openSound = <span class="t">Assets</span>::sound(<span class="s">&quot;global:sound/accept.wav&quot;</span>);
-
+    <span class="t">Widget</span>@ list;
+    <span class="t">Widget</span>@ status;
     <span class="k">array</span>&lt;<span class="k">uint</span>&gt; tiles;      <span class="c">// indices of the screens on offer</span>
-    <span class="k">uint</span> chosen = <span class="n">0</span>;
-    <span class="k">float</span> scroll = <span class="n">0</span>;
-    <span class="k">float</span> shown = <span class="n">0</span>;        <span class="c">// 0 to 1 as the screen opens</span>
-    <span class="t">Vec2</span> lastMouse;
-    <span class="k">bool</span> mouseWasDown = <span class="k">false</span>;
-
-    <span class="c">// Four columns on a wide screen, three on a square one.</span>
-    <span class="k">float</span> screenW = <span class="n">1280</span>;
-    <span class="k">uint</span> columns = <span class="n">4</span>;
-    <span class="k">float</span> left = <span class="n">60</span>, top = <span class="n">160</span>, tileW = <span class="n">278</span>, tileH = <span class="n">118</span>, gap = <span class="n">16</span>;
-
-    <span class="k">void</span> layout(<span class="k">float</span> width)
-    {
-        screenW = width;
-        columns = width &lt; <span class="n">1100</span> ? <span class="n">3</span> : <span class="n">4</span>;
-        left = width &lt; <span class="n">1100</span> ? <span class="n">36</span> : <span class="n">60</span>;
-        tileW = (width - left * <span class="n">2</span> - gap * <span class="k">float</span>(columns - <span class="n">1</span>)) / <span class="k">float</span>(columns);
-    }
-
-    <span class="k">void</span> onEnter()
-    {
-        <span class="k">for</span> (<span class="k">uint</span> i = <span class="n">0</span>; i &lt; <span class="t">Screens</span>::count; i++)
-        {
-            <span class="k">if</span> (<span class="t">Screens</span>::id(i) != <span class="s">&quot;main&quot;</span>)
-                tiles.insertLast(i);
-        }
-    }
-
-    <span class="k">void</span> update(<span class="k">float</span> dt)
-    {
-        shown = clamp(shown + dt * <span class="n">2.5f</span>, <span class="n">0</span>, <span class="n">1</span>);
-        <span class="k">uint</span> count = tiles.length();
-        <span class="k">uint</span> before = chosen;
-        <span class="k">if</span> (count == <span class="n">0</span>)
-            <span class="k">return</span>;
-
-        <span class="k">if</span> (<span class="t">Input</span>::repeated(<span class="s">&quot;right&quot;</span>) &amp;&amp; chosen + <span class="n">1</span> &lt; count) chosen++;
-        <span class="k">if</span> (<span class="t">Input</span>::repeated(<span class="s">&quot;left&quot;</span>) &amp;&amp; chosen &gt; <span class="n">0</span>) chosen--;
-        <span class="k">if</span> (<span class="t">Input</span>::repeated(<span class="s">&quot;down&quot;</span>)) chosen = chosen + columns &lt; count ? chosen + columns : count - <span class="n">1</span>;
-        <span class="k">if</span> (<span class="t">Input</span>::repeated(<span class="s">&quot;up&quot;</span>) &amp;&amp; chosen &gt;= columns) chosen -= columns;
-
-        <span class="c">// The mouse takes over only when it moves.</span>
-        <span class="t">Vec2</span> mouse = <span class="t">Input</span>::mouse;
-        <span class="k">bool</span> down = <span class="t">Input</span>::mouseDown(<span class="n">0</span>);
-        <span class="k">int</span> under = tileAt(mouse);
-        <span class="k">if</span> (<span class="t">Input</span>::hasMouse &amp;&amp; mouse != lastMouse &amp;&amp; under &gt;= <span class="n">0</span>)
-            chosen = <span class="k">uint</span>(under);
-        lastMouse = mouse;
-        <span class="k">bool</span> clicked = down &amp;&amp; !mouseWasDown &amp;&amp; under &gt;= <span class="n">0</span>;
-        mouseWasDown = down;
-
-        <span class="k">if</span> (chosen != before)
-            moveSound.play(<span class="n">0.6f</span>);
-        <span class="k">if</span> (<span class="t">Input</span>::pressed(<span class="s">&quot;accept&quot;</span>) || clicked)
-        {
-            openSound.play(<span class="n">0.6f</span>);
-            <span class="t">Screens</span>::push(<span class="t">Screens</span>::id(tiles[chosen]));
-        }
-
-        <span class="c">// Keep the chosen row in view.</span>
-        <span class="k">float</span> row = <span class="k">float</span>(chosen / columns) * (tileH + gap);
-        <span class="k">float</span> room = <span class="n">720</span> - top - <span class="n">64</span>;
-        <span class="k">float</span> wanted = clamp(scroll, row + tileH - room, row);
-        wanted = max(wanted, <span class="n">0.0f</span>);
-        scroll = lerp(scroll, wanted, <span class="n">0.2f</span>);
-    }
-
-    <span class="k">float</span> max(<span class="k">float</span> a, <span class="k">float</span> b) { <span class="k">return</span> a &gt; b ? a : b; }
-
-    <span class="k">int</span> tileAt(<span class="k">const</span> <span class="t">Vec2</span> &amp;<span class="k">in</span> p)
-    {
-        <span class="k">for</span> (<span class="k">uint</span> i = <span class="n">0</span>; i &lt; tiles.length(); i++)
-        {
-            <span class="k">float</span> x = left + <span class="k">float</span>(i % columns) * (tileW + gap);
-            <span class="k">float</span> y = top + <span class="k">float</span>(i / columns) * (tileH + gap) - scroll;
-            <span class="k">if</span> (p.x &gt;= x &amp;&amp; p.x &lt; x + tileW &amp;&amp; p.y &gt;= y &amp;&amp; p.y &lt; y + tileH)
-                <span class="k">return</span> <span class="k">int</span>(i);
-        }
-        <span class="k">return</span> -<span class="n">1</span>;
-    }
-
-    <span class="t">Color</span> colorOf(<span class="k">const</span> <span class="k">string</span> &amp;<span class="k">in</span> category)
+    <span class="t">Color</span> accent(<span class="k">const</span> <span class="k">string</span> &amp;<span class="k">in</span> category)
     {
         <span class="k">if</span> (category == <span class="s">&quot;Drawing&quot;</span>) <span class="k">return</span> <span class="t">Blue</span>;
         <span class="k">if</span> (category == <span class="s">&quot;Sprites&quot;</span>) <span class="k">return</span> <span class="t">Green</span>;
@@ -164,56 +78,68 @@ summary { cursor: pointer; padding: 10px 16px; } details pre { border-width: 1px
         <span class="k">return</span> <span class="t">Gray</span>;
     }
 
+    <span class="k">void</span> onEnter()
+    {
+        <span class="k">for</span> (<span class="k">uint</span> i = <span class="n">0</span>; i &lt; <span class="t">Screens</span>::count; i++)
+            <span class="k">if</span> (<span class="t">Screens</span>::id(i) != <span class="s">&quot;main&quot;</span>)
+                tiles.insertLast(i);
+
+        <span class="t">Ui</span>::theme(<span class="s">&quot;asset:theme.json&quot;</span>);
+        <span class="t">Widget</span>@ page = <span class="t">Ui</span>::root;
+        page.pad(<span class="n">52</span>, <span class="n">40</span>, <span class="n">52</span>, <span class="n">14</span>);
+        page.gap = <span class="n">18</span>;
+        <span class="t">Widget</span>@ top = page.row();
+        <span class="t">Widget</span>@ names = top.column(<span class="n">2</span>);
+        names.grow = <span class="n">1</span>;
+        names.label(<span class="s">&quot;Nexgen&quot;</span>, <span class="s">&quot;title&quot;</span>);
+        names.label(<span class="s">&quot;A showcase of the engine. Every tile is one script.&quot;</span>, <span class="s">&quot;small&quot;</span>);
+        @status = top.label(<span class="s">&quot;&quot;</span>, <span class="s">&quot;small&quot;</span>);
+        status.self = <span class="t">PlaceStart</span>;
+        @list = page.list(tiles.length(), <span class="n">118</span>, <span class="t">WidgetRow</span>(<span class="k">this</span>.fill));
+        list.gap = <span class="n">16</span>;
+        list.columnWidth = <span class="n">250</span>;
+        list.onClick(<span class="t">WidgetEvent</span>(<span class="k">this</span>.onOpen));
+        <span class="t">Widget</span>@ help = page.label(<span class="t">Input</span>::usingPad ? <span class="s">&quot;A  open     Start  menu     Hold Back  menu from anywhere&quot;</span> : <span class="s">&quot;Enter  open     Arrows  move     Escape  menu from anywhere&quot;</span>, <span class="s">&quot;small&quot;</span>);
+        help.self = <span class="t">PlaceCenter</span>;
+    }
+
+    <span class="k">void</span> fill(<span class="t">Widget</span>@ row, <span class="k">int</span> i)
+    {
+        <span class="k">uint</span> screen = tiles[<span class="k">uint</span>(i)];
+        row.align = <span class="t">PlaceStretch</span>;
+        <span class="t">Widget</span>@ stripe = row.custom(<span class="t">WidgetDraw</span>(<span class="k">this</span>.stripe));
+        stripe.width = <span class="n">6</span>;
+        stripe.height = <span class="n">28</span>;
+        stripe.tag = i;
+        <span class="t">Widget</span>@ text = row.column(<span class="n">6</span>);
+        text.grow = <span class="n">1</span>;
+        text.label(<span class="t">Screens</span>::title(screen), <span class="s">&quot;tile&quot;</span>);
+        text.paragraph(<span class="t">Screens</span>::description(screen), <span class="s">&quot;small&quot;</span>);
+    }
+
+    <span class="k">void</span> stripe(<span class="t">Canvas</span>@ c, <span class="t">Widget</span>@ w)
+    {
+        <span class="t">Vec2</span> p = w.place;
+        c.roundRect(p.x, p.y + <span class="n">3</span>, <span class="n">6</span>, <span class="n">25</span>, <span class="n">3</span>, accent(<span class="t">Screens</span>::category(tiles[<span class="k">uint</span>(w.tag)])));
+    }
+
+    <span class="k">void</span> onOpen(<span class="t">Widget</span>@ w) { <span class="t">Screens</span>::push(<span class="t">Screens</span>::id(tiles[<span class="k">uint</span>(w.chosen)])); }
+
+    <span class="k">void</span> update(<span class="k">float</span> dt)
+    {
+        status.text = <span class="t">App</span>::platform + <span class="s">&quot;  |  &quot;</span> + <span class="t">App</span>::gpu + <span class="s">&quot;  |  &quot;</span> + formatInt(<span class="k">int</span>(<span class="t">App</span>::fps + <span class="n">0.5f</span>)) + <span class="s">&quot; fps&quot;</span>;
+    }
+
     <span class="k">void</span> draw(<span class="t">Canvas</span>@ c)
     {
         c.designHeight(<span class="n">720</span>);
-        layout(c.width);
-        c.gradient(<span class="n">0</span>, <span class="n">0</span>, screenW, <span class="n">720</span>, <span class="t">Color</span>(<span class="n">0.07f</span>, <span class="n">0.09f</span>, <span class="n">0.16f</span>), <span class="t">Color</span>(<span class="n">0.03f</span>, <span class="n">0.03f</span>, <span class="n">0.06f</span>));
+        c.gradient(<span class="n">0</span>, <span class="n">0</span>, c.width, <span class="n">720</span>, <span class="t">Color</span>(<span class="n">0.07f</span>, <span class="n">0.09f</span>, <span class="n">0.16f</span>), <span class="t">Color</span>(<span class="n">0.03f</span>, <span class="n">0.03f</span>, <span class="n">0.06f</span>));
         <span class="k">for</span> (<span class="k">uint</span> i = <span class="n">0</span>; i &lt; <span class="n">5</span>; i++)
         {
             <span class="k">float</span> t = <span class="t">App</span>::time * <span class="n">0.15f</span> + <span class="k">float</span>(i) * <span class="n">1.3f</span>;
-            c.circle(screenW * <span class="n">0.5f</span> + sin(t) * <span class="n">620</span>, <span class="n">360</span> + cos(t * <span class="n">1.3f</span>) * <span class="n">330</span>, <span class="n">160</span>, fade(hsv(<span class="n">0.55f</span> + <span class="k">float</span>(i) * <span class="n">0.05f</span>, <span class="n">0.7f</span>, <span class="n">0.9f</span>), <span class="n">0.05f</span>));
+            c.circle(c.width * <span class="n">0.5f</span> + sin(t) * <span class="n">620</span>, <span class="n">360</span> + cos(t * <span class="n">1.3f</span>) * <span class="n">330</span>, <span class="n">160</span>, fade(hsv(<span class="n">0.55f</span> + <span class="k">float</span>(i) * <span class="n">0.05f</span>, <span class="n">0.7f</span>, <span class="n">0.9f</span>), <span class="n">0.05f</span>));
         }
-
-        c.text(title, <span class="s">&quot;Nexgen&quot;</span>, left, <span class="n">46</span>);
-        c.text(small, <span class="s">&quot;A showcase of the engine. Every tile is one script.&quot;</span>, left + <span class="n">4</span>, <span class="n">116</span>, <span class="t">Color</span>(<span class="n">0.6f</span>, <span class="n">0.68f</span>, <span class="n">0.8f</span>));
-        c.text(small, <span class="t">App</span>::platform + <span class="s">&quot;  |  &quot;</span> + <span class="t">App</span>::gpu + <span class="s">&quot;  |  &quot;</span> + formatInt(<span class="k">int</span>(<span class="t">App</span>::fps + <span class="n">0.5f</span>)) + <span class="s">&quot; fps&quot;</span>, screenW - left, <span class="n">66</span>, <span class="t">Color</span>(<span class="n">0.6f</span>, <span class="n">0.68f</span>, <span class="n">0.8f</span>), <span class="t">AlignRight</span>);
-
-        c.push();
-        c.clip(<span class="n">0</span>, top - <span class="n">14</span>, screenW, <span class="n">720</span> - top - <span class="n">34</span>);
-        <span class="k">for</span> (<span class="k">uint</span> i = <span class="n">0</span>; i &lt; tiles.length(); i++)
-        {
-            <span class="k">float</span> x = left + <span class="k">float</span>(i % columns) * (tileW + gap);
-            <span class="k">float</span> y = top + <span class="k">float</span>(i / columns) * (tileH + gap) - scroll;
-            <span class="k">if</span> (y &gt; <span class="n">720</span> || y + tileH &lt; top - <span class="n">40</span>)
-                <span class="k">continue</span>;
-            <span class="k">float</span> appear = smooth(shown * <span class="n">2</span> - clamp((y - top) / <span class="n">720</span>, <span class="n">0</span>, <span class="n">0.9f</span>) - <span class="k">float</span>(i % columns) * <span class="n">0.03f</span>);
-            drawTile(c, tiles[i], x, y + (<span class="n">1</span> - appear) * <span class="n">40</span>, i == chosen, appear);
-        }
-        c.pop();
-
-        c.rect(<span class="n">0</span>, <span class="n">676</span>, screenW, <span class="n">44</span>, <span class="t">Color</span>(<span class="n">0.02f</span>, <span class="n">0.02f</span>, <span class="n">0.05f</span>, <span class="n">0.8f</span>));
-        <span class="k">string</span> help = <span class="t">Input</span>::usingPad ? <span class="s">&quot;A  open     Start  menu     Hold Back  menu from anywhere&quot;</span> : <span class="s">&quot;Enter  open     Arrows  move     Escape  menu from anywhere&quot;</span>;
-        c.text(small, help, screenW * <span class="n">0.5f</span>, <span class="n">686</span>, <span class="t">Color</span>(<span class="n">0.65f</span>, <span class="n">0.72f</span>, <span class="n">0.85f</span>), <span class="t">AlignCenter</span>);
-    }
-
-    <span class="k">void</span> drawTile(<span class="t">Canvas</span>@ c, <span class="k">uint</span> screen, <span class="k">float</span> x, <span class="k">float</span> y, <span class="k">bool</span> chosen, <span class="k">float</span> appear)
-    {
-        <span class="t">Color</span> accent = colorOf(<span class="t">Screens</span>::category(screen));
-        c.push();
-        c.alpha = appear;
-        c.translate(x + tileW / <span class="n">2</span>, y + tileH / <span class="n">2</span>);
-        <span class="k">if</span> (chosen)
-        {
-            <span class="k">float</span> pulse = <span class="n">1.03f</span> + <span class="n">0.01f</span> * sin(<span class="t">App</span>::time * <span class="n">5</span>);
-            c.scale(pulse, pulse);
-            c.roundRect(-tileW / <span class="n">2</span> - <span class="n">4</span>, -tileH / <span class="n">2</span> - <span class="n">4</span>, tileW + <span class="n">8</span>, tileH + <span class="n">8</span>, <span class="n">18</span>, accent);
-        }
-        c.roundRect(-tileW / <span class="n">2</span>, -tileH / <span class="n">2</span>, tileW, tileH, <span class="n">14</span>, chosen ? <span class="t">Color</span>(<span class="n">0.17f</span>, <span class="n">0.21f</span>, <span class="n">0.32f</span>) : <span class="t">Color</span>(<span class="n">0.11f</span>, <span class="n">0.13f</span>, <span class="n">0.2f</span>));
-        c.roundRect(-tileW / <span class="n">2</span> + <span class="n">14</span>, -tileH / <span class="n">2</span> + <span class="n">16</span>, <span class="n">6</span>, <span class="n">28</span>, <span class="n">3</span>, accent);
-        c.text(name, <span class="t">Screens</span>::title(screen), -tileW / <span class="n">2</span> + <span class="n">32</span>, -tileH / <span class="n">2</span> + <span class="n">12</span>);
-        c.paragraph(small, <span class="t">Screens</span>::description(screen), -tileW / <span class="n">2</span> + <span class="n">16</span>, -tileH / <span class="n">2</span> + <span class="n">56</span>, tileW - <span class="n">28</span>, <span class="t">Color</span>(<span class="n">0.66f</span>, <span class="n">0.72f</span>, <span class="n">0.82f</span>));
-        c.pop();
+        <span class="t">Ui</span>::draw(c);
     }
 }
 </code></pre></details></div>
@@ -1085,7 +1011,7 @@ summary { cursor: pointer; padding: 10px 16px; } details pre { border-width: 1px
 </code></pre></details></div>
 <div data-find="shaders effects of your own, on things and over the whole picture shaders"><h3 id="demo-shaders">Shaders</h3><p>Effects of your own, on things and over the whole picture</p>
 <div class="shots"><img loading="lazy" src="screenshots/shaders.png" alt="Shaders"></div>
-<details><summary><code>shaders/main.as</code> <span class="tag">136 lines</span></summary><pre><code><span class="c">// Shaders, written once and compiled for whichever GPU there is. Left and right change the picture&#x27;s;</span>
+<details><summary><code>shaders/main.as</code> <span class="tag">137 lines</span></summary><pre><code><span class="c">// Shaders, written once and compiled for whichever GPU there is. Left and right change the picture&#x27;s;</span>
 <span class="c">// up and down the robot&#x27;s. Where there are none, everything is drawn as it is.</span>
 
 <span class="k">class</span> <span class="t">ShadersScreen</span> : <span class="t">Screen</span>
@@ -1103,7 +1029,7 @@ summary { cursor: pointer; padding: 10px 16px; } details pre { border-width: 1px
     <span class="k">uint</span> picture = <span class="n">0</span>, surface = <span class="n">0</span>;
     <span class="k">bool</span> spill = <span class="k">true</span>;
     <span class="t">Entity</span>@ hero;
-    <span class="k">float</span> at = <span class="n">0</span>;
+    <span class="k">float</span> at = <span class="n">0</span>, since = <span class="n">0</span>;
 
     <span class="t">ShadersScreen</span>()
     {
@@ -1183,8 +1109,10 @@ summary { cursor: pointer; padding: 10px 16px; } details pre { border-width: 1px
         <span class="k">if</span> (<span class="t">Input</span>::repeated(<span class="s">&quot;down&quot;</span>)) surface = (surface + <span class="n">1</span>) % count;
         <span class="k">if</span> (<span class="t">Input</span>::repeated(<span class="s">&quot;up&quot;</span>)) surface = (surface + count - <span class="n">1</span>) % count;
         <span class="k">if</span> (<span class="t">Input</span>::pressed(<span class="s">&quot;accept&quot;</span>)) spill = !spill;
+        since += dt;
         <span class="k">if</span> (surface != before)
         {
+            since = <span class="n">0</span>;
             hero.effect(surface == <span class="n">0</span> ? <span class="k">null</span> : surfaces[surface - <span class="n">1</span>]);
             hero.blend = surface == <span class="n">1</span> ? <span class="t">BlendAdd</span> : <span class="t">BlendNone</span>;
             <span class="k">if</span> (surface == <span class="n">3</span>)
@@ -1194,7 +1122,7 @@ summary { cursor: pointer; padding: 10px 16px; } details pre { border-width: 1px
         hero.turn(<span class="t">Vec3</span>(<span class="n">0</span>, <span class="n">1</span>, <span class="n">0</span>), dt * <span class="n">24</span>);
         <span class="c">// Values are told to a shader as they change.</span>
         surfaces[<span class="n">0</span>].<span class="k">set</span>(<span class="n">0</span>, <span class="n">0.12f</span>); surfaces[<span class="n">0</span>].<span class="k">set</span>(<span class="n">1</span>, <span class="n">0.42f</span>); surfaces[<span class="n">0</span>].<span class="k">set</span>(<span class="n">2</span>, <span class="n">0.55f</span>);
-        surfaces[<span class="n">1</span>].<span class="k">set</span>(<span class="n">0</span>, clamp(sin(at * <span class="n">0.9f</span>) * <span class="n">0.7f</span> + <span class="n">0.4f</span>, <span class="n">0</span>, <span class="n">1</span>));
+        surfaces[<span class="n">1</span>].<span class="k">set</span>(<span class="n">0</span>, clamp(<span class="n">0.5f</span> - cos(since * <span class="n">1.6f</span>) * <span class="n">0.55f</span>, <span class="n">0</span>, <span class="n">1</span>));
         surfaces[<span class="n">1</span>].<span class="k">set</span>(<span class="n">4</span>, <span class="n">1</span>); surfaces[<span class="n">1</span>].<span class="k">set</span>(<span class="n">5</span>, <span class="n">0.5f</span>); surfaces[<span class="n">1</span>].<span class="k">set</span>(<span class="n">6</span>, <span class="n">0.15f</span>);
         pictures[<span class="n">0</span>].<span class="k">set</span>(<span class="n">0</span>, <span class="n">1</span>); pictures[<span class="n">0</span>].<span class="k">set</span>(<span class="n">1</span>, <span class="n">0.6f</span>);
         pictures[<span class="n">2</span>].<span class="k">set</span>(<span class="n">0</span>, <span class="n">1</span>);
@@ -1208,15 +1136,14 @@ summary { cursor: pointer; padding: 10px 16px; } details pre { border-width: 1px
     {
         c.designHeight(<span class="n">720</span>);
         <span class="t">Space</span>::draw(c);
-        <span class="k">bool</span> can = <span class="k">true</span>;
-        <span class="k">if</span> (spill)
-            can = c.bloom(<span class="n">0.7f</span>, <span class="n">0.72f</span>);
-        <span class="k">if</span> (picture &gt; <span class="n">0</span>)
-            can = c.effect(pictures[picture - <span class="n">1</span>]) &amp;&amp; can;
+        <span class="k">bool</span> blooms = !spill || c.bloom(<span class="n">0.7f</span>, <span class="n">0.72f</span>);
+        <span class="k">bool</span> shows = picture == <span class="n">0</span> || c.effect(pictures[picture - <span class="n">1</span>]);
+        <span class="k">bool</span> worn = surface == <span class="n">0</span> || surfaces[surface - <span class="n">1</span>].works;
+        <span class="k">string</span> no = <span class="s">&quot;   (not on this GPU)&quot;</span>;
         c.roundRect(<span class="n">24</span>, <span class="n">22</span>, <span class="n">400</span>, <span class="n">108</span>, <span class="n">16</span>, <span class="t">Color</span>(<span class="n">0</span>, <span class="n">0</span>, <span class="n">0</span>, <span class="n">0.45f</span>));
-        c.text(font, <span class="s">&quot;Over the picture: &quot;</span> + pictureNames[picture], <span class="n">44</span>, <span class="n">34</span>);
-        c.text(font, <span class="s">&quot;On the robot: &quot;</span> + surfaceNames[surface], <span class="n">44</span>, <span class="n">62</span>);
-        c.text(font, <span class="s">&quot;Bloom: &quot;</span> + (spill ? <span class="s">&quot;on&quot;</span> : <span class="s">&quot;off&quot;</span>) + (can ? <span class="s">&quot;&quot;</span> : <span class="s">&quot;     (not on this GPU)&quot;</span>), <span class="n">44</span>, <span class="n">90</span>);
+        c.text(font, <span class="s">&quot;Over the picture: &quot;</span> + pictureNames[picture] + (shows ? <span class="s">&quot;&quot;</span> : no), <span class="n">44</span>, <span class="n">34</span>);
+        c.text(font, <span class="s">&quot;On the robot: &quot;</span> + surfaceNames[surface] + (worn ? <span class="s">&quot;&quot;</span> : no), <span class="n">44</span>, <span class="n">62</span>);
+        c.text(font, <span class="s">&quot;Bloom: &quot;</span> + (spill ? <span class="s">&quot;on&quot;</span> : <span class="s">&quot;off&quot;</span>) + (blooms ? <span class="s">&quot;&quot;</span> : no), <span class="n">44</span>, <span class="n">90</span>);
         c.roundRect(<span class="n">20</span>, <span class="n">660</span>, c.width - <span class="n">40</span>, <span class="n">42</span>, <span class="n">12</span>, <span class="t">Color</span>(<span class="n">0</span>, <span class="n">0</span>, <span class="n">0</span>, <span class="n">0.45f</span>));
         c.text(font, <span class="s">&quot;Left, right: the picture&#x27;s     Up, down: the robot&#x27;s     Accept: bloom&quot;</span>, <span class="n">40</span>, <span class="n">668</span>);
     }
@@ -1456,6 +1383,488 @@ summary { cursor: pointer; padding: 10px 16px; } details pre { border-width: 1px
             <span class="k">float</span> x = <span class="n">684</span> + <span class="k">float</span>(i) * <span class="n">512</span> / <span class="k">float</span>(history.length());
             c.line(x, <span class="n">620</span> - a * <span class="n">50</span> / <span class="n">30</span>, x + <span class="n">4.4f</span>, <span class="n">620</span> - b * <span class="n">50</span> / <span class="n">30</span>, <span class="n">3</span>, <span class="t">Green</span>);
         }
+    }
+}
+</code></pre></details></div>
+<div data-find="widgets everything the interface has, in three themes widgets"><h3 id="demo-widgets">Widgets</h3><p>Everything the interface has, in three themes</p>
+<div class="shots"><img loading="lazy" src="screenshots/widgets.png" alt="Widgets"></div>
+<details><summary><code>widgets/main.as</code> <span class="tag">191 lines</span></summary><pre><code><span class="c">// Every kind of widget. Add them to a page, say what to do when they are used, and that is all:</span>
+<span class="c">// layout, focus, the gamepad, the mouse and typing are the engine&#x27;s.</span>
+
+<span class="k">class</span> <span class="t">WidgetsScreen</span> : <span class="t">Screen</span>
+{
+    <span class="t">Widget</span>@ bar;
+    <span class="t">Widget</span>@ volumeText;
+    <span class="t">Widget</span>@ said;
+    <span class="k">float</span> at = <span class="n">0</span>;
+    <span class="k">int</span> popups = <span class="n">0</span>;
+
+    <span class="k">void</span> onEnter()
+    {
+        build();
+    }
+
+    <span class="k">void</span> build()
+    {
+        <span class="t">Ui</span>::clear();
+        <span class="t">Widget</span>@ page = <span class="t">Ui</span>::root;
+        page.padding = <span class="n">44</span>;
+        page.gap = <span class="n">16</span>;
+        <span class="t">Widget</span>@ top = page.row();
+        top.label(<span class="s">&quot;Widgets&quot;</span>, <span class="s">&quot;title&quot;</span>).grow = <span class="n">1</span>;
+        top.label(<span class="s">&quot;Theme&quot;</span>);
+        <span class="t">Widget</span>@ theme = top.choice(<span class="k">array</span>&lt;<span class="k">string</span>&gt; = { <span class="s">&quot;Nexgen&quot;</span>, <span class="s">&quot;Paper&quot;</span>, <span class="s">&quot;Arcade&quot;</span> }, themeNow, <span class="t">WidgetEvent</span>(<span class="k">this</span>.onTheme));
+        theme.id = <span class="s">&quot;theme&quot;</span>;
+
+        <span class="t">Widget</span>@ tabs = page.tabs();
+        controls(tabs.tab(<span class="s">&quot;Controls&quot;</span>));
+        words(tabs.tab(<span class="s">&quot;Text&quot;</span>));
+        pictures(tabs.tab(<span class="s">&quot;Pictures&quot;</span>));
+        asking(tabs.tab(<span class="s">&quot;Asking&quot;</span>));
+
+        @said = page.label(<span class="s">&quot; &quot;</span>, <span class="s">&quot;small&quot;</span>);
+        tabs.child(<span class="n">1</span>).child(<span class="n">0</span>).focus();
+    }
+
+    <span class="k">int</span> themeNow = <span class="n">0</span>;
+    <span class="k">void</span> onTheme(<span class="t">Widget</span>@ w)
+    {
+        themeNow = w.chosen;
+        <span class="k">array</span>&lt;<span class="k">string</span>&gt; files = { <span class="s">&quot;&quot;</span>, <span class="s">&quot;asset:paper.json&quot;</span>, <span class="s">&quot;asset:arcade.json&quot;</span> };
+        <span class="t">Ui</span>::theme(files[<span class="k">uint</span>(themeNow)]);
+    }
+
+    <span class="t">Widget</span>@ named(<span class="t">Widget</span>@ page, <span class="k">const</span> <span class="k">string</span> &amp;<span class="k">in</span> name)
+    {
+        <span class="t">Widget</span>@ row = page.row(<span class="n">20</span>);
+        row.label(name).grow = <span class="n">1</span>;
+        <span class="k">return</span> row;
+    }
+
+    <span class="k">void</span> controls(<span class="t">Widget</span>@ page)
+    {
+        <span class="t">Widget</span>@ sides = page.row(<span class="n">24</span>);
+        sides.grow = <span class="n">1</span>;
+        sides.align = <span class="t">PlaceStretch</span>;
+        <span class="t">Widget</span>@ left = sides.panel();
+        left.grow = <span class="n">1</span>;
+        left.toggle(<span class="s">&quot;Sound effects&quot;</span>, <span class="k">true</span>, <span class="t">WidgetEvent</span>(<span class="k">this</span>.onToggle));
+        left.toggle(<span class="s">&quot;Subtitles&quot;</span>, <span class="k">false</span>, <span class="t">WidgetEvent</span>(<span class="k">this</span>.onToggle));
+        <span class="t">Widget</span>@ volume = named(left, <span class="s">&quot;Volume&quot;</span>);
+        @volumeText = volume.label(<span class="s">&quot;60%&quot;</span>, <span class="s">&quot;small&quot;</span>);
+        <span class="t">Widget</span>@ slide = volume.slider(<span class="n">60</span>, <span class="n">0</span>, <span class="n">100</span>, <span class="t">WidgetEvent</span>(<span class="k">this</span>.onVolume));
+        slide.step = <span class="n">5</span>;
+        slide.width = <span class="n">320</span>;
+        named(left, <span class="s">&quot;Difficulty&quot;</span>).choice(<span class="k">array</span>&lt;<span class="k">string</span>&gt; = { <span class="s">&quot;Gentle&quot;</span>, <span class="s">&quot;Fair&quot;</span>, <span class="s">&quot;Hard&quot;</span>, <span class="s">&quot;Cruel&quot;</span> }, <span class="n">1</span>, <span class="t">WidgetEvent</span>(<span class="k">this</span>.onChoice)).width = <span class="n">320</span>;
+        <span class="t">Widget</span>@ row = left.row();
+        row.button(<span class="s">&quot;Save&quot;</span>, <span class="t">WidgetEvent</span>(<span class="k">this</span>.onSave)).grow = <span class="n">1</span>;
+        <span class="t">Widget</span>@ off = row.button(<span class="s">&quot;Not now&quot;</span>);
+        off.enabled = <span class="k">false</span>;
+        off.grow = <span class="n">1</span>;
+        <span class="t">Widget</span>@ right = sides.panel();
+        right.grow = <span class="n">1</span>;
+        right.label(<span class="s">&quot;Progress&quot;</span>, <span class="s">&quot;heading&quot;</span>);
+        @bar = right.progress(<span class="n">0</span>);
+        right.line();
+        right.label(<span class="s">&quot;What you use is named below&quot;</span>, <span class="s">&quot;small&quot;</span>);
+        <span class="t">Widget</span>@ grid = right.grid(<span class="n">3</span>);
+        <span class="k">for</span> (<span class="k">int</span> i = <span class="n">1</span>; i &lt;= <span class="n">6</span>; i++)
+        {
+            <span class="t">Widget</span>@ b = grid.button(formatInt(i), <span class="t">WidgetEvent</span>(<span class="k">this</span>.onNumber));
+            b.tag = i;
+        }
+    }
+
+    <span class="k">void</span> words(<span class="t">Widget</span>@ page)
+    {
+        <span class="t">Widget</span>@ panel = page.panel();
+        panel.grow = <span class="n">1</span>;
+        panel.label(<span class="s">&quot;A heading&quot;</span>, <span class="s">&quot;heading&quot;</span>);
+        panel.paragraph(<span class="s">&quot;Text goes on to other lines to fit the width it is given. How tall it turns out is worked out from that, and everything under it moves down. Nothing here has a position: rows, columns and grids share out the room there is.&quot;</span>);
+        panel.line();
+        <span class="t">Widget</span>@ row = named(panel, <span class="s">&quot;Your name&quot;</span>);
+        <span class="t">Widget</span>@ name = row.field(<span class="s">&quot;&quot;</span>, <span class="s">&quot;Type something&quot;</span>, <span class="t">WidgetEvent</span>(<span class="k">this</span>.onTyped));
+        name.width = <span class="n">420</span>;
+        name.limit = <span class="n">24</span>;
+        <span class="t">Widget</span>@ secret = named(panel, <span class="s">&quot;A secret&quot;</span>).field(<span class="s">&quot;&quot;</span>, <span class="s">&quot;Hidden&quot;</span>, <span class="t">WidgetEvent</span>(<span class="k">this</span>.onTyped));
+        secret.secret = <span class="k">true</span>;
+        secret.width = <span class="n">420</span>;
+        <span class="t">Widget</span>@ number = named(panel, <span class="s">&quot;A number&quot;</span>).field(<span class="s">&quot;&quot;</span>, <span class="s">&quot;0&quot;</span>, <span class="t">WidgetEvent</span>(<span class="k">this</span>.onTyped));
+        number.numeric = <span class="k">true</span>;
+        number.width = <span class="n">420</span>;
+        panel.label(<span class="s">&quot;With a gamepad, the keyboard comes up on the screen&quot;</span>, <span class="s">&quot;small&quot;</span>);
+    }
+
+    <span class="k">void</span> pictures(<span class="t">Widget</span>@ page)
+    {
+        <span class="t">Widget</span>@ sides = page.row(<span class="n">24</span>);
+        sides.grow = <span class="n">1</span>;
+        sides.align = <span class="t">PlaceStretch</span>;
+        <span class="t">Widget</span>@ left = sides.panel();
+        left.grow = <span class="n">1</span>;
+        left.label(<span class="s">&quot;Pictures in buttons&quot;</span>, <span class="s">&quot;heading&quot;</span>);
+        <span class="t">Widget</span>@ grid = left.grid(<span class="n">3</span>);
+        <span class="k">for</span> (<span class="k">int</span> i = <span class="n">0</span>; i &lt; <span class="n">6</span>; i++)
+        {
+            <span class="t">Widget</span>@ b = grid.button(<span class="s">&quot;&quot;</span>, <span class="t">WidgetEvent</span>(<span class="k">this</span>.onNumber));
+            b.tag = i + <span class="n">1</span>;
+            b.align = <span class="t">PlaceCenter</span>;
+            b.image(<span class="t">Assets</span>::texture(<span class="s">&quot;asset:cover&quot;</span> + formatInt(i) + <span class="s">&quot;.jpg&quot;</span>), <span class="n">130</span>, <span class="n">130</span>);
+            b.label(<span class="s">&quot;Cover &quot;</span> + formatInt(i + <span class="n">1</span>), <span class="s">&quot;small&quot;</span>);
+        }
+        <span class="t">Widget</span>@ right = sides.panel();
+        right.grow = <span class="n">1</span>;
+        right.label(<span class="s">&quot;Drawn by the script&quot;</span>, <span class="s">&quot;heading&quot;</span>);
+        right.custom(<span class="t">WidgetDraw</span>(<span class="k">this</span>.drawn)).grow = <span class="n">1</span>;
+    }
+
+    <span class="k">void</span> asking(<span class="t">Widget</span>@ page)
+    {
+        <span class="t">Widget</span>@ panel = page.panel();
+        panel.grow = <span class="n">1</span>;
+        panel.paragraph(<span class="s">&quot;Something in front must be dealt with first. Cancel closes it, and the focus goes back to where it was.&quot;</span>);
+        <span class="t">Widget</span>@ row = panel.row();
+        row.button(<span class="s">&quot;Ask a question&quot;</span>, <span class="t">WidgetEvent</span>(<span class="k">this</span>.onAsk)).grow = <span class="n">1</span>;
+        row.button(<span class="s">&quot;Open a popup&quot;</span>, <span class="t">WidgetEvent</span>(<span class="k">this</span>.onPopup)).grow = <span class="n">1</span>;
+        row.button(<span class="s">&quot;Say something&quot;</span>, <span class="t">WidgetEvent</span>(<span class="k">this</span>.onToast)).grow = <span class="n">1</span>;
+    }
+
+    <span class="k">void</span> onToggle(<span class="t">Widget</span>@ w) { said.text = w.text + <span class="s">&quot;: &quot;</span> + (w.checked ? <span class="s">&quot;on&quot;</span> : <span class="s">&quot;off&quot;</span>); }
+    <span class="k">void</span> onChoice(<span class="t">Widget</span>@ w) { said.text = <span class="s">&quot;Chosen: &quot;</span> + w.chosenText; }
+    <span class="k">void</span> onNumber(<span class="t">Widget</span>@ w) { said.text = <span class="s">&quot;Pressed &quot;</span> + formatInt(w.tag); }
+    <span class="k">void</span> onTyped(<span class="t">Widget</span>@ w) { said.text = <span class="s">&quot;Typed: &quot;</span> + (w.secret ? <span class="s">&quot;something&quot;</span> : w.text); }
+    <span class="k">void</span> onSave(<span class="t">Widget</span>@ w) { <span class="t">Ui</span>::toast(<span class="s">&quot;Saved&quot;</span>); }
+    <span class="k">void</span> onToast(<span class="t">Widget</span>@ w) { <span class="t">Ui</span>::toast(<span class="s">&quot;Hello! This goes by itself.&quot;</span>); }
+    <span class="k">void</span> onVolume(<span class="t">Widget</span>@ w) { volumeText.text = formatInt(<span class="k">int</span>(w.value)) + <span class="s">&quot;%&quot;</span>; }
+    <span class="k">void</span> onAsk(<span class="t">Widget</span>@ w) { <span class="t">Ui</span>::dialog(<span class="s">&quot;Leave the game?&quot;</span>, <span class="s">&quot;What you have done since the last save will be lost.&quot;</span>, <span class="k">array</span>&lt;<span class="k">string</span>&gt; = { <span class="s">&quot;Stay&quot;</span>, <span class="s">&quot;Leave&quot;</span> }, <span class="t">WidgetAnswer</span>(<span class="k">this</span>.onAnswer)); }
+    <span class="k">void</span> onAnswer(<span class="k">int</span> which) { said.text = which &lt; <span class="n">0</span> ? <span class="s">&quot;Not answered&quot;</span> : which == <span class="n">0</span> ? <span class="s">&quot;You stayed&quot;</span> : <span class="s">&quot;You left&quot;</span>; }
+
+    <span class="k">void</span> onPopup(<span class="t">Widget</span>@ w)
+    {
+        <span class="t">Widget</span>@ popup = <span class="t">Ui</span>::popup();
+        popups++;
+        popup.label(<span class="s">&quot;Popup number &quot;</span> + formatInt(popups), <span class="s">&quot;heading&quot;</span>);
+        popup.label(<span class="s">&quot;Anything can go in one&quot;</span>);
+        popup.toggle(<span class="s">&quot;Like this&quot;</span>);
+        popup.button(<span class="s">&quot;Another on top&quot;</span>, <span class="t">WidgetEvent</span>(<span class="k">this</span>.onPopup));
+        <span class="t">Widget</span>@ close = popup.button(<span class="s">&quot;Close&quot;</span>, <span class="t">WidgetEvent</span>(<span class="k">this</span>.onClose));
+    }
+
+    <span class="k">void</span> onClose(<span class="t">Widget</span>@ w) { w.parent.close(); }
+
+    <span class="k">void</span> drawn(<span class="t">Canvas</span>@ c, <span class="t">Widget</span>@ w)
+    {
+        <span class="t">Vec2</span> p = w.place, s = w.size;
+        <span class="k">for</span> (<span class="k">int</span> i = <span class="n">0</span>; i &lt; <span class="n">5</span>; i++)
+        {
+            <span class="k">float</span> a = at * (<span class="n">0.4f</span> + <span class="k">float</span>(i) * <span class="n">0.13f</span>) + <span class="k">float</span>(i);
+            c.circle(p.x + s.x * <span class="n">0.5f</span> + cos(a) * s.x * <span class="n">0.3f</span>, p.y + s.y * <span class="n">0.5f</span> + sin(a * <span class="n">1.3f</span>) * s.y * <span class="n">0.3f</span>, <span class="n">34</span>, hsv(<span class="k">float</span>(i) * <span class="n">0.2f</span> + at * <span class="n">0.05f</span>, <span class="n">0.65f</span>, <span class="n">1</span>));
+        }
+    }
+
+    <span class="k">void</span> update(<span class="k">float</span> dt)
+    {
+        at += dt;
+        bar.value = <span class="n">0.5f</span> - <span class="n">0.5f</span> * cos(at * <span class="n">0.6f</span>);
+    }
+
+    <span class="k">void</span> draw(<span class="t">Canvas</span>@ c)
+    {
+        c.designHeight(<span class="n">720</span>);
+        <span class="t">Color</span> top = themeNow == <span class="n">1</span> ? <span class="t">Color</span>(<span class="n">0.93f</span>, <span class="n">0.91f</span>, <span class="n">0.86f</span>) : themeNow == <span class="n">2</span> ? <span class="t">Color</span>(<span class="n">0.1f</span>, <span class="n">0</span>, <span class="n">0.16f</span>) : <span class="t">Color</span>(<span class="n">0.07f</span>, <span class="n">0.09f</span>, <span class="n">0.15f</span>);
+        <span class="t">Color</span> bottom = themeNow == <span class="n">1</span> ? <span class="t">Color</span>(<span class="n">0.86f</span>, <span class="n">0.83f</span>, <span class="n">0.76f</span>) : themeNow == <span class="n">2</span> ? <span class="t">Color</span>(<span class="n">0.02f</span>, <span class="n">0</span>, <span class="n">0.06f</span>) : <span class="t">Color</span>(<span class="n">0.03f</span>, <span class="n">0.04f</span>, <span class="n">0.07f</span>);
+        c.gradient(<span class="n">0</span>, <span class="n">0</span>, c.width, <span class="n">720</span>, top, bottom);
+        <span class="t">Ui</span>::draw(c);
+        <span class="k">if</span> (themeNow == <span class="n">2</span>)
+            c.bloom(<span class="n">0.6f</span>, <span class="n">0.6f</span>);
+    }
+}
+</code></pre></details></div>
+<div data-find="long list ten thousand rows, of which only those seen are made longlist"><h3 id="demo-longlist">Long list</h3><p>Ten thousand rows, of which only those seen are made</p>
+<div class="shots"><img loading="lazy" src="screenshots/longlist.png" alt="Long list"></div>
+<details><summary><code>longlist/main.as</code> <span class="tag">84 lines</span></summary><pre><code><span class="c">// A list makes only the rows that can be seen, and uses them again as it scrolls. Type to find.</span>
+
+<span class="k">class</span> <span class="t">LongListScreen</span> : <span class="t">Screen</span>
+{
+    <span class="t">Widget</span>@ list;
+    <span class="t">Widget</span>@ field;
+    <span class="t">Widget</span>@ status;
+    <span class="k">array</span>&lt;<span class="k">int</span>&gt; found;
+    <span class="k">int</span> made = <span class="n">0</span>;
+    <span class="k">array</span>&lt;<span class="k">string</span>&gt; first = { <span class="s">&quot;Quiet&quot;</span>, <span class="s">&quot;Amber&quot;</span>, <span class="s">&quot;Northern&quot;</span>, <span class="s">&quot;Paper&quot;</span>, <span class="s">&quot;Copper&quot;</span>, <span class="s">&quot;Silver&quot;</span>, <span class="s">&quot;Hidden&quot;</span>, <span class="s">&quot;Second&quot;</span>, <span class="s">&quot;Winter&quot;</span>, <span class="s">&quot;Velvet&quot;</span>, <span class="s">&quot;Broken&quot;</span>, <span class="s">&quot;Golden&quot;</span>, <span class="s">&quot;Distant&quot;</span>, <span class="s">&quot;Little&quot;</span>, <span class="s">&quot;Electric&quot;</span>, <span class="s">&quot;Slow&quot;</span> };
+    <span class="k">array</span>&lt;<span class="k">string</span>&gt; second = { <span class="s">&quot;River&quot;</span>, <span class="s">&quot;Lantern&quot;</span>, <span class="s">&quot;Machine&quot;</span>, <span class="s">&quot;Garden&quot;</span>, <span class="s">&quot;Signal&quot;</span>, <span class="s">&quot;Harbour&quot;</span>, <span class="s">&quot;Comet&quot;</span>, <span class="s">&quot;Orchard&quot;</span>, <span class="s">&quot;Station&quot;</span>, <span class="s">&quot;Mirror&quot;</span>, <span class="s">&quot;Valley&quot;</span>, <span class="s">&quot;Engine&quot;</span>, <span class="s">&quot;Circus&quot;</span>, <span class="s">&quot;Island&quot;</span>, <span class="s">&quot;Letter&quot;</span>, <span class="s">&quot;Thunder&quot;</span> };
+    <span class="k">array</span>&lt;<span class="k">string</span>&gt; third = { <span class="s">&quot;of Dawn&quot;</span>, <span class="s">&quot;Road&quot;</span>, <span class="s">&quot;Blues&quot;</span>, <span class="s">&quot;Parade&quot;</span>, <span class="s">&quot;in June&quot;</span>, <span class="s">&quot;Theory&quot;</span>, <span class="s">&quot;at Sea&quot;</span>, <span class="s">&quot;Waltz&quot;</span>, <span class="s">&quot;Revisited&quot;</span>, <span class="s">&quot;for Two&quot;</span> };
+
+    <span class="k">string</span> name(<span class="k">int</span> i) { <span class="k">return</span> first[<span class="k">uint</span>(i * <span class="n">7</span>) % first.length()] + <span class="s">&quot; &quot;</span> + second[<span class="k">uint</span>(i * <span class="n">13</span> + i / <span class="n">16</span>) % second.length()] + <span class="s">&quot; &quot;</span> + third[<span class="k">uint</span>(i * <span class="n">3</span> + i / <span class="n">160</span>) % third.length()]; }
+
+    <span class="k">void</span> onEnter()
+    {
+        <span class="t">Widget</span>@ page = <span class="t">Ui</span>::root;
+        page.padding = <span class="n">44</span>;
+        page.gap = <span class="n">14</span>;
+        <span class="t">Widget</span>@ top = page.row();
+        top.label(<span class="s">&quot;Long list&quot;</span>, <span class="s">&quot;title&quot;</span>).grow = <span class="n">1</span>;
+        @field = top.field(<span class="s">&quot;&quot;</span>, <span class="s">&quot;Find&quot;</span>, <span class="t">WidgetEvent</span>(<span class="k">this</span>.onFind));
+        field.width = <span class="n">360</span>;
+        @list = page.list(<span class="n">0</span>, <span class="n">58</span>, <span class="t">WidgetRow</span>(<span class="k">this</span>.fill));
+        list.columns = <span class="n">2</span>;
+        list.onClick(<span class="t">WidgetEvent</span>(<span class="k">this</span>.onClick));
+        @status = page.label(<span class="s">&quot;&quot;</span>, <span class="s">&quot;small&quot;</span>);
+        find(<span class="s">&quot;&quot;</span>);
+        list.focus();
+    }
+
+    <span class="k">void</span> find(<span class="k">const</span> <span class="k">string</span> &amp;<span class="k">in</span> what)
+    {
+        found.resize(<span class="n">0</span>);
+        <span class="k">for</span> (<span class="k">int</span> i = <span class="n">0</span>; i &lt; <span class="n">10000</span>; i++)
+            <span class="k">if</span> (what == <span class="s">&quot;&quot;</span> || lower(name(i)).findFirst(lower(what)) &gt;= <span class="n">0</span>)
+                found.insertLast(i);
+        list.count = found.length();
+    }
+
+    <span class="k">string</span> lower(<span class="k">const</span> <span class="k">string</span> &amp;<span class="k">in</span> text)
+    {
+        <span class="k">string</span> small = text;
+        <span class="k">for</span> (<span class="k">uint</span> i = <span class="n">0</span>; i &lt; small.length(); i++)
+            <span class="k">if</span> (small[i] &gt;= <span class="n">65</span> &amp;&amp; small[i] &lt;= <span class="n">90</span>)
+                small[i] = small[i] + <span class="n">32</span>;
+        <span class="k">return</span> small;
+    }
+
+    <span class="k">void</span> fill(<span class="t">Widget</span>@ row, <span class="k">int</span> i)
+    {
+        made++;
+        <span class="k">int</span> which = found[<span class="k">uint</span>(i)];
+        <span class="t">Widget</span>@ swatch = row.custom(<span class="t">WidgetDraw</span>(<span class="k">this</span>.swatch));
+        swatch.width = <span class="n">34</span>;
+        swatch.height = <span class="n">34</span>;
+        swatch.tag = which;
+        row.label(name(which)).grow = <span class="n">1</span>;
+        row.label(<span class="s">&quot;#&quot;</span> + formatInt(which + <span class="n">1</span>), <span class="s">&quot;small&quot;</span>);
+    }
+
+    <span class="k">void</span> swatch(<span class="t">Canvas</span>@ c, <span class="t">Widget</span>@ w)
+    {
+        <span class="t">Vec2</span> p = w.place;
+        c.roundRect(p.x, p.y, <span class="n">34</span>, <span class="n">34</span>, <span class="n">8</span>, hsv(<span class="k">float</span>(w.tag % <span class="n">97</span>) / <span class="n">97.0f</span>, <span class="n">0.6f</span>, <span class="n">0.85f</span>));
+        c.circle(p.x + <span class="n">17</span>, p.y + <span class="n">17</span>, <span class="n">6</span> + <span class="k">float</span>(w.tag % <span class="n">5</span>), <span class="t">Color</span>(<span class="n">1</span>, <span class="n">1</span>, <span class="n">1</span>, <span class="n">0.5f</span>));
+    }
+
+    <span class="k">void</span> onFind(<span class="t">Widget</span>@ w) { find(w.text); }
+    <span class="k">void</span> onClick(<span class="t">Widget</span>@ w) { <span class="t">Ui</span>::toast(<span class="s">&quot;Played &quot;</span> + name(found[<span class="k">uint</span>(w.chosen)])); }
+
+    <span class="k">void</span> update(<span class="k">float</span> dt)
+    {
+        status.text = formatInt(<span class="k">int</span>(found.length())) + <span class="s">&quot; rows, &quot;</span> + formatInt(<span class="k">int</span>(list.children)) + <span class="s">&quot; of them real, filled &quot;</span> + formatInt(made) + <span class="s">&quot; times&quot;</span>;
+    }
+
+    <span class="k">void</span> draw(<span class="t">Canvas</span>@ c)
+    {
+        c.designHeight(<span class="n">720</span>);
+        c.gradient(<span class="n">0</span>, <span class="n">0</span>, c.width, <span class="n">720</span>, <span class="t">Color</span>(<span class="n">0.08f</span>, <span class="n">0.08f</span>, <span class="n">0.13f</span>), <span class="t">Color</span>(<span class="n">0.03f</span>, <span class="n">0.03f</span>, <span class="n">0.06f</span>));
+        <span class="t">Ui</span>::draw(c);
+    }
+}
+</code></pre></details></div>
+<div data-find="form a page from a file, in three languages form"><h3 id="demo-form">Form</h3><p>A page from a file, in three languages</p>
+<div class="shots"><img loading="lazy" src="screenshots/form.png" alt="Form"></div>
+<details><summary><code>form/main.as</code> <span class="tag">43 lines</span></summary><pre><code><span class="c">// The page is in form.json and what it says in a file for each language. Only what it does is here.</span>
+
+<span class="k">class</span> <span class="t">FormScreen</span> : <span class="t">Screen</span>
+{
+    <span class="k">array</span>&lt;<span class="k">string</span>&gt; languages = { <span class="s">&quot;asset:english.json&quot;</span>, <span class="s">&quot;asset:francais.json&quot;</span>, <span class="s">&quot;asset:deutsch.json&quot;</span> };
+
+    <span class="k">void</span> onEnter()
+    {
+        <span class="t">Ui</span>::words(languages[<span class="n">0</span>]);
+        <span class="t">Ui</span>::load(<span class="s">&quot;asset:form.json&quot;</span>);
+        <span class="t">Ui</span>::find(<span class="s">&quot;name&quot;</span>).focus();
+    }
+
+    <span class="k">void</span> onLanguage(<span class="t">Widget</span>@ w) { <span class="t">Ui</span>::words(languages[<span class="k">uint</span>(w.chosen)]); }
+
+    <span class="k">void</span> onCheck(<span class="t">Widget</span>@ w)
+    {
+        <span class="c">// The button can be pressed once there is a name.</span>
+        <span class="t">Ui</span>::find(<span class="s">&quot;send&quot;</span>).enabled = <span class="t">Ui</span>::find(<span class="s">&quot;name&quot;</span>).text.length() &gt; <span class="n">1</span>;
+        <span class="t">Ui</span>::find(<span class="s">&quot;missing&quot;</span>).visible = !<span class="t">Ui</span>::find(<span class="s">&quot;send&quot;</span>).enabled;
+    }
+
+    <span class="k">void</span> onPets(<span class="t">Widget</span>@ w) { <span class="t">Ui</span>::find(<span class="s">&quot;pets&quot;</span>).text = formatInt(<span class="k">int</span>(w.value)); }
+
+    <span class="k">void</span> onSend(<span class="t">Widget</span>@ w)
+    {
+        <span class="t">Ui</span>::dialog(<span class="s">&quot;@thanks&quot;</span>, <span class="t">Ui</span>::find(<span class="s">&quot;name&quot;</span>).text + <span class="s">&quot;, &quot;</span> + <span class="t">Ui</span>::find(<span class="s">&quot;drink&quot;</span>).chosenText, <span class="k">array</span>&lt;<span class="k">string</span>&gt; = { <span class="s">&quot;@fine&quot;</span> });
+    }
+
+    <span class="k">void</span> onClear(<span class="t">Widget</span>@ w)
+    {
+        <span class="t">Ui</span>::find(<span class="s">&quot;name&quot;</span>).text = <span class="s">&quot;&quot;</span>;
+        onCheck(w);
+        <span class="t">Ui</span>::toast(<span class="s">&quot;@cleared&quot;</span>);
+    }
+
+    <span class="k">void</span> draw(<span class="t">Canvas</span>@ c)
+    {
+        c.designHeight(<span class="n">720</span>);
+        c.gradient(<span class="n">0</span>, <span class="n">0</span>, c.width, <span class="n">720</span>, <span class="t">Color</span>(<span class="n">0.06f</span>, <span class="n">0.12f</span>, <span class="n">0.13f</span>), <span class="t">Color</span>(<span class="n">0.03f</span>, <span class="n">0.05f</span>, <span class="n">0.07f</span>));
+        <span class="t">Ui</span>::draw(c);
+    }
+}
+</code></pre></details></div>
+<div data-find="inventory a game&#x27;s menu, with a 3d view in it inventory"><h3 id="demo-inventory">Inventory</h3><p>A game&#x27;s menu, with a 3D view in it</p>
+<div class="shots"><img loading="lazy" src="screenshots/inventory.png" alt="Inventory"></div>
+<details><summary><code>inventory/main.as</code> <span class="tag">152 lines</span></summary><pre><code><span class="c">// A grid to choose from, what was chosen turning in space, and numbers that follow. The view is a widget like any other.</span>
+
+<span class="k">class</span> <span class="t">Item</span>
+{
+    <span class="k">string</span> name, about, model;
+    <span class="k">int</span> strength, speed, worth;
+    <span class="t">Item</span>(<span class="k">const</span> <span class="k">string</span> &amp;<span class="k">in</span> n, <span class="k">const</span> <span class="k">string</span> &amp;<span class="k">in</span> m, <span class="k">int</span> a, <span class="k">int</span> b, <span class="k">int</span> c, <span class="k">const</span> <span class="k">string</span> &amp;<span class="k">in</span> t)
+    {
+        name = n; model = m; strength = a; speed = b; worth = c; about = t;
+    }
+}
+
+<span class="k">class</span> <span class="t">InventoryScreen</span> : <span class="t">Screen</span>
+{
+    <span class="k">array</span>&lt;<span class="t">Item</span>@&gt; items = {
+        <span class="t">Item</span>(<span class="s">&quot;Robot&quot;</span>, <span class="s">&quot;robot&quot;</span>, <span class="n">60</span>, <span class="n">70</span>, <span class="n">900</span>, <span class="s">&quot;It waves at everybody, and means it.&quot;</span>),
+        <span class="t">Item</span>(<span class="s">&quot;Skimmer&quot;</span>, <span class="s">&quot;skimmer&quot;</span>, <span class="n">45</span>, <span class="n">98</span>, <span class="n">2400</span>, <span class="s">&quot;Never touches the ground it crosses.&quot;</span>),
+        <span class="t">Item</span>(<span class="s">&quot;Lantern&quot;</span>, <span class="s">&quot;lantern&quot;</span>, <span class="n">10</span>, <span class="n">5</span>, <span class="n">60</span>, <span class="s">&quot;Lights itself when it gets dark.&quot;</span>),
+        <span class="t">Item</span>(<span class="s">&quot;Crystal&quot;</span>, <span class="s">&quot;crystal&quot;</span>, <span class="n">80</span>, <span class="n">20</span>, <span class="n">1200</span>, <span class="s">&quot;Hums very quietly. Nobody knows why.&quot;</span>),
+        <span class="t">Item</span>(<span class="s">&quot;Campfire&quot;</span>, <span class="s">&quot;campfire&quot;</span>, <span class="n">25</span>, <span class="n">0</span>, <span class="n">15</span>, <span class="s">&quot;Warm on one side.&quot;</span>),
+        <span class="t">Item</span>(<span class="s">&quot;Mushroom&quot;</span>, <span class="s">&quot;mushroom&quot;</span>, <span class="n">5</span>, <span class="n">0</span>, <span class="n">3</span>, <span class="s">&quot;Best left where it grows.&quot;</span>),
+        <span class="t">Item</span>(<span class="s">&quot;House&quot;</span>, <span class="s">&quot;house&quot;</span>, <span class="n">95</span>, <span class="n">0</span>, <span class="n">8000</span>, <span class="s">&quot;Someone is in. There is smoke.&quot;</span>),
+        <span class="t">Item</span>(<span class="s">&quot;Well&quot;</span>, <span class="s">&quot;well&quot;</span>, <span class="n">70</span>, <span class="n">0</span>, <span class="n">300</span>, <span class="s">&quot;Make a wish. It can&#x27;t hurt.&quot;</span>),
+        <span class="t">Item</span>(<span class="s">&quot;Gate&quot;</span>, <span class="s">&quot;gate&quot;</span>, <span class="n">50</span>, <span class="n">0</span>, <span class="n">500</span>, <span class="s">&quot;Go through the middle.&quot;</span>),
+        <span class="t">Item</span>(<span class="s">&quot;Oak&quot;</span>, <span class="s">&quot;oak&quot;</span>, <span class="n">65</span>, <span class="n">0</span>, <span class="n">120</span>, <span class="s">&quot;A hundred years to make.&quot;</span>),
+        <span class="t">Item</span>(<span class="s">&quot;Pine&quot;</span>, <span class="s">&quot;pine&quot;</span>, <span class="n">55</span>, <span class="n">0</span>, <span class="n">90</span>, <span class="s">&quot;Green all winter.&quot;</span>),
+        <span class="t">Item</span>(<span class="s">&quot;Rock&quot;</span>, <span class="s">&quot;rock&quot;</span>, <span class="n">99</span>, <span class="n">0</span>, <span class="n">1</span>, <span class="s">&quot;It is a rock.&quot;</span>)
+    };
+    <span class="k">array</span>&lt;<span class="t">Model</span>@&gt; models;
+    <span class="k">array</span>&lt;<span class="k">bool</span>&gt; worn;
+    <span class="t">Widget</span>@ list;
+    <span class="t">Widget</span>@ name;
+    <span class="t">Widget</span>@ about;
+    <span class="k">array</span>&lt;<span class="t">Widget</span>@&gt; bars;
+    <span class="t">Widget</span>@ wear;
+    <span class="t">Entity</span>@ shown;
+    <span class="k">float</span> turn = <span class="n">0</span>, swell = <span class="n">0</span>;
+
+    <span class="t">InventoryScreen</span>()
+    {
+        <span class="k">for</span> (<span class="k">uint</span> i = <span class="n">0</span>; i &lt; items.length(); i++)
+        {
+            models.insertLast(<span class="t">Assets</span>::model(<span class="s">&quot;global:model/&quot;</span> + items[i].model + <span class="s">&quot;.glb&quot;</span>));
+            worn.insertLast(<span class="k">false</span>);
+        }
+    }
+
+    <span class="k">void</span> onEnter()
+    {
+        <span class="t">Space</span>::sky(<span class="t">Color</span>(<span class="n">0.1f</span>, <span class="n">0.13f</span>, <span class="n">0.22f</span>), <span class="t">Color</span>(<span class="n">0.22f</span>, <span class="n">0.24f</span>, <span class="n">0.34f</span>));
+        <span class="t">Space</span>::ambient(<span class="t">Color</span>(<span class="n">0.5f</span>, <span class="n">0.52f</span>, <span class="n">0.6f</span>), <span class="t">Color</span>(<span class="n">0.3f</span>, <span class="n">0.28f</span>, <span class="n">0.3f</span>));
+        <span class="t">Space</span>::sun(<span class="t">Vec3</span>(<span class="n">0.5f</span>, <span class="n">0.8f</span>, <span class="n">0.6f</span>), <span class="t">Color</span>(<span class="n">0.8f</span>, <span class="n">0.76f</span>, <span class="n">0.7f</span>));
+        <span class="t">Entity</span>@ stand = <span class="t">Space</span>::spawn(<span class="t">Vec3</span>(<span class="n">0</span>, -<span class="n">0.1f</span>, <span class="n">0</span>));
+        stand.shape(<span class="t">SolidCylinder</span>, <span class="t">Color</span>(<span class="n">0.22f</span>, <span class="n">0.25f</span>, <span class="n">0.36f</span>));
+        stand.size = <span class="t">Vec3</span>(<span class="n">4.4f</span>, <span class="n">0.2f</span>, <span class="n">4.4f</span>);
+        stand.shine = <span class="n">0.7f</span>;
+        @shown = <span class="t">Space</span>::spawn(<span class="t">Vec3</span>(<span class="n">0</span>, <span class="n">0</span>, <span class="n">0</span>));
+        <span class="t">Space</span>::shadows(<span class="n">0.6f</span>, <span class="n">8</span>);
+
+        <span class="t">Widget</span>@ page = <span class="t">Ui</span>::root;
+        page.padding = <span class="n">40</span>;
+        page.gap = <span class="n">16</span>;
+        page.label(<span class="s">&quot;Inventory&quot;</span>, <span class="s">&quot;title&quot;</span>);
+        <span class="t">Widget</span>@ sides = page.row(<span class="n">24</span>);
+        sides.grow = <span class="n">1</span>;
+        sides.align = <span class="t">PlaceStretch</span>;
+        <span class="t">Widget</span>@ left = sides.panel();
+        left.grow = <span class="n">1.15f</span>;
+        @list = left.list(items.length(), <span class="n">84</span>, <span class="t">WidgetRow</span>(<span class="k">this</span>.fill));
+        list.columns = <span class="n">2</span>;
+        list.onFocus(<span class="t">WidgetEvent</span>(<span class="k">this</span>.onLook));
+        list.onClick(<span class="t">WidgetEvent</span>(<span class="k">this</span>.onWear));
+        <span class="t">Widget</span>@ right = sides.panel();
+        right.grow = <span class="n">1</span>;
+        right.custom(<span class="t">WidgetDraw</span>(<span class="k">this</span>.view)).grow = <span class="n">1</span>;
+        @name = right.label(<span class="s">&quot;&quot;</span>, <span class="s">&quot;heading&quot;</span>);
+        @about = right.paragraph(<span class="s">&quot;&quot;</span>, <span class="s">&quot;small&quot;</span>);
+        <span class="k">array</span>&lt;<span class="k">string</span>&gt; names = { <span class="s">&quot;Strength&quot;</span>, <span class="s">&quot;Speed&quot;</span> };
+        <span class="k">for</span> (<span class="k">uint</span> i = <span class="n">0</span>; i &lt; names.length(); i++)
+        {
+            <span class="t">Widget</span>@ row = right.row();
+            <span class="t">Widget</span>@ label = row.label(names[i]);
+            label.width = <span class="n">130</span>;
+            <span class="t">Widget</span>@ bar = row.progress(<span class="n">0</span>);
+            bar.grow = <span class="n">1</span>;
+            bars.insertLast(bar);
+        }
+        @wear = right.button(<span class="s">&quot;&quot;</span>, <span class="t">WidgetEvent</span>(<span class="k">this</span>.onWear));
+        list.focus();
+        look();
+    }
+
+    <span class="k">void</span> fill(<span class="t">Widget</span>@ row, <span class="k">int</span> i)
+    {
+        <span class="t">Item</span>@ item = items[<span class="k">uint</span>(i)];
+        <span class="t">Widget</span>@ side = row.column(<span class="n">2</span>);
+        side.grow = <span class="n">1</span>;
+        side.label(item.name);
+        side.label(formatInt(item.worth) + <span class="s">&quot; coins&quot;</span>, <span class="s">&quot;small&quot;</span>);
+        <span class="k">if</span> (worn[<span class="k">uint</span>(i)])
+            row.label(<span class="s">&quot;in use&quot;</span>, <span class="s">&quot;small&quot;</span>);
+    }
+
+    <span class="k">void</span> onLook(<span class="t">Widget</span>@ w) { look(); }
+
+    <span class="k">void</span> look()
+    {
+        <span class="k">uint</span> i = <span class="k">uint</span>(list.chosen);
+        name.text = items[i].name;
+        about.text = items[i].about;
+        bars[<span class="n">0</span>].value = <span class="k">float</span>(items[i].strength) / <span class="n">100</span>;
+        bars[<span class="n">1</span>].value = <span class="k">float</span>(items[i].speed) / <span class="n">100</span>;
+        wear.text = worn[i] ? <span class="s">&quot;Put away&quot;</span> : <span class="s">&quot;Use&quot;</span>;
+        shown.model(models[i]);
+        swell = <span class="n">0</span>;
+    }
+
+    <span class="k">void</span> onWear(<span class="t">Widget</span>@ w)
+    {
+        <span class="k">uint</span> i = <span class="k">uint</span>(list.chosen);
+        worn[i] = !worn[i];
+        <span class="t">Ui</span>::toast(items[i].name + (worn[i] ? <span class="s">&quot; is in use&quot;</span> : <span class="s">&quot; was put away&quot;</span>));
+        list.refresh();
+        look();
+    }
+
+    <span class="k">void</span> view(<span class="t">Canvas</span>@ c, <span class="t">Widget</span>@ w)
+    {
+        <span class="t">Vec2</span> p = w.place, s = w.size;
+        <span class="t">Space</span>::draw(c, p.x, p.y, s.x, s.y);
+    }
+
+    <span class="k">void</span> update(<span class="k">float</span> dt)
+    {
+        turn += dt * <span class="n">40</span>;
+        swell += (<span class="n">1</span> - swell) * clamp(dt * <span class="n">9</span>, <span class="n">0</span>, <span class="n">1</span>);
+        <span class="k">float</span> high = models[<span class="k">uint</span>(list.chosen)].radius;
+        <span class="k">float</span> size = <span class="n">1.5f</span> / (high &gt; <span class="n">0.2f</span> ? high : <span class="n">1.0f</span>) * swell;
+        shown.size = <span class="t">Vec3</span>(size, size, size);
+        shown.angles = <span class="t">Vec3</span>(<span class="n">0</span>, turn, <span class="n">0</span>);
+        <span class="k">if</span> (list.chosen == <span class="n">0</span>)
+            shown.animate(<span class="s">&quot;idle&quot;</span>);
+        <span class="t">Space</span>::camera(<span class="t">Vec3</span>(<span class="n">0</span>, <span class="n">2.2f</span>, <span class="n">5.2f</span>), <span class="t">Vec3</span>(<span class="n">0</span>, <span class="n">1</span>, <span class="n">0</span>), <span class="n">42</span>);
+    }
+
+    <span class="k">void</span> draw(<span class="t">Canvas</span>@ c)
+    {
+        c.designHeight(<span class="n">720</span>);
+        c.gradient(<span class="n">0</span>, <span class="n">0</span>, c.width, <span class="n">720</span>, <span class="t">Color</span>(<span class="n">0.09f</span>, <span class="n">0.08f</span>, <span class="n">0.14f</span>), <span class="t">Color</span>(<span class="n">0.03f</span>, <span class="n">0.03f</span>, <span class="n">0.06f</span>));
+        <span class="t">Ui</span>::draw(c);
     }
 }
 </code></pre></details></div>
@@ -4893,11 +5302,12 @@ summary { cursor: pointer; padding: 10px 16px; } details pre { border-width: 1px
 </code></pre></details></div>
 <div data-find="skimmer a race through gates over land without end skim"><h3 id="demo-skim">Skimmer</h3><p>A race through gates over land without end</p>
 <div class="shots"><img loading="lazy" src="screenshots/skim.png" alt="Skimmer"></div>
-<details><summary><code>skim/main.as</code> <span class="tag">411 lines</span></summary><pre><code><span class="c">// A race. The land streams in ahead and goes behind; the way through it is worked out from a number, so it</span>
+<details><summary><code>skim/main.as</code> <span class="tag">412 lines</span></summary><pre><code><span class="c">// A race. The land streams in ahead and goes behind; the way through it is worked out from a number, so it</span>
 <span class="c">// is the same for everyone. Three others race, and a second player may, with a gamepad of their own.</span>
 
 <span class="k">const</span> <span class="k">int</span> <span class="t">Gates</span> = <span class="n">30</span>;
 <span class="k">const</span> <span class="k">float</span> <span class="t">Between</span> = <span class="n">62</span>;
+<span class="k">const</span> <span class="k">float</span> <span class="t">Sea</span> = <span class="n">11.5f</span>;       <span class="c">// how high the ponds stand</span>
 
 <span class="t">Sound</span>@ chime = <span class="t">Assets</span>::sound(<span class="s">&quot;global:sound/gate.wav&quot;</span>);
 <span class="t">Sound</span>@ bump = <span class="t">Assets</span>::sound(<span class="s">&quot;global:sound/hit.wav&quot;</span>);
@@ -4909,7 +5319,7 @@ summary { cursor: pointer; padding: 10px 16px; } details pre { border-width: 1px
     <span class="k">float</span> z = -<span class="k">float</span>(i + <span class="n">1</span>) * <span class="t">Between</span>;
     <span class="k">float</span> x = wayX(z);
     <span class="k">float</span> y = <span class="t">Space</span>::height(x, z);
-    <span class="k">return</span> <span class="t">Vec3</span>(x, (y &gt; <span class="n">0.5f</span> ? y : <span class="n">0.5f</span>) + <span class="n">4.4f</span>, z);
+    <span class="k">return</span> <span class="t">Vec3</span>(x, (y &gt; <span class="t">Sea</span> ? y : <span class="t">Sea</span>) + <span class="n">4.4f</span>, z);
 }
 
 <span class="k">class</span> <span class="t">Racer</span>
@@ -4964,8 +5374,8 @@ summary { cursor: pointer; padding: 10px 16px; } details pre { border-width: 1px
         <span class="t">Scene</span>::load(<span class="s">&quot;asset:scene.json&quot;</span>);
         music.playMusic(<span class="n">0.35f</span>, <span class="n">1</span>);
         <span class="t">Space</span>::endlessLand(<span class="n">1234</span>, <span class="n">2.5f</span>, <span class="n">26</span>, <span class="n">0.35f</span>, <span class="t">App</span>::platform == <span class="s">&quot;Original Xbox&quot;</span> ? <span class="n">2</span> : <span class="n">4</span>);
-        <span class="t">Space</span>::landColors(<span class="t">Color</span>(<span class="n">0.8f</span>, <span class="n">0.72f</span>, <span class="n">0.5f</span>), <span class="t">Color</span>(<span class="n">0.36f</span>, <span class="n">0.52f</span>, <span class="n">0.26f</span>), <span class="t">Color</span>(<span class="n">0.6f</span>, <span class="n">0.58f</span>, <span class="n">0.55f</span>), <span class="t">Color</span>(<span class="n">0.46f</span>, <span class="n">0.41f</span>, <span class="n">0.36f</span>), <span class="n">0.8f</span>, <span class="n">20</span>);
-        <span class="t">Space</span>::water(<span class="n">0</span>, <span class="t">Color</span>(<span class="n">0.12f</span>, <span class="n">0.4f</span>, <span class="n">0.52f</span>, <span class="n">0.85f</span>));
+        <span class="t">Space</span>::landColors(<span class="t">Color</span>(<span class="n">0.8f</span>, <span class="n">0.72f</span>, <span class="n">0.5f</span>), <span class="t">Color</span>(<span class="n">0.36f</span>, <span class="n">0.52f</span>, <span class="n">0.26f</span>), <span class="t">Color</span>(<span class="n">0.6f</span>, <span class="n">0.58f</span>, <span class="n">0.55f</span>), <span class="t">Color</span>(<span class="n">0.46f</span>, <span class="n">0.41f</span>, <span class="n">0.36f</span>), <span class="t">Sea</span> + <span class="n">0.9f</span>, <span class="n">20</span>);
+        <span class="t">Space</span>::water(<span class="t">Sea</span>, <span class="t">Color</span>(<span class="n">0.16f</span>, <span class="n">0.42f</span>, <span class="n">0.55f</span>, <span class="n">0.82f</span>));
         <span class="t">Space</span>::sky(<span class="t">Color</span>(<span class="n">0.25f</span>, <span class="n">0.4f</span>, <span class="n">0.75f</span>), <span class="t">Color</span>(<span class="n">0.95f</span>, <span class="n">0.75f</span>, <span class="n">0.6f</span>));
         <span class="t">Space</span>::fog(<span class="t">Color</span>(<span class="n">0.92f</span>, <span class="n">0.76f</span>, <span class="n">0.66f</span>), <span class="n">90</span>, <span class="n">290</span>);
         <span class="t">Space</span>::sun(<span class="t">Vec3</span>(<span class="n">0.5f</span>, <span class="n">0.45f</span>, -<span class="n">0.6f</span>), <span class="t">Color</span>(<span class="n">1</span>, <span class="n">0.82f</span>, <span class="n">0.62f</span>));
@@ -5011,7 +5421,7 @@ summary { cursor: pointer; padding: 10px 16px; } details pre { border-width: 1px
     <span class="k">float</span> level(<span class="k">const</span> <span class="t">Vec3</span> &amp;<span class="k">in</span> p)
     {
         <span class="k">float</span> y = <span class="t">Space</span>::height(p.x, p.z);
-        <span class="k">return</span> y &gt; <span class="n">0.2f</span> ? y : <span class="n">0.2f</span>;      <span class="c">// over water too</span>
+        <span class="k">return</span> y &gt; <span class="t">Sea</span> + <span class="n">0.2f</span> ? y : <span class="t">Sea</span> + <span class="n">0.2f</span>;      <span class="c">// over water too</span>
     }
 
     <span class="k">float</span> chance(<span class="k">int</span> x, <span class="k">int</span> z, <span class="k">int</span> n)
@@ -5028,7 +5438,7 @@ summary { cursor: pointer; padding: 10px 16px; } details pre { border-width: 1px
             <span class="k">float</span> px = (<span class="k">float</span>(x) + chance(x, z, n)) * size, pz = (<span class="k">float</span>(z) + chance(x, z, n + <span class="n">50</span>)) * size;
             <span class="k">float</span> y = <span class="t">Space</span>::height(px, pz);
             <span class="c">// The way is kept clear.</span>
-            <span class="k">if</span> (y &lt; <span class="n">1</span> || abs(px - wayX(pz)) &lt; <span class="n">17</span> || <span class="t">Space</span>::normal(px, pz).y &lt; <span class="n">0.75f</span>)
+            <span class="k">if</span> (y &lt; <span class="t">Sea</span> + <span class="n">0.8f</span> || abs(px - wayX(pz)) &lt; <span class="n">17</span> || <span class="t">Space</span>::normal(px, pz).y &lt; <span class="n">0.75f</span>)
                 <span class="k">continue</span>;
             <span class="t">Entity</span>@ e = <span class="t">Space</span>::spawn(<span class="t">Vec3</span>(px, y, pz));
             <span class="k">bool</span> stone = n % <span class="n">4</span> == <span class="n">0</span>;
@@ -5183,8 +5593,8 @@ summary { cursor: pointer; padding: 10px 16px; } details pre { border-width: 1px
         <span class="k">float</span> going = flat.length();
         r.jet.emit(r.boosting ? <span class="s">&quot;burn&quot;</span> : <span class="s">&quot;jet&quot;</span>, clock &gt; <span class="n">0</span> ? <span class="n">20</span> + going : <span class="n">10</span>);
         r.engine.pitch = <span class="n">0.7f</span> + going * <span class="n">0.018f</span> + (r.boosting ? <span class="n">0.25f</span> : <span class="n">0.0f</span>);
-        <span class="k">if</span> (under &lt;= <span class="n">0.25f</span> &amp;&amp; going &gt; <span class="n">8</span>)
-            <span class="t">Space</span>::burst(<span class="s">&quot;spray&quot;</span>, <span class="t">Vec3</span>(r.at.x, <span class="n">0.1f</span>, r.at.z) - ahead * <span class="n">1.2f</span>, <span class="n">2</span>);
+        <span class="k">if</span> (under &lt;= <span class="t">Sea</span> + <span class="n">0.25f</span> &amp;&amp; going &gt; <span class="n">8</span>)
+            <span class="t">Space</span>::burst(<span class="s">&quot;spray&quot;</span>, <span class="t">Vec3</span>(r.at.x, <span class="t">Sea</span> + <span class="n">0.1f</span>, r.at.z) - ahead * <span class="n">1.2f</span>, <span class="n">2</span>);
         <span class="k">else</span> <span class="k">if</span> (going &gt; <span class="n">20</span>)
             <span class="t">Space</span>::burst(<span class="s">&quot;dust&quot;</span>, <span class="t">Vec3</span>(r.at.x, under + <span class="n">0.1f</span>, r.at.z) - ahead * <span class="n">1.6f</span>, <span class="n">1</span>);
 
@@ -7803,10 +8213,10 @@ summary { cursor: pointer; padding: 10px 16px; } details pre { border-width: 1px
     }
 }
 </code></pre></details></div>
-<div data-find="launcher titles on the drives of an original xbox, to run launcher"><h3 id="demo-launcher">Launcher</h3><p>Titles on the drives of an original Xbox, to run</p>
+<div data-find="launcher scenes here, and on an original xbox the titles on its drives launcher"><h3 id="demo-launcher">Launcher</h3><p>Scenes here, and on an original Xbox the titles on its drives</p>
 <div class="shots"><img loading="lazy" src="screenshots/launcher.png" alt="Launcher"></div>
-<details><summary><code>launcher/main.as</code> <span class="tag">163 lines</span></summary><pre><code><span class="c">// Finds what can be run on the hard disk of an original Xbox, shows how the console is, and runs one.</span>
-<span class="c">// Elsewhere there is nothing to find, so some are made up.</span>
+<details><summary><code>launcher/main.as</code> <span class="tag">166 lines</span></summary><pre><code><span class="c">// Finds what can be run on the hard disk of an original Xbox, shows how the console is, and runs one.</span>
+<span class="c">// Everywhere, it opens the scenes of this showcase too.</span>
 
 <span class="k">class</span> <span class="t">Title</span>
 {
@@ -7819,7 +8229,7 @@ summary { cursor: pointer; padding: 10px 16px; } details pre { border-width: 1px
     <span class="t">Font</span>@ big = <span class="t">Assets</span>::font(<span class="s">&quot;global:freesans.sfn&quot;</span>, <span class="n">44</span>);
     <span class="t">Sound</span>@ move = <span class="t">Assets</span>::sound(<span class="s">&quot;global:sound/move.wav&quot;</span>);
     <span class="t">Sound</span>@ accept = <span class="t">Assets</span>::sound(<span class="s">&quot;global:sound/accept.wav&quot;</span>);
-    <span class="k">array</span>&lt;<span class="k">string</span>&gt; drives = { <span class="s">&quot;E&quot;</span>, <span class="s">&quot;F&quot;</span>, <span class="s">&quot;G&quot;</span> };
+    <span class="k">array</span>&lt;<span class="k">string</span>&gt; drives = { <span class="s">&quot;Scenes&quot;</span>, <span class="s">&quot;E&quot;</span>, <span class="s">&quot;F&quot;</span>, <span class="s">&quot;G&quot;</span> };
     <span class="k">array</span>&lt;<span class="t">Title</span>@&gt; titles;
     <span class="k">array</span>&lt;<span class="k">string</span>&gt; waiting;          <span class="c">// folders still to look in</span>
     <span class="k">int</span> drive = <span class="n">0</span>, chosen = <span class="n">0</span>, looked = <span class="n">0</span>;
@@ -7834,11 +8244,11 @@ summary { cursor: pointer; padding: 10px 16px; } details pre { border-width: 1px
         waiting.resize(<span class="n">0</span>);
         chosen = looked = <span class="n">0</span>;
         scroll = <span class="n">0</span>;
-        <span class="k">if</span> (!<span class="t">Xbox</span>::available)
+        <span class="k">if</span> (drive == <span class="n">0</span>)
         {
-            <span class="k">array</span>&lt;<span class="k">string</span>&gt; some = { <span class="s">&quot;Comet rally&quot;</span>, <span class="s">&quot;Rune shift&quot;</span>, <span class="s">&quot;Sky Patrol&quot;</span>, <span class="s">&quot;Platformer&quot;</span>, <span class="s">&quot;Spire&quot;</span>, <span class="s">&quot;Rebound&quot;</span>, <span class="s">&quot;Skimmer&quot;</span> };
-            <span class="k">for</span> (<span class="k">uint</span> i = <span class="n">0</span>; i &lt; some.length(); i++)
-                found(some[i], <span class="s">&quot;&quot;</span>);
+            <span class="k">for</span> (<span class="k">uint</span> i = <span class="n">0</span>; i &lt; <span class="t">Screens</span>::count; i++)
+                <span class="k">if</span> (<span class="t">Screens</span>::id(i) != <span class="s">&quot;main&quot;</span> &amp;&amp; <span class="t">Screens</span>::id(i) != <span class="s">&quot;launcher&quot;</span>)
+                    found(<span class="t">Screens</span>::title(i), <span class="s">&quot;scene:&quot;</span> + <span class="t">Screens</span>::id(i));
             <span class="k">return</span>;
         }
         <span class="k">string</span> root = drives[<span class="k">uint</span>(drive)] + <span class="s">&quot;:\\&quot;</span>;
@@ -7902,7 +8312,7 @@ summary { cursor: pointer; padding: 10px 16px; } details pre { border-width: 1px
             sure = <span class="n">0</span>;
         }
         <span class="k">int</span> way = (<span class="t">Input</span>::pressed(<span class="s">&quot;right&quot;</span>) ? <span class="n">1</span> : <span class="n">0</span>) - (<span class="t">Input</span>::pressed(<span class="s">&quot;left&quot;</span>) ? <span class="n">1</span> : <span class="n">0</span>);
-        <span class="k">if</span> (way != <span class="n">0</span>)
+        <span class="k">if</span> (way != <span class="n">0</span> &amp;&amp; <span class="t">Xbox</span>::available)
         {
             drive = (drive + way + <span class="k">int</span>(drives.length())) % <span class="k">int</span>(drives.length());
             look();
@@ -7911,8 +8321,11 @@ summary { cursor: pointer; padding: 10px 16px; } details pre { border-width: 1px
         <span class="k">if</span> (<span class="t">Input</span>::pressed(<span class="s">&quot;accept&quot;</span>) &amp;&amp; chosen &lt; <span class="k">int</span>(titles.length()))
         {
             accept.play(<span class="n">0.6f</span>);
-            <span class="k">if</span> (sure &gt; <span class="n">0</span> &amp;&amp; titles[<span class="k">uint</span>(chosen)].path != <span class="s">&quot;&quot;</span>)
-                <span class="t">Xbox</span>::launch(titles[<span class="k">uint</span>(chosen)].path);
+            <span class="k">string</span> path = titles[<span class="k">uint</span>(chosen)].path;
+            <span class="k">if</span> (path.findFirst(<span class="s">&quot;scene:&quot;</span>) == <span class="n">0</span>)
+                <span class="t">Screens</span>::push(path.substr(<span class="n">6</span>));
+            <span class="k">else</span> <span class="k">if</span> (sure &gt; <span class="n">0</span>)
+                <span class="t">Xbox</span>::launch(path);
             <span class="k">else</span>
                 sure = <span class="n">3</span>;
         }
@@ -7936,7 +8349,7 @@ summary { cursor: pointer; padding: 10px 16px; } details pre { border-width: 1px
         <span class="k">for</span> (<span class="k">int</span> i = <span class="n">0</span>; i &lt; <span class="n">4</span>; i++)
             c.ring(<span class="n">1040</span>, <span class="n">400</span>, <span class="n">200</span> + <span class="k">float</span>(i) * <span class="n">90</span> + sin(<span class="t">App</span>::time * <span class="n">0.4f</span> + <span class="k">float</span>(i)) * <span class="n">14</span>, <span class="n">20</span>, <span class="t">Color</span>(<span class="n">0.3f</span>, <span class="n">0.9f</span>, <span class="n">0.3f</span>, <span class="n">0.04f</span>));
         c.text(big, <span class="s">&quot;Launcher&quot;</span>, <span class="n">40</span>, <span class="n">24</span>);
-        c.text(font, <span class="t">Xbox</span>::available ? <span class="s">&quot;Drive &quot;</span> + drives[<span class="k">uint</span>(drive)] + (waiting.length() &gt; <span class="n">0</span> ? <span class="s">&quot;, still looking&quot;</span> : <span class="s">&quot;&quot;</span>) : <span class="s">&quot;There are drives only on an original Xbox: these are made up&quot;</span>, <span class="n">44</span>, <span class="n">82</span>, <span class="t">Color</span>(<span class="n">0.6f</span>, <span class="n">0.75f</span>, <span class="n">0.6f</span>));
+        c.text(font, drive == <span class="n">0</span> ? <span class="s">&quot;The scenes of this showcase&quot;</span> : <span class="s">&quot;Drive &quot;</span> + drives[<span class="k">uint</span>(drive)] + (waiting.length() &gt; <span class="n">0</span> ? <span class="s">&quot;, still looking&quot;</span> : <span class="s">&quot;&quot;</span>), <span class="n">44</span>, <span class="n">82</span>, <span class="t">Color</span>(<span class="n">0.6f</span>, <span class="n">0.75f</span>, <span class="n">0.6f</span>));
         c.push();
         c.clip(<span class="n">30</span>, <span class="n">120</span>, <span class="n">790</span>, <span class="n">520</span>);
         <span class="k">for</span> (<span class="k">uint</span> i = <span class="n">0</span>; i &lt; titles.length(); i++)
@@ -7948,7 +8361,7 @@ summary { cursor: pointer; padding: 10px 16px; } details pre { border-width: 1px
             c.roundRect(<span class="n">40</span>, y, <span class="n">770</span>, <span class="n">40</span>, <span class="n">10</span>, here ? <span class="t">Color</span>(<span class="n">0.25f</span>, <span class="n">0.75f</span>, <span class="n">0.25f</span>, <span class="n">0.9f</span>) : <span class="t">Color</span>(<span class="n">1</span>, <span class="n">1</span>, <span class="n">1</span>, <span class="n">0.06f</span>));
             c.text(font, titles[i].name, <span class="n">60</span>, y + <span class="n">6</span>, here ? <span class="t">Color</span>(<span class="n">0.02f</span>, <span class="n">0.08f</span>, <span class="n">0.02f</span>) : <span class="t">Color</span>(<span class="n">0.8f</span>, <span class="n">0.88f</span>, <span class="n">0.8f</span>));
             <span class="k">if</span> (here &amp;&amp; sure &gt; <span class="n">0</span>)
-                c.text(font, titles[i].path == <span class="s">&quot;&quot;</span> ? <span class="s">&quot;nothing to run&quot;</span> : <span class="s">&quot;again to run it&quot;</span>, <span class="n">795</span>, y + <span class="n">6</span>, <span class="t">Color</span>(<span class="n">0.02f</span>, <span class="n">0.08f</span>, <span class="n">0.02f</span>), <span class="t">AlignRight</span>);
+                c.text(font, <span class="s">&quot;again to run it&quot;</span>, <span class="n">795</span>, y + <span class="n">6</span>, <span class="t">Color</span>(<span class="n">0.02f</span>, <span class="n">0.08f</span>, <span class="n">0.02f</span>), <span class="t">AlignRight</span>);
         }
         <span class="k">if</span> (titles.length() == <span class="n">0</span>)
             c.text(font, waiting.length() &gt; <span class="n">0</span> ? <span class="s">&quot;Looking...&quot;</span> : <span class="s">&quot;Nothing to run here&quot;</span>, <span class="n">420</span>, <span class="n">340</span>, <span class="t">Color</span>(<span class="n">0.6f</span>, <span class="n">0.7f</span>, <span class="n">0.6f</span>), <span class="t">AlignCenter</span>);
@@ -7958,14 +8371,14 @@ summary { cursor: pointer; padding: 10px 16px; } details pre { border-width: 1px
         meter(c, <span class="n">140</span>, <span class="s">&quot;Processor&quot;</span>, cpu &lt; <span class="n">0</span> ? <span class="s">&quot;-&quot;</span> : formatInt(cpu) + degrees, <span class="k">float</span>(cpu) / <span class="n">80</span>, cpu &gt; <span class="n">65</span> ? <span class="t">Red</span> : <span class="t">Green</span>);
         meter(c, <span class="n">208</span>, <span class="s">&quot;Board&quot;</span>, board &lt; <span class="n">0</span> ? <span class="s">&quot;-&quot;</span> : formatInt(board) + degrees, <span class="k">float</span>(board) / <span class="n">80</span>, board &gt; <span class="n">55</span> ? <span class="t">Red</span> : <span class="t">Green</span>);
         meter(c, <span class="n">276</span>, <span class="s">&quot;Fan&quot;</span>, fan &lt; <span class="n">0</span> ? <span class="s">&quot;-&quot;</span> : formatInt(fan) + <span class="s">&quot;%&quot;</span>, <span class="k">float</span>(fan) / <span class="n">100</span>, <span class="t">Blue</span>);
-        <span class="k">for</span> (<span class="k">uint</span> i = <span class="n">0</span>; i &lt; drives.length(); i++)
+        <span class="k">for</span> (<span class="k">uint</span> i = <span class="n">1</span>; i &lt; drives.length(); i++)
         {
             <span class="k">uint</span> size = <span class="t">Xbox</span>::available ? <span class="t">Xbox</span>::driveSize(drives[i]) : <span class="n">0</span>, free = <span class="t">Xbox</span>::available ? <span class="t">Xbox</span>::driveFree(drives[i]) : <span class="n">0</span>;
-            meter(c, <span class="n">344</span> + <span class="k">float</span>(i) * <span class="n">68</span>, <span class="s">&quot;Drive &quot;</span> + drives[i], size == <span class="n">0</span> ? <span class="s">&quot;-&quot;</span> : formatInt(<span class="k">int</span>(free)) + <span class="s">&quot; MB free&quot;</span>, size == <span class="n">0</span> ? <span class="n">0.0f</span> : <span class="n">1</span> - <span class="k">float</span>(free) / <span class="k">float</span>(size), <span class="t">Yellow</span>);
+            meter(c, <span class="n">276</span> + <span class="k">float</span>(i) * <span class="n">68</span>, <span class="s">&quot;Drive &quot;</span> + drives[i], size == <span class="n">0</span> ? <span class="s">&quot;-&quot;</span> : formatInt(<span class="k">int</span>(free)) + <span class="s">&quot; MB free&quot;</span>, size == <span class="n">0</span> ? <span class="n">0.0f</span> : <span class="n">1</span> - <span class="k">float</span>(free) / <span class="k">float</span>(size), <span class="t">Yellow</span>);
         }
         c.text(font, <span class="t">Xbox</span>::available ? <span class="s">&quot;Kernel &quot;</span> + <span class="t">Xbox</span>::text(<span class="t">XboxKernel</span>) : <span class="t">App</span>::platform, <span class="n">860</span>, <span class="n">560</span>, <span class="t">Color</span>(<span class="n">0.65f</span>, <span class="n">0.75f</span>, <span class="n">0.65f</span>));
         c.text(font, <span class="t">Xbox</span>::available ? <span class="t">Xbox</span>::text(<span class="t">XboxHardware</span>) : <span class="s">&quot;&quot;</span>, <span class="n">860</span>, <span class="n">594</span>, <span class="t">Color</span>(<span class="n">0.65f</span>, <span class="n">0.75f</span>, <span class="n">0.65f</span>));
-        c.text(font, <span class="s">&quot;Up, down: choose     Left, right: drive     Accept: run&quot;</span>, <span class="n">640</span>, <span class="n">672</span>, <span class="t">Color</span>(<span class="n">0.6f</span>, <span class="n">0.75f</span>, <span class="n">0.6f</span>), <span class="t">AlignCenter</span>);
+        c.text(font, <span class="t">Xbox</span>::available ? <span class="s">&quot;Up, down: choose     Left, right: drives     Accept: run&quot;</span> : <span class="s">&quot;Up, down: choose     Accept: open&quot;</span>, <span class="n">640</span>, <span class="n">672</span>, <span class="t">Color</span>(<span class="n">0.6f</span>, <span class="n">0.75f</span>, <span class="n">0.6f</span>), <span class="t">AlignCenter</span>);
     }
 }
 </code></pre></details></div>
