@@ -7911,17 +7911,98 @@ summary { cursor: pointer; padding: 10px 16px; } details pre { border-width: 1px
 </code></pre></details></div>
 <div data-find="scene editor build a place, try it and keep it editor"><h3 id="demo-editor">Scene editor</h3><p>Build a place, try it and keep it</p>
 <div class="shots"><img loading="lazy" src="screenshots/editor.png" alt="Scene editor"></div>
-<details><summary><code>editor/main.as</code> <span class="tag">1447 lines</span></summary><pre><code><span class="c">// A scene editor, written as any screen is. What it makes is a file that Space::load reads.</span>
+<details><summary><code>editor/main.as</code> <span class="tag">2751 lines</span></summary><pre><code><span class="c">// A scene editor, written as any screen is. What it makes is a file that Space::load reads.</span>
+
+<span class="c">// Where a cave piece goes on.</span>
+<span class="k">class</span> <span class="t">Exit</span>
+{
+    <span class="t">Vec3</span> place;
+    <span class="t">Exit</span>(<span class="k">const</span> <span class="t">Vec3</span> &amp;<span class="k">in</span> p) { place = p; }
+}
 
 <span class="k">class</span> <span class="t">Kind</span>
 {
-    <span class="k">string</span> label, key, name;
+    <span class="k">string</span> group, label, key, name;
     <span class="t">Vec3</span> low, high;
     <span class="k">float</span> size = <span class="n">1</span>;            <span class="c">// it starts at</span>
+    <span class="k">int</span> collider = <span class="n">0</span>;          <span class="c">// it starts with</span>
+    <span class="k">float</span> stem = <span class="n">0</span>;            <span class="c">// how thick a pill is, if that isn&#x27;t from its size</span>
     <span class="t">Model</span>@ own;                <span class="c">// until its size is known</span>
-    <span class="t">Kind</span>(<span class="k">const</span> <span class="k">string</span> &amp;<span class="k">in</span> l, <span class="k">const</span> <span class="k">string</span> &amp;<span class="k">in</span> k, <span class="k">const</span> <span class="k">string</span> &amp;<span class="k">in</span> n, <span class="k">const</span> <span class="t">Vec3</span> &amp;<span class="k">in</span> a, <span class="k">const</span> <span class="t">Vec3</span> &amp;<span class="k">in</span> b)
+    <span class="k">array</span>&lt;<span class="t">Exit</span>@&gt; exits;        <span class="c">// the first is the way in</span>
+    <span class="t">Kind</span>(<span class="k">const</span> <span class="k">string</span> &amp;<span class="k">in</span> g, <span class="k">const</span> <span class="k">string</span> &amp;<span class="k">in</span> l, <span class="k">const</span> <span class="k">string</span> &amp;<span class="k">in</span> k, <span class="k">const</span> <span class="k">string</span> &amp;<span class="k">in</span> n, <span class="k">const</span> <span class="t">Vec3</span> &amp;<span class="k">in</span> a, <span class="k">const</span> <span class="t">Vec3</span> &amp;<span class="k">in</span> b, <span class="k">int</span> c = <span class="n">0</span>, <span class="k">float</span> thick = <span class="n">0</span>)
     {
-        label = l; key = k; name = n; low = a; high = b;
+        stem = thick;
+        group = g; label = l; key = k; name = n; low = a; high = b; collider = c;
+    }
+}
+
+<span class="c">// A track: it goes through its points, and lies on the land.</span>
+<span class="k">class</span> <span class="t">Road</span>
+{
+    <span class="k">array</span>&lt;<span class="t">Vec3</span>&gt; points;
+    <span class="k">float</span> width = <span class="n">7</span>;
+    <span class="k">bool</span> closed = <span class="k">true</span>;
+    <span class="t">Entity</span>@ entity;
+    <span class="k">array</span>&lt;<span class="t">Vec3</span>&gt; path;
+
+    <span class="t">Vec3</span> point(<span class="k">int</span> i)
+    {
+        <span class="k">int</span> n = <span class="k">int</span>(points.length());
+        <span class="k">return</span> points[<span class="k">uint</span>(closed ? (i % n + n) % n : i &lt; <span class="n">0</span> ? <span class="n">0</span> : i &gt;= n ? n - <span class="n">1</span> : i)];
+    }
+
+    <span class="c">// Smooth, and about 2 metres from one to the next.</span>
+    <span class="k">void</span> follow()
+    {
+        path.resize(<span class="n">0</span>);
+        <span class="k">int</span> n = <span class="k">int</span>(points.length());
+        <span class="k">if</span> (n &lt; <span class="n">2</span>)
+            <span class="k">return</span>;
+        <span class="k">int</span> parts = closed &amp;&amp; n &gt; <span class="n">2</span> ? n : n - <span class="n">1</span>;
+        <span class="k">for</span> (<span class="k">int</span> i = <span class="n">0</span>; i &lt; parts &amp;&amp; path.length() &lt; <span class="n">900</span>; i++)
+        {
+            <span class="t">Vec3</span> a = point(i - <span class="n">1</span>), b = point(i), c = point(i + <span class="n">1</span>), d = point(i + <span class="n">2</span>);
+            <span class="k">int</span> steps = <span class="k">int</span>(clamp((c - b).length() * <span class="n">0.5f</span>, <span class="n">1</span>, <span class="n">60</span>));
+            <span class="k">for</span> (<span class="k">int</span> k = <span class="n">0</span>; k &lt; steps; k++)
+            {
+                <span class="k">float</span> t = <span class="k">float</span>(k) / steps;
+                path.insertLast((b * <span class="n">2</span> + (c - a) * t + (a * <span class="n">2</span> - b * <span class="n">5</span> + c * <span class="n">4</span> - d) * (t * t) + (b * <span class="n">3</span> - a - c * <span class="n">3</span> + d) * (t * t * t)) * <span class="n">0.5f</span>);
+            }
+        }
+        <span class="k">if</span> (!(closed &amp;&amp; n &gt; <span class="n">2</span>))
+            path.insertLast(points[<span class="k">uint</span>(n - <span class="n">1</span>)]);
+    }
+
+    <span class="t">Vec3</span> at(<span class="k">int</span> i)
+    {
+        <span class="k">int</span> n = <span class="k">int</span>(path.length());
+        <span class="k">return</span> path[<span class="k">uint</span>(closed ? (i % n + n) % n : i &lt; <span class="n">0</span> ? <span class="n">0</span> : i &gt;= n ? n - <span class="n">1</span> : i)];
+    }
+
+    <span class="t">Vec3</span> side(<span class="k">int</span> i)
+    {
+        <span class="t">Vec3</span> way = at(i + <span class="n">1</span>) - at(i - <span class="n">1</span>);
+        way.y = <span class="n">0</span>;
+        <span class="k">return</span> way.length() &gt; <span class="n">0.001f</span> ? way.normalized().cross(<span class="t">Vec3</span>(<span class="n">0</span>, <span class="n">1</span>, <span class="n">0</span>)) : <span class="t">Vec3</span>(<span class="n">1</span>, <span class="n">0</span>, <span class="n">0</span>);
+    }
+
+    <span class="c">// How far a place is from it, and where along it that is.</span>
+    <span class="k">float</span> distance(<span class="k">const</span> <span class="t">Vec3</span> &amp;<span class="k">in</span> p, <span class="k">int</span> &amp;<span class="k">out</span> index)
+    {
+        <span class="k">float</span> best = 1e9f;
+        index = <span class="n">0</span>;
+        <span class="k">for</span> (<span class="k">uint</span> i = <span class="n">0</span>; i &lt; path.length(); i++)
+        {
+            <span class="t">Vec3</span> d = path[i] - p;
+            d.y = <span class="n">0</span>;
+            <span class="k">float</span> far = d.dot(d);
+            <span class="k">if</span> (far &lt; best)
+            {
+                best = far;
+                index = <span class="k">int</span>(i);
+            }
+        }
+        <span class="k">return</span> sqrt(best);
     }
 }
 
@@ -7937,27 +8018,51 @@ summary { cursor: pointer; padding: 10px 16px; } details pre { border-width: 1px
     <span class="t">Font</span>@ font = <span class="t">Assets</span>::font(<span class="s">&quot;global:freesans.sfn&quot;</span>, <span class="n">20</span>);
     <span class="k">string</span> file = <span class="s">&quot;asset:scene.json&quot;</span>;
     <span class="k">array</span>&lt;<span class="t">Kind</span>@&gt; kinds = {
-        <span class="t">Kind</span>(<span class="s">&quot;House&quot;</span>, <span class="s">&quot;model&quot;</span>, <span class="s">&quot;house&quot;</span>, <span class="t">Vec3</span>(-<span class="n">3.5f</span>, -<span class="n">0.4f</span>, -<span class="n">3.1f</span>), <span class="t">Vec3</span>(<span class="n">3.5f</span>, <span class="n">6</span>, <span class="n">4.2f</span>)),
-        <span class="t">Kind</span>(<span class="s">&quot;Well&quot;</span>, <span class="s">&quot;model&quot;</span>, <span class="s">&quot;well&quot;</span>, <span class="t">Vec3</span>(-<span class="n">1.2f</span>, -<span class="n">0.4f</span>, -<span class="n">1</span>), <span class="t">Vec3</span>(<span class="n">1.2f</span>, <span class="n">3.2f</span>, <span class="n">1</span>)),
-        <span class="t">Kind</span>(<span class="s">&quot;Lantern&quot;</span>, <span class="s">&quot;model&quot;</span>, <span class="s">&quot;lantern&quot;</span>, <span class="t">Vec3</span>(-<span class="n">0.3f</span>, -<span class="n">0.2f</span>, -<span class="n">0.3f</span>), <span class="t">Vec3</span>(<span class="n">0.3f</span>, <span class="n">3.4f</span>, <span class="n">0.3f</span>)),
-        <span class="t">Kind</span>(<span class="s">&quot;Campfire&quot;</span>, <span class="s">&quot;model&quot;</span>, <span class="s">&quot;campfire&quot;</span>, <span class="t">Vec3</span>(-<span class="n">0.9f</span>, -<span class="n">0.1f</span>, -<span class="n">0.9f</span>), <span class="t">Vec3</span>(<span class="n">0.9f</span>, <span class="n">0.5f</span>, <span class="n">0.9f</span>)),
-        <span class="t">Kind</span>(<span class="s">&quot;Gate&quot;</span>, <span class="s">&quot;model&quot;</span>, <span class="s">&quot;gate&quot;</span>, <span class="t">Vec3</span>(-<span class="n">4.9f</span>, -<span class="n">4.9f</span>, -<span class="n">0.4f</span>), <span class="t">Vec3</span>(<span class="n">4.9f</span>, <span class="n">4.9f</span>, <span class="n">0.4f</span>)),
-        <span class="t">Kind</span>(<span class="s">&quot;Oak&quot;</span>, <span class="s">&quot;model&quot;</span>, <span class="s">&quot;oak&quot;</span>, <span class="t">Vec3</span>(-<span class="n">1.8f</span>, -<span class="n">0.4f</span>, -<span class="n">1.9f</span>), <span class="t">Vec3</span>(<span class="n">2</span>, <span class="n">5.1f</span>, <span class="n">1.9f</span>)),
-        <span class="t">Kind</span>(<span class="s">&quot;Pine&quot;</span>, <span class="s">&quot;model&quot;</span>, <span class="s">&quot;pine&quot;</span>, <span class="t">Vec3</span>(-<span class="n">1.7f</span>, -<span class="n">0.4f</span>, -<span class="n">1.8f</span>), <span class="t">Vec3</span>(<span class="n">1.7f</span>, <span class="n">6</span>, <span class="n">1.7f</span>)),
-        <span class="t">Kind</span>(<span class="s">&quot;Bush&quot;</span>, <span class="s">&quot;model&quot;</span>, <span class="s">&quot;bush&quot;</span>, <span class="t">Vec3</span>(-<span class="n">0.9f</span>, -<span class="n">0.2f</span>, -<span class="n">0.9f</span>), <span class="t">Vec3</span>(<span class="n">1</span>, <span class="n">0.8f</span>, <span class="n">0.6f</span>)),
-        <span class="t">Kind</span>(<span class="s">&quot;Rock&quot;</span>, <span class="s">&quot;model&quot;</span>, <span class="s">&quot;rock&quot;</span>, <span class="t">Vec3</span>(-<span class="n">1</span>, -<span class="n">0.3f</span>, -<span class="n">1</span>), <span class="t">Vec3</span>(<span class="n">1</span>, <span class="n">0.9f</span>, <span class="n">1.1f</span>)),
-        <span class="t">Kind</span>(<span class="s">&quot;Mushroom&quot;</span>, <span class="s">&quot;model&quot;</span>, <span class="s">&quot;mushroom&quot;</span>, <span class="t">Vec3</span>(-<span class="n">0.3f</span>, -<span class="n">0.1f</span>, -<span class="n">0.3f</span>), <span class="t">Vec3</span>(<span class="n">0.3f</span>, <span class="n">0.6f</span>, <span class="n">0.3f</span>)),
-        <span class="t">Kind</span>(<span class="s">&quot;Crystal&quot;</span>, <span class="s">&quot;model&quot;</span>, <span class="s">&quot;crystal&quot;</span>, <span class="t">Vec3</span>(-<span class="n">0.6f</span>, -<span class="n">0.1f</span>, -<span class="n">0.6f</span>), <span class="t">Vec3</span>(<span class="n">0.7f</span>, <span class="n">1.2f</span>, <span class="n">0.3f</span>)),
-        <span class="t">Kind</span>(<span class="s">&quot;Robot&quot;</span>, <span class="s">&quot;model&quot;</span>, <span class="s">&quot;robot&quot;</span>, <span class="t">Vec3</span>(-<span class="n">0.5f</span>, <span class="n">0</span>, -<span class="n">0.3f</span>), <span class="t">Vec3</span>(<span class="n">0.5f</span>, <span class="n">2.1f</span>, <span class="n">0.3f</span>)),
-        <span class="t">Kind</span>(<span class="s">&quot;Skimmer&quot;</span>, <span class="s">&quot;model&quot;</span>, <span class="s">&quot;skimmer&quot;</span>, <span class="t">Vec3</span>(-<span class="n">1.5f</span>, -<span class="n">0.3f</span>, -<span class="n">1.8f</span>), <span class="t">Vec3</span>(<span class="n">1.5f</span>, <span class="n">0.9f</span>, <span class="n">2</span>)),
-        <span class="t">Kind</span>(<span class="s">&quot;Box&quot;</span>, <span class="s">&quot;shape&quot;</span>, <span class="s">&quot;box&quot;</span>, <span class="t">Vec3</span>(-<span class="n">0.5f</span>, -<span class="n">0.5f</span>, -<span class="n">0.5f</span>), <span class="t">Vec3</span>(<span class="n">0.5f</span>, <span class="n">0.5f</span>, <span class="n">0.5f</span>)),
-        <span class="t">Kind</span>(<span class="s">&quot;Ball&quot;</span>, <span class="s">&quot;shape&quot;</span>, <span class="s">&quot;sphere&quot;</span>, <span class="t">Vec3</span>(-<span class="n">0.5f</span>, -<span class="n">0.5f</span>, -<span class="n">0.5f</span>), <span class="t">Vec3</span>(<span class="n">0.5f</span>, <span class="n">0.5f</span>, <span class="n">0.5f</span>)),
-        <span class="t">Kind</span>(<span class="s">&quot;Cylinder&quot;</span>, <span class="s">&quot;shape&quot;</span>, <span class="s">&quot;cylinder&quot;</span>, <span class="t">Vec3</span>(-<span class="n">0.5f</span>, -<span class="n">0.5f</span>, -<span class="n">0.5f</span>), <span class="t">Vec3</span>(<span class="n">0.5f</span>, <span class="n">0.5f</span>, <span class="n">0.5f</span>)),
-        <span class="t">Kind</span>(<span class="s">&quot;Cone&quot;</span>, <span class="s">&quot;shape&quot;</span>, <span class="s">&quot;cone&quot;</span>, <span class="t">Vec3</span>(-<span class="n">0.5f</span>, -<span class="n">0.5f</span>, -<span class="n">0.5f</span>), <span class="t">Vec3</span>(<span class="n">0.5f</span>, <span class="n">0.5f</span>, <span class="n">0.5f</span>)),
-        <span class="t">Kind</span>(<span class="s">&quot;Ring&quot;</span>, <span class="s">&quot;shape&quot;</span>, <span class="s">&quot;torus&quot;</span>, <span class="t">Vec3</span>(-<span class="n">0.5f</span>, -<span class="n">0.2f</span>, -<span class="n">0.5f</span>), <span class="t">Vec3</span>(<span class="n">0.5f</span>, <span class="n">0.2f</span>, <span class="n">0.5f</span>)),
-        <span class="t">Kind</span>(<span class="s">&quot;Capsule&quot;</span>, <span class="s">&quot;shape&quot;</span>, <span class="s">&quot;capsule&quot;</span>, <span class="t">Vec3</span>(-<span class="n">0.5f</span>, -<span class="n">1</span>, -<span class="n">0.5f</span>), <span class="t">Vec3</span>(<span class="n">0.5f</span>, <span class="n">1</span>, <span class="n">0.5f</span>)),
-        <span class="t">Kind</span>(<span class="s">&quot;Light&quot;</span>, <span class="s">&quot;glow&quot;</span>, <span class="s">&quot;&quot;</span>, <span class="t">Vec3</span>(-<span class="n">0.4f</span>, -<span class="n">0.4f</span>, -<span class="n">0.4f</span>), <span class="t">Vec3</span>(<span class="n">0.4f</span>, <span class="n">0.4f</span>, <span class="n">0.4f</span>))
+        <span class="t">Kind</span>(<span class="s">&quot;Nature&quot;</span>, <span class="s">&quot;Oak&quot;</span>, <span class="s">&quot;model&quot;</span>, <span class="s">&quot;oak&quot;</span>, <span class="t">Vec3</span>(-<span class="n">1.8f</span>, -<span class="n">0.4f</span>, -<span class="n">1.9f</span>), <span class="t">Vec3</span>(<span class="n">2</span>, <span class="n">5.1f</span>, <span class="n">1.9f</span>), <span class="n">3</span>, <span class="n">0.35f</span>),
+        <span class="t">Kind</span>(<span class="s">&quot;Nature&quot;</span>, <span class="s">&quot;Pine&quot;</span>, <span class="s">&quot;model&quot;</span>, <span class="s">&quot;pine&quot;</span>, <span class="t">Vec3</span>(-<span class="n">1.7f</span>, -<span class="n">0.4f</span>, -<span class="n">1.8f</span>), <span class="t">Vec3</span>(<span class="n">1.7f</span>, <span class="n">6</span>, <span class="n">1.7f</span>), <span class="n">3</span>, <span class="n">0.3f</span>),
+        <span class="t">Kind</span>(<span class="s">&quot;Nature&quot;</span>, <span class="s">&quot;Bush&quot;</span>, <span class="s">&quot;model&quot;</span>, <span class="s">&quot;bush&quot;</span>, <span class="t">Vec3</span>(-<span class="n">0.9f</span>, -<span class="n">0.2f</span>, -<span class="n">0.9f</span>), <span class="t">Vec3</span>(<span class="n">1</span>, <span class="n">0.8f</span>, <span class="n">0.6f</span>)),
+        <span class="t">Kind</span>(<span class="s">&quot;Nature&quot;</span>, <span class="s">&quot;Rock&quot;</span>, <span class="s">&quot;model&quot;</span>, <span class="s">&quot;rock&quot;</span>, <span class="t">Vec3</span>(-<span class="n">1</span>, -<span class="n">0.3f</span>, -<span class="n">1</span>), <span class="t">Vec3</span>(<span class="n">1</span>, <span class="n">0.9f</span>, <span class="n">1.1f</span>), <span class="n">2</span>),
+        <span class="t">Kind</span>(<span class="s">&quot;Nature&quot;</span>, <span class="s">&quot;Mushroom&quot;</span>, <span class="s">&quot;model&quot;</span>, <span class="s">&quot;mushroom&quot;</span>, <span class="t">Vec3</span>(-<span class="n">0.3f</span>, -<span class="n">0.1f</span>, -<span class="n">0.3f</span>), <span class="t">Vec3</span>(<span class="n">0.3f</span>, <span class="n">0.6f</span>, <span class="n">0.3f</span>)),
+        <span class="t">Kind</span>(<span class="s">&quot;Nature&quot;</span>, <span class="s">&quot;Crystal&quot;</span>, <span class="s">&quot;model&quot;</span>, <span class="s">&quot;crystal&quot;</span>, <span class="t">Vec3</span>(-<span class="n">0.6f</span>, -<span class="n">0.1f</span>, -<span class="n">0.6f</span>), <span class="t">Vec3</span>(<span class="n">0.7f</span>, <span class="n">1.2f</span>, <span class="n">0.3f</span>), <span class="n">1</span>),
+        <span class="t">Kind</span>(<span class="s">&quot;Nature&quot;</span>, <span class="s">&quot;Pool&quot;</span>, <span class="s">&quot;water&quot;</span>, <span class="s">&quot;&quot;</span>, <span class="t">Vec3</span>(-<span class="n">0.5f</span>, -<span class="n">0.5f</span>, -<span class="n">0.5f</span>), <span class="t">Vec3</span>(<span class="n">0.5f</span>, <span class="n">0.5f</span>, <span class="n">0.5f</span>)),
+        <span class="t">Kind</span>(<span class="s">&quot;Buildings&quot;</span>, <span class="s">&quot;House&quot;</span>, <span class="s">&quot;model&quot;</span>, <span class="s">&quot;house&quot;</span>, <span class="t">Vec3</span>(-<span class="n">3.5f</span>, -<span class="n">0.4f</span>, -<span class="n">3.1f</span>), <span class="t">Vec3</span>(<span class="n">3.5f</span>, <span class="n">6</span>, <span class="n">4.2f</span>), <span class="n">1</span>),
+        <span class="t">Kind</span>(<span class="s">&quot;Buildings&quot;</span>, <span class="s">&quot;Well&quot;</span>, <span class="s">&quot;model&quot;</span>, <span class="s">&quot;well&quot;</span>, <span class="t">Vec3</span>(-<span class="n">1.2f</span>, -<span class="n">0.4f</span>, -<span class="n">1</span>), <span class="t">Vec3</span>(<span class="n">1.2f</span>, <span class="n">3.2f</span>, <span class="n">1</span>), <span class="n">1</span>),
+        <span class="t">Kind</span>(<span class="s">&quot;Buildings&quot;</span>, <span class="s">&quot;Lantern&quot;</span>, <span class="s">&quot;model&quot;</span>, <span class="s">&quot;lantern&quot;</span>, <span class="t">Vec3</span>(-<span class="n">0.3f</span>, -<span class="n">0.2f</span>, -<span class="n">0.3f</span>), <span class="t">Vec3</span>(<span class="n">0.3f</span>, <span class="n">3.4f</span>, <span class="n">0.3f</span>), <span class="n">3</span>),
+        <span class="t">Kind</span>(<span class="s">&quot;Buildings&quot;</span>, <span class="s">&quot;Campfire&quot;</span>, <span class="s">&quot;model&quot;</span>, <span class="s">&quot;campfire&quot;</span>, <span class="t">Vec3</span>(-<span class="n">0.9f</span>, -<span class="n">0.1f</span>, -<span class="n">0.9f</span>), <span class="t">Vec3</span>(<span class="n">0.9f</span>, <span class="n">0.5f</span>, <span class="n">0.9f</span>)),
+        <span class="t">Kind</span>(<span class="s">&quot;Buildings&quot;</span>, <span class="s">&quot;Gate&quot;</span>, <span class="s">&quot;model&quot;</span>, <span class="s">&quot;gate&quot;</span>, <span class="t">Vec3</span>(-<span class="n">4.9f</span>, -<span class="n">4.9f</span>, -<span class="n">0.4f</span>), <span class="t">Vec3</span>(<span class="n">4.9f</span>, <span class="n">4.9f</span>, <span class="n">0.4f</span>), <span class="n">4</span>),
+        <span class="t">Kind</span>(<span class="s">&quot;Buildings&quot;</span>, <span class="s">&quot;Wall&quot;</span>, <span class="s">&quot;model&quot;</span>, <span class="s">&quot;wall&quot;</span>, <span class="t">Vec3</span>(-<span class="n">2</span>, <span class="n">0</span>, -<span class="n">0.2f</span>), <span class="t">Vec3</span>(<span class="n">2</span>, <span class="n">2.5f</span>, <span class="n">0.2f</span>), <span class="n">1</span>),
+        <span class="t">Kind</span>(<span class="s">&quot;Buildings&quot;</span>, <span class="s">&quot;Column&quot;</span>, <span class="s">&quot;model&quot;</span>, <span class="s">&quot;column&quot;</span>, <span class="t">Vec3</span>(-<span class="n">0.55f</span>, <span class="n">0</span>, -<span class="n">0.55f</span>), <span class="t">Vec3</span>(<span class="n">0.55f</span>, <span class="n">3.9f</span>, <span class="n">0.55f</span>), <span class="n">3</span>),
+        <span class="t">Kind</span>(<span class="s">&quot;Platforms&quot;</span>, <span class="s">&quot;Platform&quot;</span>, <span class="s">&quot;model&quot;</span>, <span class="s">&quot;platform&quot;</span>, <span class="t">Vec3</span>(-<span class="n">2</span>, <span class="n">0</span>, -<span class="n">2</span>), <span class="t">Vec3</span>(<span class="n">2</span>, <span class="n">0.53f</span>, <span class="n">2</span>), <span class="n">1</span>),
+        <span class="t">Kind</span>(<span class="s">&quot;Platforms&quot;</span>, <span class="s">&quot;Round one&quot;</span>, <span class="s">&quot;model&quot;</span>, <span class="s">&quot;platform-round&quot;</span>, <span class="t">Vec3</span>(-<span class="n">2</span>, <span class="n">0</span>, -<span class="n">2</span>), <span class="t">Vec3</span>(<span class="n">2</span>, <span class="n">0.5f</span>, <span class="n">2</span>), <span class="n">1</span>),
+        <span class="t">Kind</span>(<span class="s">&quot;Platforms&quot;</span>, <span class="s">&quot;Moving one&quot;</span>, <span class="s">&quot;moving&quot;</span>, <span class="s">&quot;platform&quot;</span>, <span class="t">Vec3</span>(-<span class="n">2</span>, <span class="n">0</span>, -<span class="n">2</span>), <span class="t">Vec3</span>(<span class="n">2</span>, <span class="n">0.53f</span>, <span class="n">2</span>), <span class="n">1</span>),
+        <span class="t">Kind</span>(<span class="s">&quot;Platforms&quot;</span>, <span class="s">&quot;Lift&quot;</span>, <span class="s">&quot;lift&quot;</span>, <span class="s">&quot;platform-round&quot;</span>, <span class="t">Vec3</span>(-<span class="n">2</span>, <span class="n">0</span>, -<span class="n">2</span>), <span class="t">Vec3</span>(<span class="n">2</span>, <span class="n">0.5f</span>, <span class="n">2</span>), <span class="n">1</span>),
+        <span class="t">Kind</span>(<span class="s">&quot;Platforms&quot;</span>, <span class="s">&quot;Ramp&quot;</span>, <span class="s">&quot;model&quot;</span>, <span class="s">&quot;ramp&quot;</span>, <span class="t">Vec3</span>(-<span class="n">1.5f</span>, <span class="n">0</span>, -<span class="n">2.5f</span>), <span class="t">Vec3</span>(<span class="n">1.5f</span>, <span class="n">2</span>, <span class="n">2.5f</span>), <span class="n">4</span>),
+        <span class="t">Kind</span>(<span class="s">&quot;Platforms&quot;</span>, <span class="s">&quot;Stairs&quot;</span>, <span class="s">&quot;model&quot;</span>, <span class="s">&quot;stairs&quot;</span>, <span class="t">Vec3</span>(-<span class="n">1.5f</span>, <span class="n">0</span>, -<span class="n">2</span>), <span class="t">Vec3</span>(<span class="n">1.5f</span>, <span class="n">2</span>, <span class="n">2</span>), <span class="n">4</span>),
+        <span class="t">Kind</span>(<span class="s">&quot;Platforms&quot;</span>, <span class="s">&quot;Bridge&quot;</span>, <span class="s">&quot;model&quot;</span>, <span class="s">&quot;bridge&quot;</span>, <span class="t">Vec3</span>(-<span class="n">1.4f</span>, -<span class="n">0.23f</span>, -<span class="n">5</span>), <span class="t">Vec3</span>(<span class="n">1.4f</span>, <span class="n">1.1f</span>, <span class="n">5</span>), <span class="n">4</span>),
+        <span class="t">Kind</span>(<span class="s">&quot;Caves&quot;</span>, <span class="s">&quot;Way down&quot;</span>, <span class="s">&quot;model&quot;</span>, <span class="s">&quot;cave-mouth&quot;</span>, <span class="t">Vec3</span>(-<span class="n">3.4f</span>, -<span class="n">5</span>, -<span class="n">4</span>), <span class="t">Vec3</span>(<span class="n">3.4f</span>, <span class="n">4.4f</span>, <span class="n">4.9f</span>), <span class="n">4</span>),
+        <span class="t">Kind</span>(<span class="s">&quot;Caves&quot;</span>, <span class="s">&quot;Mine&quot;</span>, <span class="s">&quot;model&quot;</span>, <span class="s">&quot;cave-mouth-mine&quot;</span>, <span class="t">Vec3</span>(-<span class="n">3.4f</span>, -<span class="n">5</span>, -<span class="n">4</span>), <span class="t">Vec3</span>(<span class="n">3.4f</span>, <span class="n">4.4f</span>, <span class="n">4.9f</span>), <span class="n">4</span>),
+        <span class="t">Kind</span>(<span class="s">&quot;Caves&quot;</span>, <span class="s">&quot;Tunnel&quot;</span>, <span class="s">&quot;model&quot;</span>, <span class="s">&quot;cave-tunnel&quot;</span>, <span class="t">Vec3</span>(-<span class="n">2.6f</span>, <span class="n">0</span>, -<span class="n">4</span>), <span class="t">Vec3</span>(<span class="n">2.6f</span>, <span class="n">3.6f</span>, <span class="n">4</span>), <span class="n">4</span>),
+        <span class="t">Kind</span>(<span class="s">&quot;Caves&quot;</span>, <span class="s">&quot;Bend&quot;</span>, <span class="s">&quot;model&quot;</span>, <span class="s">&quot;cave-bend&quot;</span>, <span class="t">Vec3</span>(-<span class="n">2.6f</span>, <span class="n">0</span>, -<span class="n">2.6f</span>), <span class="t">Vec3</span>(<span class="n">4</span>, <span class="n">3.6f</span>, <span class="n">4</span>), <span class="n">4</span>),
+        <span class="t">Kind</span>(<span class="s">&quot;Caves&quot;</span>, <span class="s">&quot;Slope&quot;</span>, <span class="s">&quot;model&quot;</span>, <span class="s">&quot;cave-slope&quot;</span>, <span class="t">Vec3</span>(-<span class="n">2.6f</span>, -<span class="n">5</span>, -<span class="n">4</span>), <span class="t">Vec3</span>(<span class="n">2.6f</span>, <span class="n">3.6f</span>, <span class="n">4</span>), <span class="n">4</span>),
+        <span class="t">Kind</span>(<span class="s">&quot;Caves&quot;</span>, <span class="s">&quot;Room&quot;</span>, <span class="s">&quot;model&quot;</span>, <span class="s">&quot;cave-room&quot;</span>, <span class="t">Vec3</span>(-<span class="n">8</span>, <span class="n">0</span>, -<span class="n">8</span>), <span class="t">Vec3</span>(<span class="n">8</span>, <span class="n">4.9f</span>, <span class="n">8</span>), <span class="n">4</span>),
+        <span class="t">Kind</span>(<span class="s">&quot;Caves&quot;</span>, <span class="s">&quot;End&quot;</span>, <span class="s">&quot;model&quot;</span>, <span class="s">&quot;cave-end&quot;</span>, <span class="t">Vec3</span>(-<span class="n">2.6f</span>, <span class="n">0</span>, -<span class="n">1</span>), <span class="t">Vec3</span>(<span class="n">2.6f</span>, <span class="n">3.6f</span>, <span class="n">4</span>), <span class="n">4</span>),
+        <span class="t">Kind</span>(<span class="s">&quot;Shapes&quot;</span>, <span class="s">&quot;Box&quot;</span>, <span class="s">&quot;shape&quot;</span>, <span class="s">&quot;box&quot;</span>, <span class="t">Vec3</span>(-<span class="n">0.5f</span>, -<span class="n">0.5f</span>, -<span class="n">0.5f</span>), <span class="t">Vec3</span>(<span class="n">0.5f</span>, <span class="n">0.5f</span>, <span class="n">0.5f</span>), <span class="n">1</span>),
+        <span class="t">Kind</span>(<span class="s">&quot;Shapes&quot;</span>, <span class="s">&quot;Ball&quot;</span>, <span class="s">&quot;shape&quot;</span>, <span class="s">&quot;sphere&quot;</span>, <span class="t">Vec3</span>(-<span class="n">0.5f</span>, -<span class="n">0.5f</span>, -<span class="n">0.5f</span>), <span class="t">Vec3</span>(<span class="n">0.5f</span>, <span class="n">0.5f</span>, <span class="n">0.5f</span>), <span class="n">2</span>),
+        <span class="t">Kind</span>(<span class="s">&quot;Shapes&quot;</span>, <span class="s">&quot;Cylinder&quot;</span>, <span class="s">&quot;shape&quot;</span>, <span class="s">&quot;cylinder&quot;</span>, <span class="t">Vec3</span>(-<span class="n">0.5f</span>, -<span class="n">0.5f</span>, -<span class="n">0.5f</span>), <span class="t">Vec3</span>(<span class="n">0.5f</span>, <span class="n">0.5f</span>, <span class="n">0.5f</span>), <span class="n">1</span>),
+        <span class="t">Kind</span>(<span class="s">&quot;Shapes&quot;</span>, <span class="s">&quot;Cone&quot;</span>, <span class="s">&quot;shape&quot;</span>, <span class="s">&quot;cone&quot;</span>, <span class="t">Vec3</span>(-<span class="n">0.5f</span>, -<span class="n">0.5f</span>, -<span class="n">0.5f</span>), <span class="t">Vec3</span>(<span class="n">0.5f</span>, <span class="n">0.5f</span>, <span class="n">0.5f</span>), <span class="n">1</span>),
+        <span class="t">Kind</span>(<span class="s">&quot;Shapes&quot;</span>, <span class="s">&quot;Ring&quot;</span>, <span class="s">&quot;shape&quot;</span>, <span class="s">&quot;torus&quot;</span>, <span class="t">Vec3</span>(-<span class="n">0.5f</span>, -<span class="n">0.2f</span>, -<span class="n">0.5f</span>), <span class="t">Vec3</span>(<span class="n">0.5f</span>, <span class="n">0.2f</span>, <span class="n">0.5f</span>)),
+        <span class="t">Kind</span>(<span class="s">&quot;Shapes&quot;</span>, <span class="s">&quot;Capsule&quot;</span>, <span class="s">&quot;shape&quot;</span>, <span class="s">&quot;capsule&quot;</span>, <span class="t">Vec3</span>(-<span class="n">0.5f</span>, -<span class="n">1</span>, -<span class="n">0.5f</span>), <span class="t">Vec3</span>(<span class="n">0.5f</span>, <span class="n">1</span>, <span class="n">0.5f</span>), <span class="n">3</span>),
+        <span class="t">Kind</span>(<span class="s">&quot;Others&quot;</span>, <span class="s">&quot;Robot&quot;</span>, <span class="s">&quot;model&quot;</span>, <span class="s">&quot;robot&quot;</span>, <span class="t">Vec3</span>(-<span class="n">0.5f</span>, <span class="n">0</span>, -<span class="n">0.3f</span>), <span class="t">Vec3</span>(<span class="n">0.5f</span>, <span class="n">2.1f</span>, <span class="n">0.3f</span>), <span class="n">3</span>),
+        <span class="t">Kind</span>(<span class="s">&quot;Others&quot;</span>, <span class="s">&quot;Skimmer&quot;</span>, <span class="s">&quot;model&quot;</span>, <span class="s">&quot;skimmer&quot;</span>, <span class="t">Vec3</span>(-<span class="n">1.5f</span>, -<span class="n">0.3f</span>, -<span class="n">1.8f</span>), <span class="t">Vec3</span>(<span class="n">1.5f</span>, <span class="n">0.9f</span>, <span class="n">2</span>), <span class="n">1</span>),
+        <span class="t">Kind</span>(<span class="s">&quot;Others&quot;</span>, <span class="s">&quot;Waves&quot;</span>, <span class="s">&quot;sound&quot;</span>, <span class="s">&quot;global:sound/waves.wav&quot;</span>, <span class="t">Vec3</span>(-<span class="n">0.4f</span>, -<span class="n">0.4f</span>, -<span class="n">0.4f</span>), <span class="t">Vec3</span>(<span class="n">0.4f</span>, <span class="n">0.4f</span>, <span class="n">0.4f</span>)),
+        <span class="t">Kind</span>(<span class="s">&quot;Others&quot;</span>, <span class="s">&quot;Fire&quot;</span>, <span class="s">&quot;sound&quot;</span>, <span class="s">&quot;global:sound/fire.wav&quot;</span>, <span class="t">Vec3</span>(-<span class="n">0.4f</span>, -<span class="n">0.4f</span>, -<span class="n">0.4f</span>), <span class="t">Vec3</span>(<span class="n">0.4f</span>, <span class="n">0.4f</span>, <span class="n">0.4f</span>)),
+        <span class="t">Kind</span>(<span class="s">&quot;Others&quot;</span>, <span class="s">&quot;Engine&quot;</span>, <span class="s">&quot;sound&quot;</span>, <span class="s">&quot;global:sound/engine.wav&quot;</span>, <span class="t">Vec3</span>(-<span class="n">0.4f</span>, -<span class="n">0.4f</span>, -<span class="n">0.4f</span>), <span class="t">Vec3</span>(<span class="n">0.4f</span>, <span class="n">0.4f</span>, <span class="n">0.4f</span>)),
+        <span class="t">Kind</span>(<span class="s">&quot;Others&quot;</span>, <span class="s">&quot;Light&quot;</span>, <span class="s">&quot;glow&quot;</span>, <span class="s">&quot;&quot;</span>, <span class="t">Vec3</span>(-<span class="n">0.4f</span>, -<span class="n">0.4f</span>, -<span class="n">0.4f</span>), <span class="t">Vec3</span>(<span class="n">0.4f</span>, <span class="n">0.4f</span>, <span class="n">0.4f</span>))
     };
+    <span class="k">array</span>&lt;<span class="k">string</span>&gt; groups = { <span class="s">&quot;Everything&quot;</span>, <span class="s">&quot;Nature&quot;</span>, <span class="s">&quot;Buildings&quot;</span>, <span class="s">&quot;Platforms&quot;</span>, <span class="s">&quot;Caves&quot;</span>, <span class="s">&quot;Shapes&quot;</span>, <span class="s">&quot;Others&quot;</span>, <span class="s">&quot;Mine&quot;</span> };
+    <span class="k">int</span> group = <span class="n">0</span>;
+    <span class="k">array</span>&lt;<span class="k">uint</span>&gt; listed;
+    <span class="k">array</span>&lt;<span class="k">string</span>&gt; pictures = { <span class="s">&quot;&quot;</span> }, pictureNames = { <span class="s">&quot;None&quot;</span> };   <span class="c">// for things, and for the sky</span>
     <span class="k">array</span>&lt;<span class="t">Model</span>@&gt; models;
     <span class="k">uint</span> builtIn = <span class="n">0</span>;          <span class="c">// how many kinds there are besides the player&#x27;s own</span>
     <span class="t">Widget</span>@ addList;
@@ -7965,13 +8070,25 @@ summary { cursor: pointer; padding: 10px 16px; } details pre { border-width: 1px
         <span class="t">Color</span>(<span class="n">0.38f</span>, <span class="n">0.75f</span>, <span class="n">0.36f</span>), <span class="t">Color</span>(<span class="n">0.3f</span>, <span class="n">0.75f</span>, <span class="n">0.85f</span>), <span class="t">Color</span>(<span class="n">0.3f</span>, <span class="n">0.48f</span>, <span class="n">0.95f</span>), <span class="t">Color</span>(<span class="n">0.66f</span>, <span class="n">0.4f</span>, <span class="n">0.9f</span>), <span class="t">Color</span>(<span class="n">0.95f</span>, <span class="n">0.5f</span>, <span class="n">0.72f</span>) };
     <span class="k">array</span>&lt;<span class="k">string</span>&gt; grounds = { <span class="s">&quot;Flat&quot;</span>, <span class="s">&quot;Hills&quot;</span>, <span class="s">&quot;Island&quot;</span> };
     <span class="k">array</span>&lt;<span class="k">string</span>&gt; hours = { <span class="s">&quot;Day&quot;</span>, <span class="s">&quot;Evening&quot;</span>, <span class="s">&quot;Night&quot;</span> };
-    <span class="k">array</span>&lt;<span class="k">string</span>&gt; brushes = { <span class="s">&quot;Raise&quot;</span>, <span class="s">&quot;Lower&quot;</span>, <span class="s">&quot;Smooth&quot;</span>, <span class="s">&quot;Level&quot;</span>, <span class="s">&quot;Paint&quot;</span>, <span class="s">&quot;Wipe paint&quot;</span> };
+    <span class="k">array</span>&lt;<span class="k">string</span>&gt; brushes = { <span class="s">&quot;Raise&quot;</span>, <span class="s">&quot;Lower&quot;</span>, <span class="s">&quot;Smooth&quot;</span>, <span class="s">&quot;Level&quot;</span>, <span class="s">&quot;Paint&quot;</span>, <span class="s">&quot;Wipe paint&quot;</span>, <span class="s">&quot;Hole&quot;</span>, <span class="s">&quot;Close hole&quot;</span> };
     <span class="k">array</span>&lt;<span class="k">string</span>&gt; tools = { <span class="s">&quot;Move&quot;</span>, <span class="s">&quot;Turn&quot;</span>, <span class="s">&quot;Size&quot;</span> };
 
     <span class="k">array</span>&lt;<span class="t">Thing</span>@&gt; things;
     <span class="k">array</span>&lt;<span class="t">Entity</span>@&gt; thrown;
     <span class="k">int</span> chosen = -<span class="n">1</span>, under = -<span class="n">1</span>;
     <span class="k">int</span> ground = <span class="n">0</span>, hour = <span class="n">0</span>, tool = <span class="n">0</span>;
+    <span class="k">array</span>&lt;<span class="k">string</span>&gt; acrosses = { <span class="s">&quot;64 m&quot;</span>, <span class="s">&quot;128 m&quot;</span>, <span class="s">&quot;256 m&quot;</span>, <span class="s">&quot;512 m&quot;</span> };
+    <span class="k">int</span> across = <span class="n">1</span>;            <span class="c">// of those</span>
+    <span class="k">bool</span> edges = <span class="k">true</span>;
+    <span class="t">Json</span> sky;                  <span class="c">// what is different from the time of day&#x27;s own</span>
+    <span class="k">array</span>&lt;<span class="t">Road</span>@&gt; roads;
+    <span class="k">int</span> road = -<span class="n">1</span>;
+    <span class="k">array</span>&lt;<span class="k">string</span>&gt; colliders = { <span class="s">&quot;None&quot;</span>, <span class="s">&quot;Box&quot;</span>, <span class="s">&quot;Sphere&quot;</span>, <span class="s">&quot;Pill&quot;</span>, <span class="s">&quot;Exact&quot;</span> };
+    <span class="k">array</span>&lt;<span class="k">string</span>&gt; ways = { <span class="s">&quot;Walk&quot;</span>, <span class="s">&quot;Drive&quot;</span>, <span class="s">&quot;Fly&quot;</span> };
+    <span class="k">int</span> way = <span class="n">0</span>;
+    <span class="k">string</span> sceneName = <span class="s">&quot;Village&quot;</span>;
+    <span class="t">Json</span> scenes;
+    <span class="t">Widget</span>@ popup;
     <span class="k">int</span> made = -<span class="n">1</span>;             <span class="c">// the ground there is now</span>
     <span class="k">string</span> landText;           <span class="c">// what was done to it by hand</span>
     <span class="k">int</span> brush = <span class="n">0</span>;
@@ -8016,7 +8133,31 @@ summary { cursor: pointer; padding: 10px 16px; } details pre { border-width: 1px
     <span class="t">Widget</span>@ range;
     <span class="t">Widget</span>@ rangeRow;
     <span class="t">Widget</span>@ onLand;
-    <span class="t">Widget</span>@ solid;
+    <span class="t">Widget</span>@ groupChoice;
+    <span class="t">Widget</span>@ acrossChoice;
+    <span class="t">Widget</span>@ edgeToggle;
+    <span class="t">Widget</span>@ skyChoice;
+    <span class="t">Widget</span>@ sunTurn;
+    <span class="t">Widget</span>@ sunHigh;
+    <span class="t">Widget</span>@ fogFrom;
+    <span class="t">Widget</span>@ fogTo;
+    <span class="t">Widget</span>@ waterToggle;
+    <span class="t">Widget</span>@ waterHigh;
+    <span class="t">Widget</span>@ roadLabel;
+    <span class="t">Widget</span>@ roadClosed;
+    <span class="t">Widget</span>@ roadWidth;
+    <span class="t">Widget</span>@ rangeLabel;
+    <span class="t">Widget</span>@ lookRow;
+    <span class="t">Widget</span>@ skinChoice;
+    <span class="t">Widget</span>@ colliderChoice;
+    <span class="t">Widget</span>@ moves;
+    <span class="t">Widget</span>@ moveRow;
+    <span class="t">Widget</span>@ seconds;
+    <span class="k">array</span>&lt;<span class="t">Widget</span>@&gt; movers;
+    <span class="t">Model</span>@ carModel;
+    <span class="t">Model</span>@ heroModel;
+    <span class="t">Sound</span>@ splash;
+    <span class="t">Sound</span>@ hop;
     <span class="t">Widget</span>@ falls;
     <span class="t">Widget</span>@ glows;
     <span class="t">Widget</span>@ toolButton;
@@ -8029,7 +8170,16 @@ summary { cursor: pointer; padding: 10px 16px; } details pre { border-width: 1px
     <span class="t">EditorScreen</span>()
     {
         <span class="k">for</span> (<span class="k">uint</span> i = <span class="n">0</span>; i &lt; kinds.length(); i++)
-            models.insertLast(kinds[i].key == <span class="s">&quot;model&quot;</span> ? <span class="t">Assets</span>::model(<span class="s">&quot;global:model/&quot;</span> + kinds[i].name + <span class="s">&quot;.glb&quot;</span>) : <span class="k">null</span>);
+        {
+            <span class="t">Kind</span>@ k = kinds[i];
+            <span class="k">bool</span> model = k.key == <span class="s">&quot;model&quot;</span> || k.key == <span class="s">&quot;moving&quot;</span> || k.key == <span class="s">&quot;lift&quot;</span>;
+            models.insertLast(model ? <span class="t">Assets</span>::model(<span class="s">&quot;global:model/&quot;</span> + k.name + <span class="s">&quot;.glb&quot;</span>) : <span class="k">null</span>);
+            giveExits(k);
+        }
+        @carModel = <span class="t">Assets</span>::model(<span class="s">&quot;global:model/skimmer.glb&quot;</span>);
+        @heroModel = <span class="t">Assets</span>::model(<span class="s">&quot;global:model/robot.glb&quot;</span>);
+        @splash = <span class="t">Assets</span>::sound(<span class="s">&quot;global:sound/splash.wav&quot;</span>);
+        @hop = <span class="t">Assets</span>::sound(<span class="s">&quot;global:sound/whoosh.wav&quot;</span>);
         builtIn = kinds.length();
         most = <span class="t">App</span>::freeKilobytes &gt; <span class="n">0</span> &amp;&amp; <span class="t">App</span>::freeKilobytes &lt; <span class="n">64000</span> ? <span class="n">12</span> : <span class="n">40</span>;
     }
@@ -8039,11 +8189,10 @@ summary { cursor: pointer; padding: 10px 16px; } details pre { border-width: 1px
         <span class="t">Ui</span>::theme(<span class="s">&quot;asset:theme.json&quot;</span>);
         findOwn();
         build();
-        <span class="t">Json</span> j;
         <span class="k">string</span> error;
-        <span class="k">if</span> (!j.parse(<span class="t">Assets</span>::read(file), error))
+        <span class="k">if</span> (!scenes.parse(<span class="t">Assets</span>::read(<span class="s">&quot;asset:scenes.json&quot;</span>), error))
             <span class="t">Ui</span>::toast(error);
-        read(j);
+        openLast();
         eye.y += <span class="t">Space</span>::height(<span class="n">0</span>, <span class="n">0</span>);
         now = write().write(<span class="k">true</span>);
         select(-<span class="n">1</span>);
@@ -8063,6 +8212,8 @@ summary { cursor: pointer; padding: 10px 16px; } details pre { border-width: 1px
         @redoButton = top.button(<span class="s">&quot;Redo&quot;</span>, <span class="t">WidgetEvent</span>(<span class="k">this</span>.onRedo));
         top.space();
         @count = top.label(<span class="s">&quot;&quot;</span>, <span class="s">&quot;plain&quot;</span>);
+        top.button(<span class="s">&quot;Scenes&quot;</span>, <span class="t">WidgetEvent</span>(<span class="k">this</span>.onScenes));
+        top.button(ways[<span class="k">uint</span>(way)], <span class="t">WidgetEvent</span>(<span class="k">this</span>.onWay)).width = <span class="n">90</span>;
         top.button(<span class="s">&quot;Play&quot;</span>, <span class="t">WidgetEvent</span>(<span class="k">this</span>.onPlay));
         top.button(<span class="s">&quot;Save&quot;</span>, <span class="t">WidgetEvent</span>(<span class="k">this</span>.onSave));
 
@@ -8071,24 +8222,63 @@ summary { cursor: pointer; padding: 10px 16px; } details pre { border-width: 1px
         sides.align = <span class="t">PlaceStretch</span>;
         <span class="t">Widget</span>@ first = sides.panel();
         first.style = <span class="s">&quot;side&quot;</span>;
-        first.width = <span class="n">240</span>;
+        first.width = <span class="n">286</span>;
         @tabs = first.tabs();
         tabs.grow = <span class="n">1</span>;
         <span class="t">Widget</span>@ add = tabs.tab(<span class="s">&quot;Add&quot;</span>);
-        <span class="t">Widget</span>@ list = @addList = add.list(kinds.length(), <span class="n">42</span>, <span class="t">WidgetRow</span>(<span class="k">this</span>.fill));
+        @groupChoice = add.choice(groups, group, <span class="t">WidgetEvent</span>(<span class="k">this</span>.onGroup));
+        <span class="t">Widget</span>@ list = @addList = add.list(<span class="n">0</span>, <span class="n">42</span>, <span class="t">WidgetRow</span>(<span class="k">this</span>.fill));
+        listKinds();
         list.grow = <span class="n">1</span>;
         list.onClick(<span class="t">WidgetEvent</span>(<span class="k">this</span>.onAdd));
         <span class="t">Widget</span>@ scene = tabs.tab(<span class="s">&quot;Scene&quot;</span>);
-        scene.label(<span class="s">&quot;Ground&quot;</span>, <span class="s">&quot;small&quot;</span>);
-        @groundChoice = scene.choice(grounds, <span class="n">0</span>, <span class="t">WidgetEvent</span>(<span class="k">this</span>.onGround));
-        scene.label(<span class="s">&quot;Time&quot;</span>, <span class="s">&quot;small&quot;</span>);
-        @hourChoice = scene.choice(hours, <span class="n">0</span>, <span class="t">WidgetEvent</span>(<span class="k">this</span>.onHour));
-        scene.toggle(<span class="s">&quot;Snap&quot;</span>, <span class="k">true</span>, <span class="t">WidgetEvent</span>(<span class="k">this</span>.onSnap));
-        scene.button(<span class="s">&quot;As saved&quot;</span>, <span class="t">WidgetEvent</span>(<span class="k">this</span>.onRevert));
-        scene.button(<span class="s">&quot;Clear&quot;</span>, <span class="t">WidgetEvent</span>(<span class="k">this</span>.onClear));
+        <span class="t">Widget</span>@ things = scene.scroll(<span class="n">8</span>);
+        things.grow = <span class="n">1</span>;
+        things.label(<span class="s">&quot;Ground&quot;</span>, <span class="s">&quot;small&quot;</span>);
+        @groundChoice = things.choice(grounds, <span class="n">0</span>, <span class="t">WidgetEvent</span>(<span class="k">this</span>.onGround));
+        things.label(<span class="s">&quot;How large&quot;</span>, <span class="s">&quot;small&quot;</span>);
+        <span class="k">bool</span> small = <span class="t">App</span>::freeKilobytes &gt; <span class="n">0</span> &amp;&amp; <span class="t">App</span>::freeKilobytes &lt; <span class="n">64000</span>;
+        <span class="k">if</span> (small)
+            acrosses.removeLast();
+        @acrossChoice = things.choice(acrosses, across, <span class="t">WidgetEvent</span>(<span class="k">this</span>.onAcross));
+        @edgeToggle = things.toggle(<span class="s">&quot;Walls at its edge&quot;</span>, <span class="k">true</span>, <span class="t">WidgetEvent</span>(<span class="k">this</span>.onEdges));
+        things.toggle(<span class="s">&quot;Snap&quot;</span>, <span class="k">true</span>, <span class="t">WidgetEvent</span>(<span class="k">this</span>.onSnap));
+        things.toggle(<span class="s">&quot;Wireframe&quot;</span>, <span class="k">false</span>, <span class="t">WidgetEvent</span>(<span class="k">this</span>.onLines));
+        things.button(<span class="s">&quot;As saved&quot;</span>, <span class="t">WidgetEvent</span>(<span class="k">this</span>.onRevert));
+        things.button(<span class="s">&quot;Clear&quot;</span>, <span class="t">WidgetEvent</span>(<span class="k">this</span>.onClear));
         <span class="k">if</span> (!<span class="t">App</span>::development)
-            scene.button(<span class="s">&quot;Start again&quot;</span>, <span class="t">WidgetEvent</span>(<span class="k">this</span>.onFresh));
-        scene.toggle(<span class="s">&quot;Wireframe&quot;</span>, <span class="k">false</span>, <span class="t">WidgetEvent</span>(<span class="k">this</span>.onLines));
+            things.button(<span class="s">&quot;Start again&quot;</span>, <span class="t">WidgetEvent</span>(<span class="k">this</span>.onFresh));
+
+        <span class="t">Widget</span>@ above = tabs.tab(<span class="s">&quot;Sky&quot;</span>).scroll(<span class="n">8</span>);
+        above.grow = <span class="n">1</span>;
+        above.label(<span class="s">&quot;Time&quot;</span>, <span class="s">&quot;small&quot;</span>);
+        @hourChoice = above.choice(hours, <span class="n">0</span>, <span class="t">WidgetEvent</span>(<span class="k">this</span>.onHour));
+        above.label(<span class="s">&quot;Picture&quot;</span>, <span class="s">&quot;small&quot;</span>);
+        @skyChoice = above.choice(pictureNames, <span class="n">0</span>, <span class="t">WidgetEvent</span>(<span class="k">this</span>.onSkyPicture));
+        above.label(<span class="s">&quot;The sun: which way, how high&quot;</span>, <span class="s">&quot;small&quot;</span>);
+        @sunTurn = above.slider(<span class="n">0</span>, <span class="n">0</span>, <span class="n">345</span>, <span class="t">WidgetEvent</span>(<span class="k">this</span>.onSky));
+        sunTurn.step = <span class="n">15</span>;
+        @sunHigh = above.slider(<span class="n">45</span>, <span class="n">5</span>, <span class="n">90</span>, <span class="t">WidgetEvent</span>(<span class="k">this</span>.onSky));
+        sunHigh.step = <span class="n">5</span>;
+        above.label(<span class="s">&quot;Fog: where from, where to&quot;</span>, <span class="s">&quot;small&quot;</span>);
+        @fogFrom = above.slider(<span class="n">60</span>, <span class="n">0</span>, <span class="n">300</span>, <span class="t">WidgetEvent</span>(<span class="k">this</span>.onSky));
+        fogFrom.step = <span class="n">5</span>;
+        @fogTo = above.slider(<span class="n">170</span>, <span class="n">20</span>, <span class="n">500</span>, <span class="t">WidgetEvent</span>(<span class="k">this</span>.onSky));
+        fogTo.step = <span class="n">10</span>;
+        <span class="t">Widget</span>@ mists = above.grid(<span class="n">5</span>, <span class="n">6</span>);
+        <span class="k">for</span> (<span class="k">uint</span> i = <span class="n">0</span>; i &lt; colors.length(); i++)
+        {
+            <span class="t">Widget</span>@ b = mists.button(<span class="s">&quot;&quot;</span>, <span class="t">WidgetEvent</span>(<span class="k">this</span>.onMist));
+            b.style = <span class="s">&quot;swatch&quot;</span>;
+            b.tag = <span class="k">int</span>(i);
+            <span class="t">Widget</span>@ c = b.custom(<span class="t">WidgetDraw</span>(<span class="k">this</span>.swatch));
+            c.height = <span class="n">18</span>;
+            c.grow = <span class="n">1</span>;
+        }
+        above.button(<span class="s">&quot;Its own colours&quot;</span>, <span class="t">WidgetEvent</span>(<span class="k">this</span>.onSkyFresh));
+        @waterToggle = above.toggle(<span class="s">&quot;Sea&quot;</span>, <span class="k">false</span>, <span class="t">WidgetEvent</span>(<span class="k">this</span>.onWater));
+        @waterHigh = above.slider(<span class="n">0</span>, -<span class="n">8</span>, <span class="n">12</span>, <span class="t">WidgetEvent</span>(<span class="k">this</span>.onWater));
+        waterHigh.step = <span class="n">0.5f</span>;
         <span class="t">Widget</span>@ earth = tabs.tab(<span class="s">&quot;Land&quot;</span>);
         @brushChoice = earth.choice(brushes, <span class="n">0</span>, <span class="t">WidgetEvent</span>(<span class="k">this</span>.onBrush));
         earth.label(<span class="s">&quot;Size&quot;</span>, <span class="s">&quot;small&quot;</span>);
@@ -8110,6 +8300,19 @@ summary { cursor: pointer; padding: 10px 16px; } details pre { border-width: 1px
         }
         earth.button(<span class="s">&quot;As it was made&quot;</span>, <span class="t">WidgetEvent</span>(<span class="k">this</span>.onLandFresh));
         earth.paragraph(<span class="s">&quot;Hold on the land to change it.&quot;</span>, <span class="s">&quot;small&quot;</span>);
+
+        <span class="t">Widget</span>@ track = tabs.tab(<span class="s">&quot;Road&quot;</span>);
+        @roadLabel = track.label(<span class="s">&quot;&quot;</span>, <span class="s">&quot;plain&quot;</span>);
+        track.button(<span class="s">&quot;New road&quot;</span>, <span class="t">WidgetEvent</span>(<span class="k">this</span>.onRoadNew));
+        track.button(<span class="s">&quot;Next road&quot;</span>, <span class="t">WidgetEvent</span>(<span class="k">this</span>.onRoadNext));
+        @roadClosed = track.toggle(<span class="s">&quot;Goes round&quot;</span>, <span class="k">true</span>, <span class="t">WidgetEvent</span>(<span class="k">this</span>.onRoad));
+        track.label(<span class="s">&quot;How wide&quot;</span>, <span class="s">&quot;small&quot;</span>);
+        @roadWidth = track.slider(<span class="n">7</span>, <span class="n">3</span>, <span class="n">16</span>, <span class="t">WidgetEvent</span>(<span class="k">this</span>.onRoad));
+        roadWidth.step = <span class="n">1</span>;
+        track.button(<span class="s">&quot;Shape the land&quot;</span>, <span class="t">WidgetEvent</span>(<span class="k">this</span>.onRoadLand));
+        track.button(<span class="s">&quot;Take a point back&quot;</span>, <span class="t">WidgetEvent</span>(<span class="k">this</span>.onRoadBack));
+        track.button(<span class="s">&quot;Delete road&quot;</span>, <span class="t">WidgetEvent</span>(<span class="k">this</span>.onRoadDelete));
+        track.paragraph(<span class="s">&quot;Press on the land for each point. With Drive, Play is a race against the clock.&quot;</span>, <span class="s">&quot;small&quot;</span>);
 
         sides.space();
         <span class="t">Widget</span>@ other = sides.panel();
@@ -8137,7 +8340,7 @@ summary { cursor: pointer; padding: 10px 16px; } details pre { border-width: 1px
         @size = inspector.slider(<span class="n">1</span>, <span class="n">0.1f</span>, <span class="n">6</span>, <span class="t">WidgetEvent</span>(<span class="k">this</span>.onSize));
         size.step = <span class="n">0.1f</span>;
         @rangeRow = inspector.column(<span class="n">6</span>);
-        rangeRow.label(<span class="s">&quot;Reach of its light&quot;</span>, <span class="s">&quot;small&quot;</span>);
+        @rangeLabel = rangeRow.label(<span class="s">&quot;&quot;</span>, <span class="s">&quot;small&quot;</span>);
         @range = rangeRow.slider(<span class="n">8</span>, <span class="n">2</span>, <span class="n">24</span>, <span class="t">WidgetEvent</span>(<span class="k">this</span>.onRange));
         range.step = <span class="n">1</span>;
         <span class="t">Widget</span>@ swatches = inspector.grid(<span class="n">5</span>, <span class="n">6</span>);
@@ -8150,16 +8353,99 @@ summary { cursor: pointer; padding: 10px 16px; } details pre { border-width: 1px
             c.height = <span class="n">22</span>;
             c.grow = <span class="n">1</span>;
         }
+        @lookRow = inspector.column(<span class="n">6</span>);
+        lookRow.label(<span class="s">&quot;Picture&quot;</span>, <span class="s">&quot;small&quot;</span>);
+        @skinChoice = lookRow.choice(pictureNames, <span class="n">0</span>, <span class="t">WidgetEvent</span>(<span class="k">this</span>.onSkin));
+        lookRow.label(<span class="s">&quot;Collider&quot;</span>, <span class="s">&quot;small&quot;</span>);
+        @colliderChoice = lookRow.choice(colliders, <span class="n">0</span>, <span class="t">WidgetEvent</span>(<span class="k">this</span>.onCollider));
         @onLand = inspector.toggle(<span class="s">&quot;On the land&quot;</span>, <span class="k">true</span>, <span class="t">WidgetEvent</span>(<span class="k">this</span>.onToggle));
-        @solid = inspector.toggle(<span class="s">&quot;Solid&quot;</span>, <span class="k">false</span>, <span class="t">WidgetEvent</span>(<span class="k">this</span>.onToggle));
         @falls = inspector.toggle(<span class="s">&quot;Falls&quot;</span>, <span class="k">false</span>, <span class="t">WidgetEvent</span>(<span class="k">this</span>.onToggle));
         @glows = inspector.toggle(<span class="s">&quot;Glows&quot;</span>, <span class="k">false</span>, <span class="t">WidgetEvent</span>(<span class="k">this</span>.onToggle));
+        @moves = inspector.toggle(<span class="s">&quot;Moves to and fro&quot;</span>, <span class="k">false</span>, <span class="t">WidgetEvent</span>(<span class="k">this</span>.onToggle));
+        @moveRow = inspector.column(<span class="n">6</span>);
+        moveRow.label(<span class="s">&quot;How far: across, up, along&quot;</span>, <span class="s">&quot;small&quot;</span>);
+        <span class="t">Widget</span>@ far = moveRow.row(<span class="n">6</span>);
+        <span class="k">for</span> (<span class="k">uint</span> i = <span class="n">0</span>; i &lt; <span class="n">3</span>; i++)
+        {
+            <span class="t">Widget</span>@ f = far.field(<span class="s">&quot;&quot;</span>, <span class="s">&quot;&quot;</span>, <span class="t">WidgetEvent</span>(<span class="k">this</span>.onMove));
+            f.style = <span class="s">&quot;cell&quot;</span>;
+            f.numeric = <span class="k">true</span>;
+            f.grow = <span class="n">1</span>;
+            f.onDone(<span class="t">WidgetEvent</span>(<span class="k">this</span>.onMove));
+            movers.insertLast(f);
+        }
+        moveRow.label(<span class="s">&quot;Seconds there and back&quot;</span>, <span class="s">&quot;small&quot;</span>);
+        @seconds = moveRow.slider(<span class="n">6</span>, <span class="n">1</span>, <span class="n">30</span>, <span class="t">WidgetEvent</span>(<span class="k">this</span>.onMove));
+        seconds.step = <span class="n">1</span>;
         <span class="t">Widget</span>@ two = inspector.row(<span class="n">8</span>);
         <span class="t">Widget</span>@ copy = two.button(<span class="s">&quot;Copy&quot;</span>, <span class="t">WidgetEvent</span>(<span class="k">this</span>.onCopy));
         copy.grow = <span class="n">1</span>;
         <span class="t">Widget</span>@ remove = two.button(<span class="s">&quot;Delete&quot;</span>, <span class="t">WidgetEvent</span>(<span class="k">this</span>.onDelete));
         remove.grow = <span class="n">1</span>;
         list.focus();
+    }
+
+    <span class="c">// Ends that nothing is on are walled off. They are only here: a game has its own.</span>
+    <span class="k">array</span>&lt;<span class="t">Entity</span>@&gt; caps;
+    <span class="t">Model</span>@ capModel = <span class="t">Assets</span>::model(<span class="s">&quot;global:model/cave-cap.glb&quot;</span>);
+
+    <span class="k">void</span> closeEnds()
+    {
+        <span class="k">for</span> (<span class="k">uint</span> i = <span class="n">0</span>; i &lt; caps.length(); i++)
+            caps[i].destroy();
+        caps.resize(<span class="n">0</span>);
+        <span class="k">array</span>&lt;<span class="t">Vec3</span>&gt; ends, ways_;
+        <span class="k">array</span>&lt;<span class="k">uint</span>&gt; whose;
+        <span class="k">for</span> (<span class="k">uint</span> i = <span class="n">0</span>; i &lt; things.length(); i++)
+        {
+            <span class="t">Kind</span>@ k = kindOf(things[i].json);
+            <span class="t">Vec3</span> base = worldPlace(things[i].json), a = angles(things[i].json);
+            <span class="k">for</span> (<span class="k">uint</span> e = isMouth(k) ? <span class="n">1</span> : <span class="n">0</span>; e &lt; k.exits.length(); e++)
+            {
+                ends.insertLast(base + spun(k.exits[e].place, a.y));
+                ways_.insertLast(spun(<span class="t">Vec3</span>(k.exits[e].place.x, <span class="n">0</span>, k.exits[e].place.z).normalized(), a.y));
+                whose.insertLast(i);
+            }
+        }
+        <span class="k">for</span> (<span class="k">uint</span> i = <span class="n">0</span>; i &lt; ends.length() &amp;&amp; caps.length() &lt; <span class="n">40</span>; i++)
+        {
+            <span class="k">bool</span> open = <span class="k">true</span>;
+            <span class="k">for</span> (<span class="k">uint</span> n = <span class="n">0</span>; n &lt; ends.length() &amp;&amp; open; n++)
+                open = whose[n] == whose[i] || (ends[n] - ends[i]).length() &gt; <span class="n">0.6f</span>;
+            <span class="k">if</span> (!open)
+                <span class="k">continue</span>;
+            <span class="t">Entity</span>@ c = <span class="t">Space</span>::spawn(ends[i]);
+            c.model(capModel);
+            c.angles = <span class="t">Vec3</span>(<span class="n">0</span>, atan2(-ways_[i].x, -ways_[i].z) * <span class="n">57.29578f</span>, <span class="n">0</span>);
+            c.twoSided = <span class="k">true</span>;
+            c.exact(<span class="n">0</span>, <span class="n">0</span>);
+            c.wall = <span class="k">true</span>;
+            caps.insertLast(c);
+        }
+    }
+
+    <span class="k">bool</span> isMouth(<span class="t">Kind</span>@ k) { <span class="k">return</span> k.name.findFirst(<span class="s">&quot;cave-mouth&quot;</span>) &gt;= <span class="n">0</span>; }
+
+    <span class="c">// By its name, so that other entrances, tunnels and rooms join as well: &quot;cave-mouth-ice&quot;, &quot;cave-room-2&quot;.</span>
+    <span class="k">void</span> giveExits(<span class="t">Kind</span>@ k)
+    {
+        <span class="k">int</span> at = k.name.findFirst(<span class="s">&quot;cave-&quot;</span>);
+        <span class="k">if</span> (at &lt; <span class="n">0</span>)
+            <span class="k">return</span>;
+        <span class="k">string</span> n = k.name.substr(<span class="k">uint</span>(at) + <span class="n">5</span>);
+        k.group = <span class="s">&quot;Caves&quot;</span>;
+        <span class="k">bool</span> big = n.findFirst(<span class="s">&quot;room&quot;</span>) == <span class="n">0</span>, falls_ = n.findFirst(<span class="s">&quot;slope&quot;</span>) == <span class="n">0</span> || n.findFirst(<span class="s">&quot;mouth&quot;</span>) == <span class="n">0</span>;
+        k.exits.insertLast(<span class="t">Exit</span>(<span class="t">Vec3</span>(<span class="n">0</span>, <span class="n">0</span>, big ? <span class="n">8</span> : <span class="n">4</span>)));
+        <span class="k">if</span> (n.findFirst(<span class="s">&quot;bend&quot;</span>) == <span class="n">0</span>)
+            k.exits.insertLast(<span class="t">Exit</span>(<span class="t">Vec3</span>(<span class="n">4</span>, <span class="n">0</span>, <span class="n">0</span>)));
+        <span class="k">else</span> <span class="k">if</span> (n.findFirst(<span class="s">&quot;end&quot;</span>) != <span class="n">0</span>)
+            k.exits.insertLast(<span class="t">Exit</span>(<span class="t">Vec3</span>(<span class="n">0</span>, falls_ ? -<span class="n">5</span> : <span class="n">0</span>, big ? -<span class="n">8</span> : -<span class="n">4</span>)));
+        <span class="k">if</span> (big)
+        {
+            k.exits.insertLast(<span class="t">Exit</span>(<span class="t">Vec3</span>(<span class="n">8</span>, <span class="n">0</span>, <span class="n">0</span>)));
+            k.exits.insertLast(<span class="t">Exit</span>(<span class="t">Vec3</span>(-<span class="n">8</span>, <span class="n">0</span>, <span class="n">0</span>)));
+        }
+        k.collider = <span class="n">4</span>;
     }
 
     <span class="c">// --- Models that the player brought ---</span>
@@ -8175,7 +8461,7 @@ summary { cursor: pointer; padding: 10px 16px; } details pre { border-width: 1px
 
     <span class="k">void</span> findOwn()
     {
-        <span class="k">array</span>&lt;<span class="k">string</span>&gt; folders = { <span class="s">&quot;asset:model/&quot;</span>, <span class="s">&quot;own:&quot;</span> };
+        <span class="k">array</span>&lt;<span class="k">string</span>&gt; folders = { <span class="s">&quot;asset:model/&quot;</span>, <span class="s">&quot;asset:picture/&quot;</span>, <span class="s">&quot;asset:sound/&quot;</span>, <span class="s">&quot;global:picture/&quot;</span>, <span class="s">&quot;own:&quot;</span> };
         <span class="k">for</span> (<span class="k">uint</span> f = <span class="n">0</span>; f &lt; folders.length(); f++)
         {
             <span class="k">array</span>&lt;<span class="k">string</span>&gt;@ files = <span class="t">Assets</span>::list(folders[f]);
@@ -8184,16 +8470,40 @@ summary { cursor: pointer; padding: 10px 16px; } details pre { border-width: 1px
         }
     }
 
-    <span class="k">void</span> addOwn(<span class="k">const</span> <span class="k">string</span> &amp;<span class="k">in</span> path, <span class="k">const</span> <span class="k">string</span> &amp;<span class="k">in</span> file)
+    <span class="k">bool</span> ends(<span class="k">const</span> <span class="k">string</span> &amp;<span class="k">in</span> file, <span class="k">const</span> <span class="k">array</span>&lt;<span class="k">string</span>&gt; &amp;<span class="k">in</span> endings)
     {
-        <span class="k">if</span> (!isModel(file) || kinds.length() &gt;= builtIn + <span class="n">60</span>)
-            <span class="k">return</span>;
-        <span class="k">for</span> (<span class="k">uint</span> i = <span class="n">0</span>; i &lt; kinds.length(); i++)
-            <span class="k">if</span> (kinds[i].key == <span class="s">&quot;own&quot;</span> &amp;&amp; kinds[i].name == path)
-                <span class="k">return</span>;
+        <span class="k">for</span> (<span class="k">uint</span> i = <span class="n">0</span>; i &lt; endings.length(); i++)
+            <span class="k">if</span> (file.length() &gt; endings[i].length() &amp;&amp; file.substr(file.length() - endings[i].length()) == endings[i])
+                <span class="k">return</span> <span class="k">true</span>;
+        <span class="k">return</span> <span class="k">false</span>;
+    }
+
+    <span class="c">// True if it is something new.</span>
+    <span class="k">bool</span> addOwn(<span class="k">const</span> <span class="k">string</span> &amp;<span class="k">in</span> path, <span class="k">const</span> <span class="k">string</span> &amp;<span class="k">in</span> file)
+    {
         <span class="k">string</span> label = file.substr(<span class="n">0</span>, file.findLast(<span class="s">&quot;.&quot;</span>));
-        kinds.insertLast(<span class="t">Kind</span>(label.length() &gt; <span class="n">18</span> ? label.substr(<span class="n">0</span>, <span class="n">17</span>) + <span class="s">&quot;...&quot;</span> : label, <span class="s">&quot;own&quot;</span>, path, <span class="t">Vec3</span>(-<span class="n">0.5f</span>, -<span class="n">0.5f</span>, -<span class="n">0.5f</span>), <span class="t">Vec3</span>(<span class="n">0.5f</span>, <span class="n">0.5f</span>, <span class="n">0.5f</span>)));
-        @kinds[kinds.length() - <span class="n">1</span>].own = <span class="t">Assets</span>::model(path);
+        label = label.length() &gt; <span class="n">18</span> ? label.substr(<span class="n">0</span>, <span class="n">17</span>) + <span class="s">&quot;...&quot;</span> : label;
+        <span class="k">if</span> (ends(file, <span class="k">array</span>&lt;<span class="k">string</span>&gt; = { <span class="s">&quot;.png&quot;</span>, <span class="s">&quot;.jpg&quot;</span>, <span class="s">&quot;.jpeg&quot;</span>, <span class="s">&quot;.tga&quot;</span>, <span class="s">&quot;.bmp&quot;</span> }))
+        {
+            <span class="k">if</span> (pictures.find(path) &gt;= <span class="n">0</span> || pictures.length() &gt;= <span class="n">40</span>)
+                <span class="k">return</span> <span class="k">false</span>;
+            pictures.insertLast(path);
+            pictureNames.insertLast(label);
+            <span class="k">return</span> <span class="k">true</span>;
+        }
+        <span class="k">bool</span> sound = ends(file, <span class="k">array</span>&lt;<span class="k">string</span>&gt; = { <span class="s">&quot;.wav&quot;</span>, <span class="s">&quot;.ogg&quot;</span>, <span class="s">&quot;.mp3&quot;</span> });
+        <span class="k">if</span> ((!sound &amp;&amp; !isModel(file)) || kinds.length() &gt;= builtIn + <span class="n">60</span>)
+            <span class="k">return</span> <span class="k">false</span>;
+        <span class="k">for</span> (<span class="k">uint</span> i = <span class="n">0</span>; i &lt; kinds.length(); i++)
+            <span class="k">if</span> (kinds[i].name == path)
+                <span class="k">return</span> <span class="k">false</span>;
+        kinds.insertLast(<span class="t">Kind</span>(<span class="s">&quot;Mine&quot;</span>, label, sound ? <span class="s">&quot;sound&quot;</span> : <span class="s">&quot;own&quot;</span>, path, <span class="t">Vec3</span>(-<span class="n">0.5f</span>, -<span class="n">0.5f</span>, -<span class="n">0.5f</span>), <span class="t">Vec3</span>(<span class="n">0.5f</span>, <span class="n">0.5f</span>, <span class="n">0.5f</span>)));
+        <span class="k">if</span> (!sound)
+        {
+            @kinds[kinds.length() - <span class="n">1</span>].own = <span class="t">Assets</span>::model(path);
+            giveExits(kinds[kinds.length() - <span class="n">1</span>]);
+        }
+        <span class="k">return</span> <span class="k">true</span>;
     }
 
     <span class="c">// As they arrive: how big each is. Those made in other units are brought to a size that can be seen.</span>
@@ -8211,7 +8521,7 @@ summary { cursor: pointer; padding: 10px 16px; } details pre { border-width: 1px
                 <span class="t">Vec3</span> s = k.high - k.low;
                 <span class="k">float</span> longest = s.x &gt; s.y ? s.x : s.y;
                 longest = s.z &gt; longest ? s.z : longest;
-                <span class="k">if</span> (longest &gt; <span class="n">15</span> || longest &lt; <span class="n">0.2f</span>)
+                <span class="k">if</span> (k.exits.length() == <span class="n">0</span> &amp;&amp; (longest &gt; <span class="n">15</span> || longest &lt; <span class="n">0.2f</span>))
                     k.size = <span class="n">3</span> / (longest &gt; <span class="n">0.0001f</span> ? longest : <span class="n">1.0f</span>);
             }
             <span class="k">else</span>
@@ -8227,20 +8537,36 @@ summary { cursor: pointer; padding: 10px 16px; } details pre { border-width: 1px
     <span class="k">void</span> takeDropped()
     {
         <span class="k">array</span>&lt;<span class="k">string</span>&gt;@ files = <span class="t">Assets</span>::dropped();
-        <span class="k">uint</span> had = kinds.length();
+        <span class="k">uint</span> added = <span class="n">0</span>;
         <span class="k">for</span> (<span class="k">uint</span> i = <span class="n">0</span>; i &lt; files.length(); i++)
-            addOwn(<span class="s">&quot;own:&quot;</span> + files[i], files[i]);
-        <span class="k">if</span> (kinds.length() == had)
+            added += addOwn(<span class="s">&quot;own:&quot;</span> + files[i], files[i]) ? <span class="n">1</span> : <span class="n">0</span>;
+        <span class="k">if</span> (files.length() == <span class="n">0</span>)
+            <span class="k">return</span>;
+        <span class="k">if</span> (added == <span class="n">0</span>)
         {
-            <span class="k">if</span> (files.length() &gt; <span class="n">0</span>)
-                <span class="t">Ui</span>::toast(<span class="s">&quot;Nothing new to add in that&quot;</span>);
+            <span class="t">Ui</span>::toast(<span class="s">&quot;Nothing new to add in that&quot;</span>);
             <span class="k">return</span>;
         }
-        addList.count = kinds.length();
-        <span class="t">Ui</span>::toast(kinds[had].label + (kinds.length() &gt; had + <span class="n">1</span> ? <span class="s">&quot; and others are&quot;</span> : <span class="s">&quot; is&quot;</span>) + <span class="s">&quot; at the end of the list&quot;</span>);
+        skinChoice.items(pictureNames);
+        skyChoice.items(pictureNames);
+        group = <span class="n">7</span>;
+        groupChoice.chosen = <span class="n">7</span>;
+        listKinds();
+        <span class="t">Ui</span>::toast(added == <span class="n">1</span> ? <span class="s">&quot;One more of your own&quot;</span> : <span class="s">&quot;&quot;</span> + added + <span class="s">&quot; more of your own&quot;</span>);
+        show();
     }
 
-    <span class="k">void</span> fill(<span class="t">Widget</span>@ row, <span class="k">int</span> i) { row.label(kinds[<span class="k">uint</span>(i)].label); }
+    <span class="k">void</span> listKinds()
+    {
+        listed.resize(<span class="n">0</span>);
+        <span class="k">for</span> (<span class="k">uint</span> i = <span class="n">0</span>; i &lt; kinds.length(); i++)
+            <span class="k">if</span> (group == <span class="n">0</span> || kinds[i].group == groups[<span class="k">uint</span>(group)])
+                listed.insertLast(i);
+        addList.count = listed.length();
+    }
+    <span class="k">void</span> onGroup(<span class="t">Widget</span>@ w) { group = w.chosen; listKinds(); }
+
+    <span class="k">void</span> fill(<span class="t">Widget</span>@ row, <span class="k">int</span> i) { row.label(kinds[listed[<span class="k">uint</span>(i)]].label); }
 
     <span class="k">void</span> swatch(<span class="t">Canvas</span>@ c, <span class="t">Widget</span>@ w)
     {
@@ -8256,12 +8582,14 @@ summary { cursor: pointer; padding: 10px 16px; } details pre { border-width: 1px
             c.circle(p.x + s.x * <span class="n">0.5f</span>, p.y + s.y * <span class="n">0.5f</span>, <span class="n">4</span>, <span class="t">White</span>);
     }
 
-    <span class="k">bool</span> sculpting { <span class="k">get</span> { <span class="k">return</span> tabs.chosen == <span class="n">2</span> &amp;&amp; !playing; } }
+    <span class="k">bool</span> sculpting { <span class="k">get</span> { <span class="k">return</span> tabs.chosen == <span class="n">3</span> &amp;&amp; !playing; } }
+    <span class="k">bool</span> roading { <span class="k">get</span> { <span class="k">return</span> tabs.chosen == <span class="n">4</span> &amp;&amp; !playing; } }
 
     <span class="c">// What the panel says, from what is chosen.</span>
     <span class="k">void</span> show()
     {
-        count.text = <span class="s">&quot;&quot;</span> + things.length() + <span class="s">&quot; things&quot;</span> + (dirty ? <span class="s">&quot; *&quot;</span> : <span class="s">&quot;&quot;</span>) + <span class="s">&quot;  &quot;</span> ;
+        showRoad();
+        count.text = sceneName + <span class="s">&quot;:  &quot;</span> + things.length() + <span class="s">&quot; things&quot;</span> + (dirty ? <span class="s">&quot; *&quot;</span> : <span class="s">&quot;&quot;</span>) + <span class="s">&quot;  &quot;</span> ;
         undoButton.enabled = before.length() &gt; <span class="n">0</span>;
         redoButton.enabled = after.length() &gt; <span class="n">0</span>;
         toolButton.text = tools[<span class="k">uint</span>(tool)];
@@ -8277,16 +8605,28 @@ summary { cursor: pointer; padding: 10px 16px; } details pre { border-width: 1px
         places[<span class="n">2</span>].text = number(p.z);
         turn.value = wrapped(angles(j).y);
         size.value = sizes(j).x;
-        rangeRow.visible = j.has(<span class="s">&quot;light&quot;</span>);
-        range.value = <span class="k">float</span>(j[<span class="s">&quot;range&quot;</span>].number(<span class="n">8</span>));
+        <span class="k">bool</span> sound = j.has(<span class="s">&quot;sound&quot;</span>);
+        rangeRow.visible = j.has(<span class="s">&quot;light&quot;</span>) || sound;
+        rangeLabel.text = sound ? <span class="s">&quot;How far it is heard&quot;</span> : <span class="s">&quot;Reach of its light&quot;</span>;
+        range.value = <span class="k">float</span>(sound ? j[<span class="s">&quot;reach&quot;</span>].number(<span class="n">12</span>) : j[<span class="s">&quot;range&quot;</span>].number(<span class="n">8</span>));
         onLand.checked = j[<span class="s">&quot;onLand&quot;</span>].flag();
-        solid.checked = j[<span class="s">&quot;wall&quot;</span>].flag();
         falls.checked = j[<span class="s">&quot;mass&quot;</span>].number() &gt; <span class="n">0</span>;
         glows.checked = j[<span class="s">&quot;glowing&quot;</span>].number() &gt; <span class="n">0</span>;
-        <span class="k">bool</span> thing = !j.has(<span class="s">&quot;glow&quot;</span>);
-        solid.visible = thing;
-        falls.visible = thing;
-        glows.visible = thing;
+        <span class="k">bool</span> thing = !j.has(<span class="s">&quot;glow&quot;</span>) &amp;&amp; !sound, water = j[<span class="s">&quot;name&quot;</span>].text() == <span class="s">&quot;water&quot;</span>;
+        lookRow.visible = thing &amp;&amp; !water;
+        falls.visible = thing &amp;&amp; !water;
+        glows.visible = thing &amp;&amp; !water;
+        moves.visible = thing &amp;&amp; !water;
+        moves.checked = j.has(<span class="s">&quot;moves&quot;</span>);
+        moveRow.visible = thing &amp;&amp; j.has(<span class="s">&quot;moves&quot;</span>);
+        <span class="t">Vec3</span> far = j[<span class="s">&quot;moves&quot;</span>].vec3();
+        movers[<span class="n">0</span>].text = number(far.x);
+        movers[<span class="n">1</span>].text = number(far.y);
+        movers[<span class="n">2</span>].text = number(far.z);
+        seconds.value = <span class="k">float</span>(j[<span class="s">&quot;seconds&quot;</span>].number(<span class="n">6</span>));
+        colliderChoice.chosen = colliderOf(j);
+        <span class="k">int</span> picture = pictures.find(j[<span class="s">&quot;skin&quot;</span>].text());
+        skinChoice.chosen = picture &lt; <span class="n">0</span> ? <span class="n">0</span> : picture;
     }
 
     <span class="k">string</span> number(<span class="k">float</span> v) { <span class="k">return</span> formatFloat(floor(v * <span class="n">100</span> + <span class="n">0.5f</span>) / <span class="n">100</span>, <span class="s">&quot;&quot;</span>, <span class="n">0</span>, <span class="n">2</span>); }
@@ -8297,7 +8637,14 @@ summary { cursor: pointer; padding: 10px 16px; } details pre { border-width: 1px
     <span class="k">void</span> onUndo(<span class="t">Widget</span>@ w) { undo(); }
     <span class="k">void</span> onRedo(<span class="t">Widget</span>@ w) { redo(); }
     <span class="k">void</span> onPlay(<span class="t">Widget</span>@ w) { play(<span class="k">true</span>); }
-    <span class="k">void</span> onAdd(<span class="t">Widget</span>@ w) { add(<span class="k">uint</span>(w.chosen)); }
+    <span class="k">void</span> onAdd(<span class="t">Widget</span>@ w)
+    {
+        <span class="k">if</span> (w.chosen &gt;= <span class="n">0</span> &amp;&amp; <span class="k">uint</span>(w.chosen) &lt; listed.length())
+            add(listed[<span class="k">uint</span>(w.chosen)]);
+    }
+    <span class="k">void</span> onWay(<span class="t">Widget</span>@ w) { way = (way + <span class="n">1</span>) % <span class="k">int</span>(ways.length()); w.text = ways[<span class="k">uint</span>(way)]; }
+    <span class="k">void</span> onAcross(<span class="t">Widget</span>@ w) { across = w.chosen; landText = <span class="s">&quot;&quot;</span>; land(); place(); changed(<span class="s">&quot;across&quot;</span>); }
+    <span class="k">void</span> onEdges(<span class="t">Widget</span>@ w) { edges = w.checked; <span class="t">Space</span>::edges = edges; changed(<span class="s">&quot;edges&quot;</span>); }
     <span class="k">void</span> onGround(<span class="t">Widget</span>@ w) { ground = w.chosen; land(); place(); changed(<span class="s">&quot;ground&quot;</span>); }
     <span class="k">void</span> onLines(<span class="t">Widget</span>@ w) { <span class="t">Space</span>::lines = w.checked; }
     <span class="k">void</span> onBrush(<span class="t">Widget</span>@ w) { brush = w.chosen; }
@@ -8363,7 +8710,9 @@ summary { cursor: pointer; padding: 10px 16px; } details pre { border-width: 1px
     <span class="k">void</span> onFresh(<span class="t">Widget</span>@ w) { <span class="t">Ui</span>::dialog(<span class="s">&quot;Start again&quot;</span>, <span class="s">&quot;Go back to the first scene? What was saved is lost. Undo brings back what is here now.&quot;</span>, <span class="k">array</span>&lt;<span class="k">string</span>&gt; = { <span class="s">&quot;Start again&quot;</span>, <span class="s">&quot;Keep&quot;</span> }, <span class="t">WidgetAnswer</span>(<span class="k">this</span>.fresh)); }
     <span class="k">void</span> fresh(<span class="k">int</span> answer)
     {
-        <span class="k">if</span> (answer == <span class="n">0</span>)
+        <span class="k">if</span> (answer == <span class="n">0</span> &amp;&amp; file != <span class="s">&quot;asset:scene.json&quot;</span>)
+            clear(<span class="n">0</span>);
+        <span class="k">else</span> <span class="k">if</span> (answer == <span class="n">0</span>)
         {
             <span class="t">Assets</span>::forget(file);
             onRevert(<span class="k">null</span>);
@@ -8408,9 +8757,79 @@ summary { cursor: pointer; padding: 10px 16px; } details pre { border-width: 1px
     {
         <span class="k">if</span> (chosen &lt; <span class="n">0</span>)
             <span class="k">return</span>;
-        things[<span class="k">uint</span>(chosen)].json.<span class="k">set</span>(<span class="s">&quot;range&quot;</span>, w.value);
+        <span class="t">Json</span>@ j = things[<span class="k">uint</span>(chosen)].json;
+        j.<span class="k">set</span>(j.has(<span class="s">&quot;sound&quot;</span>) ? <span class="s">&quot;reach&quot;</span> : <span class="s">&quot;range&quot;</span>, w.value);
         make(<span class="k">uint</span>(chosen));
         changed(<span class="s">&quot;range&quot;</span>, <span class="k">false</span>);
+    }
+
+    <span class="k">void</span> onSkin(<span class="t">Widget</span>@ w)
+    {
+        <span class="k">if</span> (chosen &lt; <span class="n">0</span>)
+            <span class="k">return</span>;
+        <span class="t">Json</span>@ j = things[<span class="k">uint</span>(chosen)].json;
+        <span class="k">if</span> (w.chosen &gt; <span class="n">0</span>)
+            j.<span class="k">set</span>(<span class="s">&quot;skin&quot;</span>, pictures[<span class="k">uint</span>(w.chosen)]);
+        <span class="k">else</span>
+            j.remove(<span class="s">&quot;skin&quot;</span>);
+        make(<span class="k">uint</span>(chosen));
+        changed(<span class="s">&quot;skin&quot;</span>);
+    }
+
+    <span class="k">void</span> onCollider(<span class="t">Widget</span>@ w)
+    {
+        <span class="k">if</span> (chosen &lt; <span class="n">0</span>)
+            <span class="k">return</span>;
+        setCollider(things[<span class="k">uint</span>(chosen)].json, w.chosen);
+        make(<span class="k">uint</span>(chosen));
+        changed(<span class="s">&quot;collider&quot;</span>);
+    }
+
+    <span class="k">void</span> onMove(<span class="t">Widget</span>@ w)
+    {
+        <span class="k">if</span> (chosen &lt; <span class="n">0</span>)
+            <span class="k">return</span>;
+        <span class="t">Json</span>@ j = things[<span class="k">uint</span>(chosen)].json;
+        j.<span class="k">set</span>(<span class="s">&quot;moves&quot;</span>, <span class="t">Vec3</span>(parseFloat(movers[<span class="n">0</span>].text), parseFloat(movers[<span class="n">1</span>].text), parseFloat(movers[<span class="n">2</span>].text)));
+        j.<span class="k">set</span>(<span class="s">&quot;seconds&quot;</span>, seconds.value);
+        changed(<span class="s">&quot;moves&quot;</span>, <span class="k">false</span>);
+    }
+
+    <span class="c">// --- Colliders ---</span>
+
+    <span class="k">int</span> colliderOf(<span class="t">Json</span>@ j) { <span class="k">return</span> j.has(<span class="s">&quot;cube&quot;</span>) ? <span class="n">1</span> : j.has(<span class="s">&quot;sphere&quot;</span>) ? <span class="n">2</span> : j.has(<span class="s">&quot;capsule&quot;</span>) ? <span class="n">3</span> : j[<span class="s">&quot;exact&quot;</span>].flag() ? <span class="n">4</span> : <span class="n">0</span>; }
+
+    <span class="k">void</span> setCollider(<span class="t">Json</span>@ j, <span class="k">int</span> which)
+    {
+        <span class="k">array</span>&lt;<span class="k">string</span>&gt; all = { <span class="s">&quot;cube&quot;</span>, <span class="s">&quot;sphere&quot;</span>, <span class="s">&quot;capsule&quot;</span>, <span class="s">&quot;exact&quot;</span>, <span class="s">&quot;colliderAt&quot;</span>, <span class="s">&quot;wall&quot;</span> };
+        <span class="k">for</span> (<span class="k">uint</span> i = <span class="n">0</span>; i &lt; all.length(); i++)
+            j.remove(all[i]);
+        <span class="t">Kind</span>@ k = kindOf(j);
+        <span class="t">Vec3</span> wide = k.high - k.low, middle = (k.high + k.low) * <span class="n">0.5f</span>;
+        <span class="k">float</span> round = wide.x &gt; wide.z ? wide.x : wide.z;
+        <span class="k">if</span> (which == <span class="n">1</span>)
+            j.<span class="k">set</span>(<span class="s">&quot;cube&quot;</span>, wide);
+        <span class="k">else</span> <span class="k">if</span> (which == <span class="n">2</span>)
+            j.<span class="k">set</span>(<span class="s">&quot;sphere&quot;</span>, (round &gt; wide.y ? round : wide.y) * <span class="n">0.5f</span>);
+        <span class="k">else</span> <span class="k">if</span> (which == <span class="n">3</span>)
+        {
+            <span class="k">float</span> thick = k.stem &gt; <span class="n">0</span> ? k.stem * <span class="n">2</span> : round;
+            <span class="t">Json</span> size;
+            size.add(thick * <span class="n">0.5f</span>);
+            size.add(wide.y &gt; thick ? wide.y : thick);
+            j.<span class="k">set</span>(<span class="s">&quot;capsule&quot;</span>, size);
+        }
+        <span class="k">else</span> <span class="k">if</span> (which == <span class="n">4</span>)
+            j.<span class="k">set</span>(<span class="s">&quot;exact&quot;</span>, <span class="k">true</span>);
+        <span class="k">if</span> (which == <span class="n">0</span>)
+        {
+            j.remove(<span class="s">&quot;mass&quot;</span>);
+            <span class="k">return</span>;
+        }
+        <span class="k">if</span> (which != <span class="n">4</span> &amp;&amp; middle.length() &gt; <span class="n">0.001f</span>)
+            j.<span class="k">set</span>(<span class="s">&quot;colliderAt&quot;</span>, middle);
+        <span class="k">if</span> (!j.has(<span class="s">&quot;mass&quot;</span>))
+            j.<span class="k">set</span>(<span class="s">&quot;wall&quot;</span>, <span class="k">true</span>);
     }
 
     <span class="k">void</span> onColor(<span class="t">Widget</span>@ w)
@@ -8440,19 +8859,31 @@ summary { cursor: pointer; padding: 10px 16px; } details pre { border-width: 1px
             j.<span class="k">set</span>(<span class="s">&quot;place&quot;</span>, p);
             j.<span class="k">set</span>(<span class="s">&quot;onLand&quot;</span>, onLand.checked);
         }
-        setIf(j, <span class="s">&quot;wall&quot;</span>, solid.checked);
-        setNumberIf(j, <span class="s">&quot;mass&quot;</span>, falls.checked, <span class="n">2</span>);
+        <span class="k">if</span> (falls.checked != (j[<span class="s">&quot;mass&quot;</span>].number() &gt; <span class="n">0</span>))
+        {
+            setNumberIf(j, <span class="s">&quot;mass&quot;</span>, falls.checked, <span class="n">2</span>);
+            setNumberIf(j, <span class="s">&quot;bounce&quot;</span>, falls.checked, j[<span class="s">&quot;shape&quot;</span>].text() == <span class="s">&quot;sphere&quot;</span> ? <span class="n">0.5f</span> : <span class="n">0.1f</span>);
+            <span class="k">int</span> which = colliderOf(j);
+            setCollider(j, falls.checked &amp;&amp; (which == <span class="n">0</span> || which == <span class="n">4</span>) ? j[<span class="s">&quot;shape&quot;</span>].text() == <span class="s">&quot;sphere&quot;</span> ? <span class="n">2</span> : <span class="n">1</span> : which);
+        }
+        <span class="k">if</span> (moves.checked != j.has(<span class="s">&quot;moves&quot;</span>))
+        {
+            <span class="k">if</span> (moves.checked)
+            {
+                j.<span class="k">set</span>(<span class="s">&quot;moves&quot;</span>, <span class="t">Vec3</span>(<span class="n">8</span>, <span class="n">0</span>, <span class="n">0</span>));
+                j.<span class="k">set</span>(<span class="s">&quot;seconds&quot;</span>, <span class="n">6</span>);
+                <span class="k">if</span> (colliderOf(j) == <span class="n">0</span>)
+                    setCollider(j, <span class="n">1</span>);
+            }
+            <span class="k">else</span>
+            {
+                j.remove(<span class="s">&quot;moves&quot;</span>);
+                j.remove(<span class="s">&quot;seconds&quot;</span>);
+            }
+        }
         setNumberIf(j, <span class="s">&quot;glowing&quot;</span>, glows.checked, <span class="n">0.8f</span>);
         make(<span class="k">uint</span>(chosen));
         changed(<span class="s">&quot;toggle&quot;</span>);
-    }
-
-    <span class="k">void</span> setIf(<span class="t">Json</span>@ j, <span class="k">const</span> <span class="k">string</span> &amp;<span class="k">in</span> key, <span class="k">bool</span> on)
-    {
-        <span class="k">if</span> (on)
-            j.<span class="k">set</span>(key, <span class="k">true</span>);
-        <span class="k">else</span>
-            j.remove(key);
     }
 
     <span class="k">void</span> setNumberIf(<span class="t">Json</span>@ j, <span class="k">const</span> <span class="k">string</span> &amp;<span class="k">in</span> key, <span class="k">bool</span> on, <span class="k">float</span> value)
@@ -8469,11 +8900,15 @@ summary { cursor: pointer; padding: 10px 16px; } details pre { border-width: 1px
 
     <span class="t">Kind</span>@ kindOf(<span class="t">Json</span>@ j)
     {
-        <span class="k">string</span> model = j[<span class="s">&quot;model&quot;</span>].text(), shape = j[<span class="s">&quot;shape&quot;</span>].text();
+        <span class="k">string</span> model = j[<span class="s">&quot;model&quot;</span>].text(), shape = j[<span class="s">&quot;shape&quot;</span>].text(), sound = j[<span class="s">&quot;sound&quot;</span>].text();
+        <span class="k">if</span> (j[<span class="s">&quot;name&quot;</span>].text() == <span class="s">&quot;water&quot;</span>)
+            shape = <span class="s">&quot;&quot;</span>;
         <span class="k">for</span> (<span class="k">uint</span> i = <span class="n">0</span>; i &lt; kinds.length(); i++)
         {
             <span class="t">Kind</span>@ k = kinds[i];
-            <span class="k">if</span> (k.key == <span class="s">&quot;own&quot;</span> ? model == k.name : k.key == <span class="s">&quot;model&quot;</span> ? model == <span class="s">&quot;global:model/&quot;</span> + k.name + <span class="s">&quot;.glb&quot;</span> : k.key == <span class="s">&quot;shape&quot;</span> &amp;&amp; shape == k.name)
+            <span class="k">bool</span> same = k.key == <span class="s">&quot;own&quot;</span> ? model == k.name : k.key == <span class="s">&quot;model&quot;</span> ? model == <span class="s">&quot;global:model/&quot;</span> + k.name + <span class="s">&quot;.glb&quot;</span> : k.key == <span class="s">&quot;sound&quot;</span> ? sound == k.name &amp;&amp; sound != <span class="s">&quot;&quot;</span>
+                : k.key == <span class="s">&quot;shape&quot;</span> ? shape == k.name : k.key == <span class="s">&quot;water&quot;</span> &amp;&amp; j[<span class="s">&quot;name&quot;</span>].text() == <span class="s">&quot;water&quot;</span>;
+            <span class="k">if</span> (same)
                 <span class="k">return</span> k;
         }
         <span class="k">return</span> kinds[builtIn - <span class="n">1</span>];
@@ -8484,11 +8919,15 @@ summary { cursor: pointer; padding: 10px 16px; } details pre { border-width: 1px
     {
         <span class="k">if</span> (j.has(<span class="s">&quot;glow&quot;</span>))
             <span class="k">return</span> <span class="t">Vec3</span>(<span class="n">1</span>, <span class="n">1</span>, <span class="n">1</span>) * <span class="k">float</span>(j[<span class="s">&quot;glow&quot;</span>].number(<span class="n">1</span>));
+        <span class="k">if</span> (j.has(<span class="s">&quot;sound&quot;</span>))
+            <span class="k">return</span> <span class="t">Vec3</span>(<span class="n">0.8f</span>, <span class="n">0.8f</span>, <span class="n">0.8f</span>);
         <span class="k">return</span> j[<span class="s">&quot;size&quot;</span>].isNumber ? <span class="t">Vec3</span>(<span class="n">1</span>, <span class="n">1</span>, <span class="n">1</span>) * <span class="k">float</span>(j[<span class="s">&quot;size&quot;</span>].number()) : j[<span class="s">&quot;size&quot;</span>].vec3(<span class="t">Vec3</span>(<span class="n">1</span>, <span class="n">1</span>, <span class="n">1</span>));
     }
     <span class="k">void</span> resize(<span class="t">Json</span>@ j, <span class="t">Vec3</span> s)
     {
         s = <span class="t">Vec3</span>(clamp(s.x, <span class="n">0.0005f</span>, <span class="n">400</span>), clamp(s.y, <span class="n">0.0005f</span>, <span class="n">400</span>), clamp(s.z, <span class="n">0.0005f</span>, <span class="n">400</span>));
+        <span class="k">if</span> (j.has(<span class="s">&quot;sound&quot;</span>))
+            <span class="k">return</span>;
         <span class="k">if</span> (j.has(<span class="s">&quot;glow&quot;</span>))
             j.<span class="k">set</span>(<span class="s">&quot;glow&quot;</span>, s.x);
         <span class="k">else</span>
@@ -8508,6 +8947,25 @@ summary { cursor: pointer; padding: 10px 16px; } details pre { border-width: 1px
         <span class="t">Json</span> all;
         all.<span class="k">set</span>(<span class="s">&quot;ground&quot;</span>, ground);
         all.<span class="k">set</span>(<span class="s">&quot;hour&quot;</span>, hour);
+        all.<span class="k">set</span>(<span class="s">&quot;across&quot;</span>, across);
+        all.<span class="k">set</span>(<span class="s">&quot;edges&quot;</span>, edges);
+        <span class="k">if</span> (sky.count &gt; <span class="n">0</span>)
+            all.<span class="k">set</span>(<span class="s">&quot;sky&quot;</span>, sky);
+        <span class="k">if</span> (roads.length() &gt; <span class="n">0</span>)
+        {
+            <span class="t">Json</span> tracks;
+            <span class="k">for</span> (<span class="k">uint</span> i = <span class="n">0</span>; i &lt; roads.length(); i++)
+            {
+                <span class="t">Json</span> one, points;
+                one.<span class="k">set</span>(<span class="s">&quot;width&quot;</span>, roads[i].width);
+                one.<span class="k">set</span>(<span class="s">&quot;closed&quot;</span>, roads[i].closed);
+                <span class="k">for</span> (<span class="k">uint</span> k = <span class="n">0</span>; k &lt; roads[i].points.length(); k++)
+                    points.add(roads[i].points[k]);
+                one.<span class="k">set</span>(<span class="s">&quot;points&quot;</span>, points);
+                tracks.add(one);
+            }
+            all.<span class="k">set</span>(<span class="s">&quot;roads&quot;</span>, tracks);
+        }
         <span class="k">if</span> (landText != <span class="s">&quot;&quot;</span>)
             all.<span class="k">set</span>(<span class="s">&quot;land&quot;</span>, landText);
         <span class="t">Json</span> list;
@@ -8526,8 +8984,15 @@ summary { cursor: pointer; padding: 10px 16px; } details pre { border-width: 1px
         chosen = -<span class="n">1</span>;
         ground = <span class="k">int</span>(clamp(<span class="k">float</span>(all[<span class="s">&quot;ground&quot;</span>].number()), <span class="n">0</span>, <span class="n">2</span>));
         hour = <span class="k">int</span>(clamp(<span class="k">float</span>(all[<span class="s">&quot;hour&quot;</span>].number()), <span class="n">0</span>, <span class="n">2</span>));
+        across = <span class="k">int</span>(clamp(<span class="k">float</span>(all[<span class="s">&quot;across&quot;</span>].number(<span class="n">1</span>)), <span class="n">0</span>, <span class="k">float</span>(acrosses.length()) - <span class="n">1</span>));
+        edges = all[<span class="s">&quot;edges&quot;</span>].flag(<span class="k">true</span>);
+        <span class="t">Json</span> empty;
+        sky.copy(all[<span class="s">&quot;sky&quot;</span>].isNull ? empty : all[<span class="s">&quot;sky&quot;</span>]);
         groundChoice.chosen = ground;
+        acrossChoice.chosen = across;
+        edgeToggle.checked = edges;
         hourChoice.chosen = hour;
+        readRoads(all[<span class="s">&quot;roads&quot;</span>]);
         landText = all[<span class="s">&quot;land&quot;</span>].text();
         land();
         light();
@@ -8535,8 +9000,15 @@ summary { cursor: pointer; padding: 10px 16px; } details pre { border-width: 1px
         <span class="k">for</span> (<span class="k">uint</span> i = <span class="n">0</span>; i &lt; list.count; i++)
         {
             things.insertLast(<span class="t">Thing</span>(list[i]));
+            <span class="t">Json</span>@ j = things[i].json;
+            <span class="c">// Those from before there were others.</span>
+            <span class="k">if</span> ((j[<span class="s">&quot;wall&quot;</span>].flag() || j[<span class="s">&quot;mass&quot;</span>].number() &gt; <span class="n">0</span>) &amp;&amp; colliderOf(j) == <span class="n">0</span>)
+                setCollider(j, j[<span class="s">&quot;shape&quot;</span>].text() == <span class="s">&quot;sphere&quot;</span> ? <span class="n">2</span> : <span class="n">1</span>);
             make(i);
         }
+        <span class="k">for</span> (<span class="k">uint</span> i = <span class="n">0</span>; i &lt; roads.length(); i++)
+            makeRoad(roads[i]);
+        closeEnds();
         show();
     }
 
@@ -8548,38 +9020,24 @@ summary { cursor: pointer; padding: 10px 16px; } details pre { border-width: 1px
             t.entity.destroy();
         <span class="t">Json</span> j;
         j.copy(t.json);
-        <span class="t">Kind</span>@ k = kindOf(j);
-        <span class="t">Vec3</span> s = sizes(j);
-        <span class="t">Vec3</span> wide((k.high.x - k.low.x) * s.x, (k.high.y - k.low.y) * s.y, (k.high.z - k.low.z) * s.z);
-        <span class="t">Vec3</span> middle((k.high.x + k.low.x) * <span class="n">0.5f</span> * s.x, (k.high.y + k.low.y) * <span class="n">0.5f</span> * s.y, (k.high.z + k.low.z) * <span class="n">0.5f</span> * s.z);
-        <span class="k">if</span> (!playing)
+        <span class="k">if</span> (playing)
         {
-            <span class="k">array</span>&lt;<span class="k">string</span>&gt; still = { <span class="s">&quot;mass&quot;</span>, <span class="s">&quot;walker&quot;</span>, <span class="s">&quot;gravity&quot;</span>, <span class="s">&quot;wall&quot;</span>, <span class="s">&quot;sphere&quot;</span>, <span class="s">&quot;cube&quot;</span>, <span class="s">&quot;capsule&quot;</span>, <span class="s">&quot;behaviour&quot;</span>, <span class="s">&quot;group&quot;</span>, <span class="s">&quot;hits&quot;</span>, <span class="s">&quot;colliderAt&quot;</span>, <span class="s">&quot;friction&quot;</span>, <span class="s">&quot;bounce&quot;</span>, <span class="s">&quot;drag&quot;</span> };
-            <span class="k">for</span> (<span class="k">uint</span> n = <span class="n">0</span>; n &lt; still.length(); n++)
-                j.remove(still[n]);
             @t.entity = <span class="t">Space</span>::make(j);
-            t.entity.cube(j.has(<span class="s">&quot;glow&quot;</span>) ? <span class="t">Vec3</span>(<span class="n">1</span>, <span class="n">1</span>, <span class="n">1</span>) : wide, <span class="n">1</span>, <span class="n">0</span>);
-            t.entity.colliderAt = j.has(<span class="s">&quot;glow&quot;</span>) ? <span class="t">Vec3</span>() : middle;
             <span class="k">return</span>;
         }
-        @t.entity = <span class="t">Space</span>::make(j);
-        <span class="k">if</span> (j[<span class="s">&quot;wall&quot;</span>].flag() || j[<span class="s">&quot;mass&quot;</span>].number() &gt; <span class="n">0</span>)
+        <span class="t">Kind</span>@ k = kindOf(j);
+        <span class="k">array</span>&lt;<span class="k">string</span>&gt; still = { <span class="s">&quot;mass&quot;</span>, <span class="s">&quot;walker&quot;</span>, <span class="s">&quot;gravity&quot;</span>, <span class="s">&quot;wall&quot;</span>, <span class="s">&quot;sphere&quot;</span>, <span class="s">&quot;cube&quot;</span>, <span class="s">&quot;capsule&quot;</span>, <span class="s">&quot;exact&quot;</span>, <span class="s">&quot;behaviour&quot;</span>, <span class="s">&quot;group&quot;</span>, <span class="s">&quot;hits&quot;</span>, <span class="s">&quot;colliderAt&quot;</span>, <span class="s">&quot;friction&quot;</span>, <span class="s">&quot;bounce&quot;</span>, <span class="s">&quot;drag&quot;</span>, <span class="s">&quot;moves&quot;</span>, <span class="s">&quot;seconds&quot;</span>, <span class="s">&quot;pathTime&quot;</span>, <span class="s">&quot;sound&quot;</span>, <span class="s">&quot;reach&quot;</span>, <span class="s">&quot;volume&quot;</span> };
+        <span class="k">for</span> (<span class="k">uint</span> n = <span class="n">0</span>; n &lt; still.length(); n++)
+            j.remove(still[n]);
+        <span class="k">if</span> (t.json.has(<span class="s">&quot;sound&quot;</span>))
         {
-            <span class="k">if</span> (j[<span class="s">&quot;shape&quot;</span>].text() == <span class="s">&quot;sphere&quot;</span>)
-                t.entity.sphere(wide.x * <span class="n">0.5f</span>, <span class="n">0</span>, <span class="n">0</span>);
-            <span class="k">else</span>
-                t.entity.cube(wide, <span class="n">0</span>, <span class="n">0</span>);
-            t.entity.colliderAt = middle;
-            t.entity.wall = <span class="k">true</span>;
-            <span class="k">if</span> (j[<span class="s">&quot;mass&quot;</span>].number() &gt; <span class="n">0</span>)
-            {
-                t.entity.wall = <span class="k">false</span>;
-                t.entity.mass = <span class="k">float</span>(j[<span class="s">&quot;mass&quot;</span>].number());
-                t.entity.gravity = <span class="n">1</span>;
-                t.entity.friction = <span class="n">0.6f</span>;
-                t.entity.bounce = j[<span class="s">&quot;shape&quot;</span>].text() == <span class="s">&quot;sphere&quot;</span> ? <span class="n">0.5f</span> : <span class="n">0.1f</span>;
-            }
+            j.<span class="k">set</span>(<span class="s">&quot;glow&quot;</span>, <span class="n">0.8f</span>);
+            j.<span class="k">set</span>(<span class="s">&quot;color&quot;</span>, <span class="t">Color</span>(<span class="n">0.35f</span>, <span class="n">0.7f</span>, <span class="n">1</span>, <span class="n">0.8f</span>));
         }
+        @t.entity = <span class="t">Space</span>::make(j);
+        <span class="k">bool</span> soft = t.json.has(<span class="s">&quot;glow&quot;</span>) || t.json.has(<span class="s">&quot;sound&quot;</span>);
+        t.entity.cube(soft ? <span class="t">Vec3</span>(<span class="n">1</span>, <span class="n">1</span>, <span class="n">1</span>) : k.high - k.low, <span class="n">1</span>, <span class="n">0</span>);
+        t.entity.colliderAt = soft ? <span class="t">Vec3</span>() : (k.high + k.low) * <span class="n">0.5f</span>;
     }
 
     <span class="c">// Puts its entity where it is.</span>
@@ -8599,9 +9057,11 @@ summary { cursor: pointer; padding: 10px 16px; } details pre { border-width: 1px
     <span class="c">// Made only when it is another, as that takes a while; what was done by hand is put back each time.</span>
     <span class="k">void</span> land()
     {
-        <span class="k">if</span> (made != ground)
+        <span class="k">int</span> wanted = ground * <span class="n">10</span> + across;
+        <span class="k">if</span> (made != wanted)
             makeGround();
-        made = ground;
+        made = wanted;
+        <span class="t">Space</span>::edges = edges;
         <span class="k">if</span> (!<span class="t">Space</span>::restoreLand(landText))
         {
             landText = <span class="s">&quot;&quot;</span>;
@@ -8611,31 +9071,443 @@ summary { cursor: pointer; padding: 10px 16px; } details pre { border-width: 1px
 
     <span class="k">void</span> makeGround()
     {
+        <span class="k">uint</span> squares = <span class="k">uint</span>(<span class="n">32</span>) &lt;&lt; <span class="k">uint</span>(across);
         <span class="k">if</span> (ground == <span class="n">0</span>)
         {
-            <span class="t">Space</span>::land(<span class="n">1</span>, <span class="n">64</span>, <span class="n">2</span>, <span class="n">0.001f</span>);
+            <span class="t">Space</span>::land(<span class="n">1</span>, squares, <span class="n">2</span>, <span class="n">0.001f</span>);
             <span class="t">Space</span>::landColors(<span class="t">Color</span>(<span class="n">0.42f</span>, <span class="n">0.56f</span>, <span class="n">0.34f</span>), <span class="t">Color</span>(<span class="n">0.42f</span>, <span class="n">0.56f</span>, <span class="n">0.34f</span>), <span class="t">Color</span>(<span class="n">0.42f</span>, <span class="n">0.56f</span>, <span class="n">0.34f</span>), <span class="t">Color</span>(<span class="n">0.4f</span>, <span class="n">0.4f</span>, <span class="n">0.4f</span>), -<span class="n">1</span>, <span class="n">1</span>);
+            <span class="k">return</span>;
         }
-        <span class="k">else</span>
-        {
-            <span class="t">Space</span>::land(ground == <span class="n">1</span> ? <span class="n">7</span> : <span class="n">12</span>, <span class="n">64</span>, <span class="n">2</span>, ground == <span class="n">1</span> ? <span class="n">7</span> : <span class="n">12</span>, <span class="n">0.45f</span>, ground == <span class="n">2</span>);
-            <span class="t">Space</span>::landColors(<span class="t">Color</span>(<span class="n">0.78f</span>, <span class="n">0.7f</span>, <span class="n">0.48f</span>), <span class="t">Color</span>(<span class="n">0.36f</span>, <span class="n">0.52f</span>, <span class="n">0.28f</span>), <span class="t">Color</span>(<span class="n">0.5f</span>, <span class="n">0.56f</span>, <span class="n">0.36f</span>), <span class="t">Color</span>(<span class="n">0.45f</span>, <span class="n">0.42f</span>, <span class="n">0.4f</span>), ground == <span class="n">2</span> ? <span class="n">0.8f</span> : -<span class="n">20</span>, <span class="n">7</span>);
-            <span class="c">// Room to build on.</span>
-            <span class="t">Space</span>::flatten(<span class="n">0</span>, <span class="n">0</span>, <span class="n">24</span>, ground == <span class="n">2</span> ? <span class="n">2.5f</span> : <span class="t">Space</span>::height(<span class="n">0</span>, <span class="n">0</span>));
-        }
-        <span class="t">Space</span>::water(ground == <span class="n">2</span> ? <span class="n">0.0f</span> : -<span class="n">60</span>, <span class="t">Color</span>(<span class="n">0.16f</span>, <span class="n">0.4f</span>, <span class="n">0.5f</span>, <span class="n">0.8f</span>));
+        <span class="t">Space</span>::land(ground == <span class="n">1</span> ? <span class="n">7</span> : <span class="n">12</span>, squares, <span class="n">2</span>, ground == <span class="n">1</span> ? <span class="n">7</span> : <span class="n">12</span>, <span class="n">0.45f</span>, ground == <span class="n">2</span>);
+        <span class="t">Space</span>::landColors(<span class="t">Color</span>(<span class="n">0.78f</span>, <span class="n">0.7f</span>, <span class="n">0.48f</span>), <span class="t">Color</span>(<span class="n">0.36f</span>, <span class="n">0.52f</span>, <span class="n">0.28f</span>), <span class="t">Color</span>(<span class="n">0.5f</span>, <span class="n">0.56f</span>, <span class="n">0.36f</span>), <span class="t">Color</span>(<span class="n">0.45f</span>, <span class="n">0.42f</span>, <span class="n">0.4f</span>), ground == <span class="n">2</span> ? <span class="n">0.8f</span> : -<span class="n">20</span>, <span class="n">7</span>);
+        <span class="c">// Room to build on.</span>
+        <span class="t">Space</span>::flatten(<span class="n">0</span>, <span class="n">0</span>, across == <span class="n">0</span> ? <span class="n">14.0f</span> : <span class="n">24.0f</span>, ground == <span class="n">2</span> ? <span class="n">2.5f</span> : <span class="t">Space</span>::height(<span class="n">0</span>, <span class="n">0</span>));
     }
 
     <span class="k">void</span> light()
     {
         <span class="t">Color</span> top = hour == <span class="n">0</span> ? <span class="t">Color</span>(<span class="n">0.25f</span>, <span class="n">0.5f</span>, <span class="n">0.85f</span>) : hour == <span class="n">1</span> ? <span class="t">Color</span>(<span class="n">0.25f</span>, <span class="n">0.24f</span>, <span class="n">0.45f</span>) : <span class="t">Color</span>(<span class="n">0.015f</span>, <span class="n">0.02f</span>, <span class="n">0.06f</span>);
         <span class="t">Color</span> low = hour == <span class="n">0</span> ? <span class="t">Color</span>(<span class="n">0.72f</span>, <span class="n">0.83f</span>, <span class="n">0.92f</span>) : hour == <span class="n">1</span> ? <span class="t">Color</span>(<span class="n">0.95f</span>, <span class="n">0.6f</span>, <span class="n">0.4f</span>) : <span class="t">Color</span>(<span class="n">0.07f</span>, <span class="n">0.09f</span>, <span class="n">0.17f</span>);
+        <span class="t">Vec3</span> sun = hour == <span class="n">1</span> ? <span class="t">Vec3</span>(<span class="n">0.8f</span>, <span class="n">0.3f</span>, -<span class="n">0.4f</span>) : <span class="t">Vec3</span>(<span class="n">0.45f</span>, <span class="n">0.8f</span>, <span class="n">0.4f</span>);
+        <span class="k">if</span> (sky.has(<span class="s">&quot;mist&quot;</span>))
+            low = sky[<span class="s">&quot;mist&quot;</span>].color();
+        sunTurn.value = wrapped(floor(atan2(sun.x, sun.z) * <span class="n">57.29578f</span> / <span class="n">15</span> + <span class="n">0.5f</span>) * <span class="n">15</span>);
+        sunHigh.value = floor(atan2(sun.y, sqrt(sun.x * sun.x + sun.z * sun.z)) * <span class="n">57.29578f</span> / <span class="n">5</span> + <span class="n">0.5f</span>) * <span class="n">5</span>;
+        <span class="k">if</span> (sky.has(<span class="s">&quot;sunHigh&quot;</span>))
+        {
+            sunTurn.value = <span class="k">float</span>(sky[<span class="s">&quot;sunTurn&quot;</span>].number());
+            sunHigh.value = <span class="k">float</span>(sky[<span class="s">&quot;sunHigh&quot;</span>].number());
+            <span class="k">float</span> a = sunTurn.value * <span class="n">0.0174533f</span>, h = sunHigh.value * <span class="n">0.0174533f</span>;
+            sun = <span class="t">Vec3</span>(sin(a) * cos(h), sin(h), cos(a) * cos(h));
+        }
+        fogFrom.value = <span class="k">float</span>(sky[<span class="s">&quot;fogFrom&quot;</span>].number(<span class="n">60</span>));
+        fogTo.value = <span class="k">float</span>(sky[<span class="s">&quot;fogTo&quot;</span>].number(<span class="n">170</span>));
+        <span class="k">bool</span> sea = sky[<span class="s">&quot;sea&quot;</span>].flag(ground == <span class="n">2</span>);
+        waterToggle.checked = sea;
+        waterHigh.value = <span class="k">float</span>(sky[<span class="s">&quot;seaHigh&quot;</span>].number(<span class="n">0</span>));
+        <span class="k">int</span> picture = pictures.find(sky[<span class="s">&quot;picture&quot;</span>].text());
+        skyChoice.chosen = picture &lt; <span class="n">0</span> ? <span class="n">0</span> : picture;
+        @skyPicture = sky[<span class="s">&quot;picture&quot;</span>].text() == <span class="s">&quot;&quot;</span> ? <span class="k">null</span> : <span class="t">Assets</span>::texture(sky[<span class="s">&quot;picture&quot;</span>].text());
+        <span class="t">Space</span>::skyPicture(skyPicture);
         <span class="t">Space</span>::sky(top, low);
-        <span class="t">Space</span>::fog(low, <span class="n">60</span>, <span class="n">170</span>);
-        <span class="t">Space</span>::farthest(<span class="n">180</span>);
-        <span class="t">Space</span>::sun(hour == <span class="n">1</span> ? <span class="t">Vec3</span>(<span class="n">0.8f</span>, <span class="n">0.3f</span>, -<span class="n">0.4f</span>) : <span class="t">Vec3</span>(<span class="n">0.45f</span>, <span class="n">0.8f</span>, <span class="n">0.4f</span>), hour == <span class="n">0</span> ? <span class="t">Color</span>(<span class="n">0.95f</span>, <span class="n">0.9f</span>, <span class="n">0.8f</span>) : hour == <span class="n">1</span> ? <span class="t">Color</span>(<span class="n">0.9f</span>, <span class="n">0.5f</span>, <span class="n">0.3f</span>) : <span class="t">Color</span>(<span class="n">0.16f</span>, <span class="n">0.2f</span>, <span class="n">0.32f</span>));
+        <span class="t">Space</span>::fog(low, fogFrom.value, fogTo.value &gt; fogFrom.value + <span class="n">5</span> ? fogTo.value : fogFrom.value + <span class="n">5</span>);
+        <span class="t">Space</span>::farthest((fogTo.value &gt; fogFrom.value ? fogTo.value : fogFrom.value) + <span class="n">15</span>);
+        <span class="t">Space</span>::sun(sun, hour == <span class="n">0</span> ? <span class="t">Color</span>(<span class="n">0.95f</span>, <span class="n">0.9f</span>, <span class="n">0.8f</span>) : hour == <span class="n">1</span> ? <span class="t">Color</span>(<span class="n">0.9f</span>, <span class="n">0.5f</span>, <span class="n">0.3f</span>) : <span class="t">Color</span>(<span class="n">0.16f</span>, <span class="n">0.2f</span>, <span class="n">0.32f</span>));
         <span class="t">Space</span>::ambient(hour == <span class="n">0</span> ? <span class="t">Color</span>(<span class="n">0.42f</span>, <span class="n">0.46f</span>, <span class="n">0.55f</span>) : hour == <span class="n">1</span> ? <span class="t">Color</span>(<span class="n">0.34f</span>, <span class="n">0.3f</span>, <span class="n">0.4f</span>) : <span class="t">Color</span>(<span class="n">0.12f</span>, <span class="n">0.14f</span>, <span class="n">0.24f</span>), hour == <span class="n">0</span> ? <span class="t">Color</span>(<span class="n">0.25f</span>, <span class="n">0.24f</span>, <span class="n">0.2f</span>) : <span class="t">Color</span>(<span class="n">0.1f</span>, <span class="n">0.09f</span>, <span class="n">0.1f</span>));
         <span class="t">Space</span>::shadows(hour == <span class="n">2</span> ? <span class="n">0.35f</span> : <span class="n">0.6f</span>, <span class="n">34</span>);
+        <span class="t">Space</span>::water(sea ? waterHigh.value : -<span class="n">200.0f</span>, <span class="t">Color</span>(<span class="n">0.16f</span>, <span class="n">0.4f</span>, <span class="n">0.5f</span>, <span class="n">0.8f</span>));
+    }
+    <span class="t">Texture</span>@ skyPicture;
+
+    <span class="k">void</span> onSky(<span class="t">Widget</span>@ w)
+    {
+        <span class="k">if</span> (w <span class="k">is</span> sunTurn || w <span class="k">is</span> sunHigh)
+        {
+            sky.<span class="k">set</span>(<span class="s">&quot;sunTurn&quot;</span>, sunTurn.value);
+            sky.<span class="k">set</span>(<span class="s">&quot;sunHigh&quot;</span>, sunHigh.value);
+        }
+        <span class="k">else</span>
+        {
+            sky.<span class="k">set</span>(<span class="s">&quot;fogFrom&quot;</span>, fogFrom.value);
+            sky.<span class="k">set</span>(<span class="s">&quot;fogTo&quot;</span>, fogTo.value);
+        }
+        light();
+        changed(<span class="s">&quot;sky&quot;</span>, <span class="k">false</span>);
+    }
+    <span class="k">void</span> onMist(<span class="t">Widget</span>@ w) { sky.<span class="k">set</span>(<span class="s">&quot;mist&quot;</span>, colors[<span class="k">uint</span>(w.tag)]); light(); changed(<span class="s">&quot;mist&quot;</span>); }
+    <span class="k">void</span> onSkyFresh(<span class="t">Widget</span>@ w)
+    {
+        <span class="t">Json</span> empty;
+        sky.copy(empty);
+        light();
+        changed(<span class="s">&quot;sky&quot;</span>);
+    }
+    <span class="k">void</span> onSkyPicture(<span class="t">Widget</span>@ w)
+    {
+        <span class="k">if</span> (w.chosen &gt; <span class="n">0</span>)
+            sky.<span class="k">set</span>(<span class="s">&quot;picture&quot;</span>, pictures[<span class="k">uint</span>(w.chosen)]);
+        <span class="k">else</span>
+            sky.remove(<span class="s">&quot;picture&quot;</span>);
+        light();
+        changed(<span class="s">&quot;picture&quot;</span>);
+    }
+    <span class="k">void</span> onWater(<span class="t">Widget</span>@ w)
+    {
+        sky.<span class="k">set</span>(<span class="s">&quot;sea&quot;</span>, waterToggle.checked);
+        sky.<span class="k">set</span>(<span class="s">&quot;seaHigh&quot;</span>, waterHigh.value);
+        light();
+        changed(<span class="s">&quot;sea&quot;</span>, <span class="k">false</span>);
+    }
+
+    <span class="c">// --- Scenes ---</span>
+
+    <span class="k">string</span> path(<span class="k">const</span> <span class="k">string</span> &amp;<span class="k">in</span> name) { <span class="k">return</span> <span class="s">&quot;asset:&quot;</span> + name + <span class="s">&quot;.json&quot;</span>; }
+
+    <span class="k">int</span> sceneNow()
+    {
+        <span class="k">for</span> (<span class="k">uint</span> i = <span class="n">0</span>; i &lt; scenes[<span class="s">&quot;scenes&quot;</span>].count; i++)
+            <span class="k">if</span> (path(scenes[<span class="s">&quot;scenes&quot;</span>][i][<span class="s">&quot;file&quot;</span>].text()) == file)
+                <span class="k">return</span> <span class="k">int</span>(i);
+        <span class="k">return</span> <span class="n">0</span>;
+    }
+
+    <span class="k">void</span> openLast()
+    {
+        <span class="k">int</span> last = <span class="k">int</span>(scenes[<span class="s">&quot;last&quot;</span>].number());
+        openScene(last &gt;= <span class="n">0</span> &amp;&amp; last &lt; <span class="k">int</span>(scenes[<span class="s">&quot;scenes&quot;</span>].count) ? last : <span class="n">0</span>);
+    }
+
+    <span class="k">void</span> openScene(<span class="k">int</span> which)
+    {
+        <span class="t">Json</span>@ one = scenes[<span class="s">&quot;scenes&quot;</span>][<span class="k">uint</span>(which)];
+        file = path(one[<span class="s">&quot;file&quot;</span>].text(<span class="s">&quot;scene&quot;</span>));
+        sceneName = one[<span class="s">&quot;name&quot;</span>].text(<span class="s">&quot;Village&quot;</span>);
+        <span class="t">Json</span> j;
+        <span class="k">string</span> error;
+        <span class="k">if</span> (!j.parse(<span class="t">Assets</span>::read(file), error))
+            <span class="t">Ui</span>::toast(error);
+        read(j);
+        before.resize(<span class="n">0</span>);
+        after.resize(<span class="n">0</span>);
+        now = write().write(<span class="k">true</span>);
+        dirty = <span class="k">false</span>;
+        select(-<span class="n">1</span>);
+    }
+
+    <span class="k">void</span> keepScenes(<span class="k">int</span> last)
+    {
+        scenes.<span class="k">set</span>(<span class="s">&quot;last&quot;</span>, last);
+        <span class="t">Assets</span>::write(<span class="s">&quot;asset:scenes.json&quot;</span>, scenes.write());
+    }
+
+    <span class="k">int</span> wantScene = -<span class="n">1</span>;
+    <span class="k">void</span> goTo(<span class="k">int</span> which)
+    {
+        wantScene = which;
+        <span class="k">if</span> (dirty)
+            <span class="t">Ui</span>::dialog(<span class="s">&quot;Not saved&quot;</span>, sceneName + <span class="s">&quot; has changed since it was saved.&quot;</span>, <span class="k">array</span>&lt;<span class="k">string</span>&gt; = { <span class="s">&quot;Save&quot;</span>, <span class="s">&quot;Don&#x27;t save&quot;</span>, <span class="s">&quot;Stay&quot;</span> }, <span class="t">WidgetAnswer</span>(<span class="k">this</span>.onLeave));
+        <span class="k">else</span>
+            onLeave(<span class="n">1</span>);
+    }
+    <span class="k">void</span> onLeave(<span class="k">int</span> answer)
+    {
+        <span class="k">if</span> (answer &lt; <span class="n">0</span> || answer == <span class="n">2</span>)
+            <span class="k">return</span>;
+        <span class="k">if</span> (answer == <span class="n">0</span>)
+            onSave(<span class="k">null</span>);
+        <span class="k">if</span> (popup !<span class="k">is</span> <span class="k">null</span>)
+            popup.close();
+        @popup = <span class="k">null</span>;
+        openScene(wantScene);
+        keepScenes(wantScene);
+    }
+
+    <span class="k">void</span> onScenes(<span class="t">Widget</span>@ w)
+    {
+        @popup = <span class="t">Ui</span>::popup();
+        popup.label(<span class="s">&quot;Scenes&quot;</span>, <span class="s">&quot;heading&quot;</span>);
+        <span class="t">Widget</span>@ all = popup.scroll(<span class="n">6</span>);
+        all.height = <span class="n">250</span>;
+        all.width = <span class="n">380</span>;
+        <span class="k">int</span> here = sceneNow();
+        <span class="k">for</span> (<span class="k">uint</span> i = <span class="n">0</span>; i &lt; scenes[<span class="s">&quot;scenes&quot;</span>].count; i++)
+        {
+            <span class="t">Widget</span>@ b = all.button(scenes[<span class="s">&quot;scenes&quot;</span>][i][<span class="s">&quot;name&quot;</span>].text() + (<span class="k">int</span>(i) == here ? <span class="s">&quot;  (open)&quot;</span> : <span class="s">&quot;&quot;</span>), <span class="t">WidgetEvent</span>(<span class="k">this</span>.onScene));
+            b.tag = <span class="k">int</span>(i);
+        }
+        <span class="t">Widget</span>@ row = popup.row(<span class="n">8</span>);
+        row.button(<span class="s">&quot;New&quot;</span>, <span class="t">WidgetEvent</span>(<span class="k">this</span>.onNew)).grow = <span class="n">1</span>;
+        row.button(<span class="s">&quot;Copy&quot;</span>, <span class="t">WidgetEvent</span>(<span class="k">this</span>.onCopyScene)).grow = <span class="n">1</span>;
+        <span class="t">Widget</span>@ other = popup.row(<span class="n">8</span>);
+        other.button(<span class="s">&quot;Rename&quot;</span>, <span class="t">WidgetEvent</span>(<span class="k">this</span>.onRename)).grow = <span class="n">1</span>;
+        other.button(<span class="s">&quot;Delete&quot;</span>, <span class="t">WidgetEvent</span>(<span class="k">this</span>.onDeleteScene)).grow = <span class="n">1</span>;
+        popup.button(<span class="s">&quot;Close&quot;</span>, <span class="t">WidgetEvent</span>(<span class="k">this</span>.onClosePopup));
+    }
+    <span class="k">void</span> onClosePopup(<span class="t">Widget</span>@ w) { <span class="k">if</span> (popup !<span class="k">is</span> <span class="k">null</span>) popup.close(); @popup = <span class="k">null</span>; }
+    <span class="k">void</span> onScene(<span class="t">Widget</span>@ w) { goTo(w.tag); }
+
+    <span class="k">int</span> naming = <span class="n">0</span>;   <span class="c">// 0 a new one, 1 a copy, 2 another name</span>
+    <span class="t">Widget</span>@ nameField;
+    <span class="k">void</span> askName(<span class="k">int</span> what, <span class="k">const</span> <span class="k">string</span> &amp;<span class="k">in</span> text)
+    {
+        naming = what;
+        onClosePopup(<span class="k">null</span>);
+        @popup = <span class="t">Ui</span>::popup();
+        popup.label(what == <span class="n">0</span> ? <span class="s">&quot;A new scene&quot;</span> : what == <span class="n">1</span> ? <span class="s">&quot;A copy&quot;</span> : <span class="s">&quot;Another name&quot;</span>, <span class="s">&quot;heading&quot;</span>);
+        @nameField = popup.field(text, <span class="s">&quot;Its name&quot;</span>);
+        nameField.width = <span class="n">340</span>;
+        <span class="t">Widget</span>@ row = popup.row(<span class="n">8</span>);
+        row.button(<span class="s">&quot;All right&quot;</span>, <span class="t">WidgetEvent</span>(<span class="k">this</span>.onNamed)).grow = <span class="n">1</span>;
+        row.button(<span class="s">&quot;Cancel&quot;</span>, <span class="t">WidgetEvent</span>(<span class="k">this</span>.onClosePopup)).grow = <span class="n">1</span>;
+    }
+    <span class="k">void</span> onNew(<span class="t">Widget</span>@ w)
+    {
+        <span class="k">if</span> (dirty)
+        {
+            <span class="t">Ui</span>::toast(<span class="s">&quot;Save this one first&quot;</span>);
+            <span class="k">return</span>;
+        }
+        askName(<span class="n">0</span>, <span class="s">&quot;Scene &quot;</span> + (scenes[<span class="s">&quot;scenes&quot;</span>].count + <span class="n">1</span>));
+    }
+    <span class="k">void</span> onCopyScene(<span class="t">Widget</span>@ w) { askName(<span class="n">1</span>, sceneName + <span class="s">&quot; 2&quot;</span>); }
+    <span class="k">void</span> onRename(<span class="t">Widget</span>@ w) { askName(<span class="n">2</span>, sceneName); }
+
+    <span class="k">void</span> onNamed(<span class="t">Widget</span>@ w)
+    {
+        <span class="k">string</span> name = nameField.text;
+        <span class="k">if</span> (name.length() &gt; <span class="n">30</span>)
+            name = name.substr(<span class="n">0</span>, <span class="n">30</span>);
+        <span class="k">if</span> (name == <span class="s">&quot;&quot;</span>)
+            <span class="k">return</span>;
+        onClosePopup(<span class="k">null</span>);
+        <span class="k">if</span> (naming == <span class="n">2</span>)
+        {
+            scenes[<span class="s">&quot;scenes&quot;</span>][<span class="k">uint</span>(sceneNow())].<span class="k">set</span>(<span class="s">&quot;name&quot;</span>, name);
+            sceneName = name;
+            keepScenes(sceneNow());
+            show();
+            <span class="k">return</span>;
+        }
+        <span class="k">if</span> (scenes[<span class="s">&quot;scenes&quot;</span>].count &gt;= <span class="n">12</span>)
+        {
+            <span class="t">Ui</span>::toast(<span class="s">&quot;That is enough scenes&quot;</span>);
+            <span class="k">return</span>;
+        }
+        <span class="c">// The first number that no other has.</span>
+        <span class="k">string</span> named;
+        <span class="k">for</span> (<span class="k">int</span> n = <span class="n">2</span>; named == <span class="s">&quot;&quot;</span>; n++)
+        {
+            named = <span class="s">&quot;scene&quot;</span> + n;
+            <span class="k">for</span> (<span class="k">uint</span> i = <span class="n">0</span>; i &lt; scenes[<span class="s">&quot;scenes&quot;</span>].count; i++)
+                <span class="k">if</span> (scenes[<span class="s">&quot;scenes&quot;</span>][i][<span class="s">&quot;file&quot;</span>].text() == named)
+                    named = <span class="s">&quot;&quot;</span>;
+        }
+        <span class="t">Json</span> fresh, one;
+        <span class="k">if</span> (naming == <span class="n">0</span>)
+        {
+            fresh.<span class="k">set</span>(<span class="s">&quot;ground&quot;</span>, <span class="n">1</span>);
+            fresh.<span class="k">set</span>(<span class="s">&quot;hour&quot;</span>, <span class="n">0</span>);
+        }
+        <span class="k">else</span>
+            fresh.copy(write());
+        <span class="k">if</span> (!<span class="t">Assets</span>::write(path(named), fresh.write()))
+        {
+            <span class="t">Ui</span>::toast(<span class="s">&quot;It couldn&#x27;t be made&quot;</span>);
+            <span class="k">return</span>;
+        }
+        one.<span class="k">set</span>(<span class="s">&quot;name&quot;</span>, name);
+        one.<span class="k">set</span>(<span class="s">&quot;file&quot;</span>, named);
+        scenes[<span class="s">&quot;scenes&quot;</span>].add(one);
+        <span class="k">int</span> last = <span class="k">int</span>(scenes[<span class="s">&quot;scenes&quot;</span>].count) - <span class="n">1</span>;
+        openScene(last);
+        keepScenes(last);
+        <span class="t">Ui</span>::toast(name);
+    }
+
+    <span class="k">void</span> onDeleteScene(<span class="t">Widget</span>@ w)
+    {
+        <span class="k">if</span> (scenes[<span class="s">&quot;scenes&quot;</span>].count &lt; <span class="n">2</span>)
+        {
+            <span class="t">Ui</span>::toast(<span class="s">&quot;There must be one&quot;</span>);
+            <span class="k">return</span>;
+        }
+        <span class="t">Ui</span>::dialog(<span class="s">&quot;Delete&quot;</span>, <span class="s">&quot;Delete &quot;</span> + sceneName + <span class="s">&quot;? This can&#x27;t be undone.&quot;</span>, <span class="k">array</span>&lt;<span class="k">string</span>&gt; = { <span class="s">&quot;Delete&quot;</span>, <span class="s">&quot;Keep&quot;</span> }, <span class="t">WidgetAnswer</span>(<span class="k">this</span>.deleteScene));
+    }
+    <span class="k">void</span> deleteScene(<span class="k">int</span> answer)
+    {
+        <span class="k">if</span> (answer != <span class="n">0</span>)
+            <span class="k">return</span>;
+        onClosePopup(<span class="k">null</span>);
+        <span class="t">Assets</span>::forget(file);
+        scenes[<span class="s">&quot;scenes&quot;</span>].remove(<span class="k">uint</span>(sceneNow()));
+        openScene(<span class="n">0</span>);
+        keepScenes(<span class="n">0</span>);
+    }
+
+    <span class="c">// --- Roads ---</span>
+
+    <span class="k">void</span> readRoads(<span class="t">Json</span>@ all)
+    {
+        <span class="k">for</span> (<span class="k">uint</span> i = <span class="n">0</span>; i &lt; roads.length(); i++)
+            <span class="k">if</span> (roads[i].entity !<span class="k">is</span> <span class="k">null</span>)
+                roads[i].entity.destroy();
+        roads.resize(<span class="n">0</span>);
+        <span class="k">for</span> (<span class="k">uint</span> i = <span class="n">0</span>; i &lt; all.count &amp;&amp; i &lt; <span class="n">8</span>; i++)
+        {
+            <span class="t">Road</span>@ r = <span class="t">Road</span>();
+            r.width = clamp(<span class="k">float</span>(all[i][<span class="s">&quot;width&quot;</span>].number(<span class="n">7</span>)), <span class="n">2</span>, <span class="n">20</span>);
+            r.closed = all[i][<span class="s">&quot;closed&quot;</span>].flag(<span class="k">true</span>);
+            <span class="k">for</span> (<span class="k">uint</span> k = <span class="n">0</span>; k &lt; all[i][<span class="s">&quot;points&quot;</span>].count &amp;&amp; k &lt; <span class="n">64</span>; k++)
+                r.points.insertLast(all[i][<span class="s">&quot;points&quot;</span>][k].vec3());
+            roads.insertLast(r);
+        }
+        <span class="k">if</span> (road &gt;= <span class="k">int</span>(roads.length()))
+            road = <span class="k">int</span>(roads.length()) - <span class="n">1</span>;
+    }
+
+    <span class="c">// Lies on the land as it is now.</span>
+    <span class="k">void</span> makeRoad(<span class="t">Road</span>@ r)
+    {
+        <span class="k">if</span> (r.entity !<span class="k">is</span> <span class="k">null</span>)
+            r.entity.destroy();
+        @r.entity = <span class="k">null</span>;
+        r.follow();
+        <span class="k">int</span> n = <span class="k">int</span>(r.path.length());
+        <span class="k">if</span> (n &lt; <span class="n">2</span>)
+            <span class="k">return</span>;
+        <span class="t">Mesh</span>@ m = <span class="t">Mesh</span>();
+        <span class="k">array</span>&lt;<span class="k">float</span>&gt; offsets = { -<span class="n">0.5f</span>, -<span class="n">0.46f</span>, -<span class="n">0.2f</span>, <span class="n">0.2f</span>, <span class="n">0.46f</span>, <span class="n">0.5f</span> };
+        <span class="k">array</span>&lt;<span class="t">Color</span>&gt; tints = { <span class="t">Color</span>(<span class="n">0.8f</span>, <span class="n">0.25f</span>, <span class="n">0.22f</span>), <span class="t">Color</span>(<span class="n">0.23f</span>, <span class="n">0.24f</span>, <span class="n">0.26f</span>), <span class="t">Color</span>(<span class="n">0.23f</span>, <span class="n">0.24f</span>, <span class="n">0.26f</span>), <span class="t">Color</span>(<span class="n">0.23f</span>, <span class="n">0.24f</span>, <span class="n">0.26f</span>), <span class="t">Color</span>(<span class="n">0.23f</span>, <span class="n">0.24f</span>, <span class="n">0.26f</span>), <span class="t">Color</span>(<span class="n">0.8f</span>, <span class="n">0.25f</span>, <span class="n">0.22f</span>) };
+        <span class="k">int</span> rows = r.closed &amp;&amp; r.points.length() &gt; <span class="n">2</span> ? n + <span class="n">1</span> : n;
+        <span class="k">for</span> (<span class="k">int</span> i = <span class="n">0</span>; i &lt; rows; i++)
+        {
+            <span class="t">Vec3</span> at = r.at(i), side = r.side(i);
+            <span class="k">for</span> (<span class="k">uint</span> k = <span class="n">0</span>; k &lt; <span class="n">6</span>; k++)
+            {
+                <span class="t">Vec3</span> p = at + side * (offsets[k] * r.width);
+                <span class="k">float</span> y = <span class="t">Space</span>::height(p.x, p.z);
+                p.y = (y &lt; -<span class="n">1000</span> ? at.y : y) + <span class="n">0.09f</span>;
+                <span class="k">bool</span> kerb = k == <span class="n">0</span> || k == <span class="n">5</span>;
+                m.vertex(p, <span class="t">Vec3</span>(<span class="n">0</span>, <span class="n">1</span>, <span class="n">0</span>), kerb &amp;&amp; (i / <span class="n">2</span>) % <span class="n">2</span> == <span class="n">0</span> ? <span class="t">Color</span>(<span class="n">0.92f</span>, <span class="n">0.92f</span>, <span class="n">0.9f</span>) : kerb ? tints[k] : tints[k]);
+            }
+        }
+        <span class="k">for</span> (<span class="k">int</span> i = <span class="n">0</span>; i + <span class="n">1</span> &lt; rows; i++)
+            <span class="k">for</span> (<span class="k">uint</span> k = <span class="n">0</span>; k &lt; <span class="n">5</span>; k++)
+            {
+                <span class="k">uint</span> a = <span class="k">uint</span>(i) * <span class="n">6</span> + k, b = a + <span class="n">1</span>, c = a + <span class="n">6</span>, d = a + <span class="n">7</span>;
+                m.triangle(a, d, b);
+                m.triangle(a, c, d);
+            }
+        @r.entity = <span class="t">Space</span>::spawn(<span class="t">Vec3</span>());
+        r.entity.mesh(m);
+        r.entity.twoSided = <span class="k">true</span>;
+        r.entity.shadow = <span class="k">false</span>;
+    }
+
+    <span class="t">Road</span>@ roadNow() { <span class="k">return</span> road &gt;= <span class="n">0</span> &amp;&amp; road &lt; <span class="k">int</span>(roads.length()) ? roads[<span class="k">uint</span>(road)] : <span class="k">null</span>; }
+
+    <span class="k">void</span> showRoad()
+    {
+        <span class="t">Road</span>@ r = roadNow();
+        roadLabel.text = r <span class="k">is</span> <span class="k">null</span> ? <span class="s">&quot;No road yet&quot;</span> : <span class="s">&quot;Road &quot;</span> + (road + <span class="n">1</span>) + <span class="s">&quot; of &quot;</span> + roads.length() + <span class="s">&quot;: &quot;</span> + r.points.length() + <span class="s">&quot; points&quot;</span>;
+        roadClosed.checked = r <span class="k">is</span> <span class="k">null</span> || r.closed;
+        roadWidth.value = r <span class="k">is</span> <span class="k">null</span> ? <span class="n">7.0f</span> : r.width;
+    }
+
+    <span class="k">void</span> onRoadNew(<span class="t">Widget</span>@ w)
+    {
+        <span class="k">if</span> (roads.length() &gt;= <span class="n">8</span>)
+        {
+            <span class="t">Ui</span>::toast(<span class="s">&quot;That is enough roads&quot;</span>);
+            <span class="k">return</span>;
+        }
+        roads.insertLast(<span class="t">Road</span>());
+        road = <span class="k">int</span>(roads.length()) - <span class="n">1</span>;
+        showRoad();
+    }
+    <span class="k">void</span> onRoadNext(<span class="t">Widget</span>@ w)
+    {
+        road = roads.length() &gt; <span class="n">0</span> ? (road + <span class="n">1</span>) % <span class="k">int</span>(roads.length()) : -<span class="n">1</span>;
+        showRoad();
+    }
+    <span class="k">void</span> onRoad(<span class="t">Widget</span>@ w)
+    {
+        <span class="t">Road</span>@ r = roadNow();
+        <span class="k">if</span> (r <span class="k">is</span> <span class="k">null</span>)
+            <span class="k">return</span>;
+        r.closed = roadClosed.checked;
+        r.width = roadWidth.value;
+        makeRoad(r);
+        changed(<span class="s">&quot;road&quot;</span>, <span class="k">false</span>);
+    }
+    <span class="k">void</span> onRoadBack(<span class="t">Widget</span>@ w)
+    {
+        <span class="t">Road</span>@ r = roadNow();
+        <span class="k">if</span> (r <span class="k">is</span> <span class="k">null</span> || r.points.length() == <span class="n">0</span>)
+            <span class="k">return</span>;
+        r.points.removeLast();
+        makeRoad(r);
+        changed(<span class="s">&quot;road&quot;</span>);
+    }
+    <span class="k">void</span> onRoadDelete(<span class="t">Widget</span>@ w)
+    {
+        <span class="t">Road</span>@ r = roadNow();
+        <span class="k">if</span> (r <span class="k">is</span> <span class="k">null</span>)
+            <span class="k">return</span>;
+        <span class="k">if</span> (r.entity !<span class="k">is</span> <span class="k">null</span>)
+            r.entity.destroy();
+        roads.removeAt(<span class="k">uint</span>(road));
+        road = <span class="k">int</span>(roads.length()) - <span class="n">1</span>;
+        changed(<span class="s">&quot;road&quot;</span>);
+    }
+
+    <span class="c">// The land under it is brought to its height, which is smooth.</span>
+    <span class="k">void</span> onRoadLand(<span class="t">Widget</span>@ w)
+    {
+        <span class="t">Road</span>@ r = roadNow();
+        <span class="k">if</span> (r <span class="k">is</span> <span class="k">null</span> || r.path.length() &lt; <span class="n">2</span>)
+            <span class="k">return</span>;
+        <span class="k">int</span> n = <span class="k">int</span>(r.path.length());
+        <span class="k">array</span>&lt;<span class="k">float</span>&gt; heights(n), wanted(n);
+        <span class="k">for</span> (<span class="k">int</span> i = <span class="n">0</span>; i &lt; n; i++)
+            heights[<span class="k">uint</span>(i)] = <span class="t">Space</span>::height(r.path[<span class="k">uint</span>(i)].x, r.path[<span class="k">uint</span>(i)].z);
+        <span class="k">for</span> (<span class="k">int</span> i = <span class="n">0</span>; i &lt; n; i++)
+        {
+            <span class="k">float</span> sum = <span class="n">0</span>, count = <span class="n">0</span>;
+            <span class="k">for</span> (<span class="k">int</span> k = -<span class="n">8</span>; k &lt;= <span class="n">8</span>; k++)
+            {
+                <span class="k">int</span> at = r.closed ? ((i + k) % n + n) % n : i + k &lt; <span class="n">0</span> ? <span class="n">0</span> : i + k &gt;= n ? n - <span class="n">1</span> : i + k;
+                <span class="k">if</span> (heights[<span class="k">uint</span>(at)] &gt; -<span class="n">1000</span>)
+                {
+                    sum += heights[<span class="k">uint</span>(at)];
+                    count += <span class="n">1</span>;
+                }
+            }
+            wanted[<span class="k">uint</span>(i)] = count &gt; <span class="n">0</span> ? sum / count : <span class="n">0</span>;
+        }
+        <span class="k">for</span> (<span class="k">int</span> i = <span class="n">0</span>; i &lt; n; i++)
+            <span class="t">Space</span>::level(r.path[<span class="k">uint</span>(i)].x, r.path[<span class="k">uint</span>(i)].z, r.width * <span class="n">0.95f</span> + <span class="n">2</span>, wanted[<span class="k">uint</span>(i)], <span class="n">0.9f</span>);
+        landText = <span class="t">Space</span>::landEdits;
+        place();
+        <span class="k">for</span> (<span class="k">uint</span> i = <span class="n">0</span>; i &lt; roads.length(); i++)
+            makeRoad(roads[i]);
+        changed(<span class="s">&quot;land&quot;</span>);
+    }
+
+    <span class="k">void</span> addPoint(<span class="k">const</span> <span class="t">Vec3</span> &amp;<span class="k">in</span> p)
+    {
+        <span class="k">if</span> (roadNow() <span class="k">is</span> <span class="k">null</span>)
+            onRoadNew(<span class="k">null</span>);
+        <span class="t">Road</span>@ r = roadNow();
+        <span class="k">if</span> (r <span class="k">is</span> <span class="k">null</span> || r.points.length() &gt;= <span class="n">64</span>)
+        {
+            <span class="t">Ui</span>::toast(<span class="s">&quot;That is enough points&quot;</span>);
+            <span class="k">return</span>;
+        }
+        r.points.insertLast(<span class="t">Vec3</span>(floor(p.x * <span class="n">2</span> + <span class="n">0.5f</span>) * <span class="n">0.5f</span>, <span class="n">0</span>, floor(p.z * <span class="n">2</span> + <span class="n">0.5f</span>) * <span class="n">0.5f</span>));
+        makeRoad(r);
+        changed(<span class="s">&quot;road&quot;</span>);
+        hop.play(<span class="n">0.15f</span>, <span class="n">0</span>, <span class="n">1.6f</span>);
     }
 
     <span class="c">// --- Undoing ---</span>
@@ -8643,6 +9515,7 @@ summary { cursor: pointer; padding: 10px 16px; } details pre { border-width: 1px
     <span class="c">// Once for each change. What goes on changing, such as a slider, is one.</span>
     <span class="k">void</span> changed(<span class="k">const</span> <span class="k">string</span> &amp;<span class="k">in</span> key, <span class="k">bool</span> apart = <span class="k">true</span>)
     {
+        closeEnds();
         <span class="k">string</span> text = write().write(<span class="k">true</span>);
         <span class="k">if</span> (text == now)
         {
@@ -8720,7 +9593,10 @@ summary { cursor: pointer; padding: 10px 16px; } details pre { border-width: 1px
         <span class="k">if</span> (!onGround(eye, ahead, p) || (p - eye).length() &gt; <span class="n">40</span>)
             p = eye + <span class="t">Vec3</span>(ahead.x, <span class="n">0</span>, ahead.z).normalized() * <span class="n">14</span>;
         <span class="t">Json</span> j;
-        <span class="k">if</span> (k.key == <span class="s">&quot;model&quot;</span>)
+        <span class="k">bool</span> built = k.key == <span class="s">&quot;model&quot;</span> || k.key == <span class="s">&quot;moving&quot;</span> || k.key == <span class="s">&quot;lift&quot;</span>;
+        <span class="k">bool</span> cave = k.group == <span class="s">&quot;Caves&quot;</span>;
+        <span class="k">float</span> y = built ? <span class="n">0.0f</span> : k.key == <span class="s">&quot;own&quot;</span> ? -k.low.y * k.size : k.key == <span class="s">&quot;shape&quot;</span> ? -k.low.y : <span class="n">1.5f</span>;
+        <span class="k">if</span> (built)
             j.<span class="k">set</span>(<span class="s">&quot;model&quot;</span>, <span class="s">&quot;global:model/&quot;</span> + k.name + <span class="s">&quot;.glb&quot;</span>);
         <span class="k">else</span> <span class="k">if</span> (k.key == <span class="s">&quot;own&quot;</span>)
         {
@@ -8733,6 +9609,20 @@ summary { cursor: pointer; padding: 10px 16px; } details pre { border-width: 1px
             j.<span class="k">set</span>(<span class="s">&quot;shape&quot;</span>, k.name);
             j.<span class="k">set</span>(<span class="s">&quot;color&quot;</span>, <span class="t">Color</span>(<span class="n">0.97f</span>, <span class="n">0.62f</span>, <span class="n">0.2f</span>));
         }
+        <span class="k">else</span> <span class="k">if</span> (k.key == <span class="s">&quot;water&quot;</span>)
+        {
+            j.<span class="k">set</span>(<span class="s">&quot;shape&quot;</span>, <span class="s">&quot;box&quot;</span>);
+            j.<span class="k">set</span>(<span class="s">&quot;name&quot;</span>, <span class="s">&quot;water&quot;</span>);
+            j.<span class="k">set</span>(<span class="s">&quot;size&quot;</span>, <span class="t">Vec3</span>(<span class="n">8</span>, <span class="n">1</span>, <span class="n">8</span>));
+            j.<span class="k">set</span>(<span class="s">&quot;color&quot;</span>, <span class="t">Color</span>(<span class="n">0.16f</span>, <span class="n">0.45f</span>, <span class="n">0.6f</span>, <span class="n">0.65f</span>));
+            j.<span class="k">set</span>(<span class="s">&quot;shine&quot;</span>, <span class="n">0.8f</span>);
+            y = -<span class="n">0.3f</span>;
+        }
+        <span class="k">else</span> <span class="k">if</span> (k.key == <span class="s">&quot;sound&quot;</span>)
+        {
+            j.<span class="k">set</span>(<span class="s">&quot;sound&quot;</span>, k.name);
+            j.<span class="k">set</span>(<span class="s">&quot;reach&quot;</span>, <span class="n">14</span>);
+        }
         <span class="k">else</span>
         {
             j.<span class="k">set</span>(<span class="s">&quot;glow&quot;</span>, <span class="n">1.2f</span>);
@@ -8740,12 +9630,126 @@ summary { cursor: pointer; padding: 10px 16px; } details pre { border-width: 1px
             j.<span class="k">set</span>(<span class="s">&quot;light&quot;</span>, <span class="t">Color</span>(<span class="n">1</span>, <span class="n">0.75f</span>, <span class="n">0.45f</span>));
             j.<span class="k">set</span>(<span class="s">&quot;range&quot;</span>, <span class="n">9</span>);
         }
-        j.<span class="k">set</span>(<span class="s">&quot;place&quot;</span>, snapped(<span class="t">Vec3</span>(p.x, k.key == <span class="s">&quot;model&quot;</span> ? <span class="n">0.0f</span> : k.key == <span class="s">&quot;own&quot;</span> ? -k.low.y * k.size : k.key == <span class="s">&quot;shape&quot;</span> ? -k.low.y : <span class="n">1.5f</span>, p.z)));
+        <span class="k">if</span> (k.key == <span class="s">&quot;moving&quot;</span> || k.key == <span class="s">&quot;lift&quot;</span>)
+        {
+            j.<span class="k">set</span>(<span class="s">&quot;moves&quot;</span>, k.key == <span class="s">&quot;lift&quot;</span> ? <span class="t">Vec3</span>(<span class="n">0</span>, <span class="n">6</span>, <span class="n">0</span>) : <span class="t">Vec3</span>(<span class="n">8</span>, <span class="n">0</span>, <span class="n">0</span>));
+            j.<span class="k">set</span>(<span class="s">&quot;seconds&quot;</span>, <span class="n">6</span>);
+            y = <span class="n">1</span>;
+        }
+        <span class="k">if</span> (k.collider &gt; <span class="n">0</span>)
+            setCollider(j, k.collider);
+        <span class="k">if</span> (cave)
+        {
+            <span class="t">Vec3</span> at, turned;
+            <span class="k">if</span> (!join(k, at, turned))
+            {
+                at = <span class="t">Vec3</span>(floor(p.x / <span class="n">4</span> + <span class="n">0.5f</span>) * <span class="n">4</span>, <span class="n">0</span>, floor(p.z / <span class="n">4</span> + <span class="n">0.5f</span>) * <span class="n">4</span>);
+                at.y = floor(<span class="t">Space</span>::height(at.x, at.z) * <span class="n">4</span>) * <span class="n">0.25f</span>;
+            }
+            j.<span class="k">set</span>(<span class="s">&quot;place&quot;</span>, at);
+            j.<span class="k">set</span>(<span class="s">&quot;angles&quot;</span>, turned);
+            things.insertLast(<span class="t">Thing</span>(j));
+            make(things.length() - <span class="n">1</span>);
+            select(<span class="k">int</span>(things.length()) - <span class="n">1</span>);
+            <span class="k">if</span> (isMouth(k))
+                openMouth(at, turned.y);
+            <span class="k">else</span>
+                cover(k, at, turned.y);
+            changed(<span class="s">&quot;add&quot;</span>);
+            <span class="k">return</span>;
+        }
+        j.<span class="k">set</span>(<span class="s">&quot;place&quot;</span>, snapped(<span class="t">Vec3</span>(p.x, y, p.z)));
         j.<span class="k">set</span>(<span class="s">&quot;onLand&quot;</span>, <span class="k">true</span>);
         things.insertLast(<span class="t">Thing</span>(j));
         make(things.length() - <span class="n">1</span>);
         select(<span class="k">int</span>(things.length()) - <span class="n">1</span>);
         changed(<span class="s">&quot;add&quot;</span>);
+    }
+
+    <span class="c">// Where the next piece goes: on from the first way out of the chosen one that nothing is on.</span>
+    <span class="k">bool</span> join(<span class="t">Kind</span>@ k, <span class="t">Vec3</span> &amp;<span class="k">out</span> at, <span class="t">Vec3</span> &amp;<span class="k">out</span> turned)
+    {
+        <span class="k">if</span> (chosen &lt; <span class="n">0</span>)
+            <span class="k">return</span> <span class="k">false</span>;
+        <span class="t">Kind</span>@ from = kindOf(things[<span class="k">uint</span>(chosen)].json);
+        <span class="k">if</span> (from.group != <span class="s">&quot;Caves&quot;</span>)
+            <span class="k">return</span> <span class="k">false</span>;
+        <span class="t">Thing</span>@ t = things[<span class="k">uint</span>(chosen)];
+        <span class="t">Vec3</span> base = worldPlace(t.json), a = angles(t.json);
+        <span class="k">for</span> (<span class="k">uint</span> i = <span class="n">0</span>; i &lt; from.exits.length(); i++)
+        {
+            <span class="t">Vec3</span> local = from.exits[i].place;
+            <span class="t">Vec3</span> out_ = base + spun(local, a.y);
+            <span class="c">// A way down is gone into from the land.</span>
+            <span class="k">if</span> (i == <span class="n">0</span> &amp;&amp; isMouth(from))
+                <span class="k">continue</span>;
+            <span class="k">bool</span> taken = <span class="k">false</span>;
+            <span class="k">for</span> (<span class="k">uint</span> n = <span class="n">0</span>; n &lt; things.length() &amp;&amp; !taken; n++)
+            {
+                <span class="k">if</span> (<span class="k">int</span>(n) == chosen)
+                    <span class="k">continue</span>;
+                <span class="t">Kind</span>@ o = kindOf(things[n].json);
+                <span class="k">for</span> (<span class="k">uint</span> e = <span class="n">0</span>; e &lt; o.exits.length(); e++)
+                    taken = taken || (worldPlace(things[n].json) + spun(o.exits[e].place, angles(things[n].json).y) - out_).length() &lt; <span class="n">0.6f</span>;
+            }
+            <span class="k">if</span> (taken)
+                <span class="k">continue</span>;
+            <span class="t">Vec3</span> way_ = spun(<span class="t">Vec3</span>(local.x, <span class="n">0</span>, local.z).normalized(), a.y);
+            <span class="c">// Its own way in is towards z.</span>
+            turned = <span class="t">Vec3</span>(<span class="n">0</span>, wrapped(floor(atan2(-way_.x, -way_.z) * <span class="n">57.29578f</span> + <span class="n">0.5f</span>)), <span class="n">0</span>);
+            at = out_ - spun(k.exits[<span class="n">0</span>].place, turned.y);
+            at = <span class="t">Vec3</span>(floor(at.x * <span class="n">4</span> + <span class="n">0.5f</span>) * <span class="n">0.25f</span>, floor(at.y * <span class="n">4</span> + <span class="n">0.5f</span>) * <span class="n">0.25f</span>, floor(at.z * <span class="n">4</span> + <span class="n">0.5f</span>) * <span class="n">0.25f</span>);
+            <span class="k">return</span> <span class="k">true</span>;
+        }
+        <span class="k">return</span> <span class="k">false</span>;
+    }
+
+    <span class="t">Vec3</span> spun(<span class="k">const</span> <span class="t">Vec3</span> &amp;<span class="k">in</span> v, <span class="k">float</span> degrees)
+    {
+        <span class="k">float</span> a = degrees * <span class="n">0.0174533f</span>;
+        <span class="k">return</span> <span class="t">Vec3</span>(v.x * cos(a) + v.z * sin(a), v.y, v.z * cos(a) - v.x * sin(a));
+    }
+
+    <span class="c">// Lets the land be gone under there.</span>
+    <span class="k">void</span> openMouth(<span class="k">const</span> <span class="t">Vec3</span> &amp;<span class="k">in</span> at, <span class="k">float</span> turned)
+    {
+        <span class="k">for</span> (<span class="k">int</span> i = -<span class="n">2</span>; i &lt;= <span class="n">1</span>; i++)
+        {
+            <span class="t">Vec3</span> p = at + spun(<span class="t">Vec3</span>(<span class="n">0</span>, <span class="n">0</span>, i * <span class="n">3</span>), turned);
+            <span class="t">Space</span>::level(p.x, p.z, <span class="n">9</span>, at.y, <span class="n">1</span>);
+        }
+        <span class="k">for</span> (<span class="k">int</span> i = <span class="n">0</span>; i &lt;= <span class="n">1</span>; i++)
+        {
+            <span class="t">Vec3</span> p = at + spun(<span class="t">Vec3</span>(<span class="n">0</span>, <span class="n">0</span>, i * <span class="n">2</span>), turned);
+            <span class="t">Space</span>::hole(p.x, p.z, <span class="n">1.5f</span>, <span class="k">true</span>);
+        }
+        <span class="t">Vec3</span> front = at + spun(<span class="t">Vec3</span>(<span class="n">0</span>, <span class="n">0</span>, <span class="n">6</span>), turned);
+        <span class="t">Space</span>::level(front.x, front.z, <span class="n">6</span>, at.y, <span class="n">0.9f</span>);
+        landText = <span class="t">Space</span>::landEdits;
+    }
+
+    <span class="c">// Banks the land up where it would come through a roof.</span>
+    <span class="k">void</span> cover(<span class="t">Kind</span>@ k, <span class="k">const</span> <span class="t">Vec3</span> &amp;<span class="k">in</span> at, <span class="k">float</span> turned)
+    {
+        <span class="k">bool</span> did = <span class="k">false</span>;
+        <span class="k">for</span> (<span class="k">float</span> x = k.low.x; x &lt;= k.high.x + <span class="n">0.1f</span>; x += (k.high.x - k.low.x) / <span class="n">4</span>)
+            <span class="k">for</span> (<span class="k">float</span> z = k.low.z; z &lt;= k.high.z + <span class="n">0.1f</span>; z += (k.high.z - k.low.z) / <span class="n">4</span>)
+            {
+                <span class="t">Vec3</span> p = at + spun(<span class="t">Vec3</span>(x, <span class="n">0</span>, z), turned);
+                <span class="k">float</span> roof = at.y + k.high.y + <span class="n">0.5f</span> - (k.name.findFirst(<span class="s">&quot;cave-slope&quot;</span>) &gt;= <span class="n">0</span> ? clamp((<span class="n">4</span> - z) / <span class="n">8</span>, <span class="n">0</span>, <span class="n">1</span>) * <span class="n">5</span> : <span class="n">0.0f</span>);
+                <span class="k">float</span> y = <span class="t">Space</span>::height(p.x, p.z);
+                <span class="c">// Not one that stands on the land.</span>
+                <span class="k">if</span> (y &gt; at.y &amp;&amp; y &lt; roof)
+                {
+                    <span class="t">Space</span>::level(p.x, p.z, <span class="n">5</span>, roof + <span class="n">0.3f</span>, <span class="n">1</span>);
+                    did = <span class="k">true</span>;
+                }
+            }
+        <span class="k">if</span> (did)
+        {
+            landText = <span class="t">Space</span>::landEdits;
+            place();
+        }
     }
 
     <span class="k">void</span> copy()
@@ -8778,9 +9782,245 @@ summary { cursor: pointer; padding: 10px 16px; } details pre { border-width: 1px
         <span class="k">for</span> (<span class="k">uint</span> i = <span class="n">0</span>; i &lt; thrown.length(); i++)
             thrown[i].destroy();
         thrown.resize(<span class="n">0</span>);
+        <span class="k">if</span> (hero !<span class="k">is</span> <span class="k">null</span>)
+            hero.destroy();
+        <span class="k">if</span> (ship !<span class="k">is</span> <span class="k">null</span>)
+            ship.destroy();
+        @hero = <span class="k">null</span>;
+        @ship = <span class="k">null</span>;
         <span class="k">for</span> (<span class="k">uint</span> i = <span class="n">0</span>; i &lt; things.length(); i++)
             make(i);
         shownFor = <span class="n">0</span>;
+        <span class="k">if</span> (on &amp;&amp; way &lt; <span class="n">2</span>)
+            enterPlay();
+    }
+
+    <span class="c">// --- Walking and driving ---</span>
+
+    <span class="t">Entity</span>@ hero;
+    <span class="t">Entity</span>@ ship;              <span class="c">// what is seen of the one that is driven: it hovers, and lies as the land does</span>
+    <span class="t">Vec3</span> shipUp(<span class="n">0</span>, <span class="n">1</span>, <span class="n">0</span>);
+    <span class="k">float</span> bank = <span class="n">0</span>;
+    <span class="k">float</span> heroYaw = <span class="n">0</span>, speed = <span class="n">0</span>, lap = <span class="n">0</span>, best = <span class="n">0</span>, sinceThrow = <span class="n">0</span>;
+    <span class="k">int</span> nextMark = <span class="n">0</span>;
+    <span class="t">Vec3</span> safe;
+    <span class="k">bool</span> racing = <span class="k">false</span>;
+
+    <span class="k">void</span> enterPlay()
+    {
+        <span class="t">Vec3</span> p, ahead = look();
+        <span class="k">if</span> (!onGround(eye, ahead, p) || (p - eye).length() &gt; <span class="n">60</span>)
+        {
+            p = eye + <span class="t">Vec3</span>(ahead.x, <span class="n">0</span>, ahead.z).normalized() * <span class="n">4</span>;
+            <span class="k">float</span> y = <span class="t">Space</span>::height(p.x, p.z);
+            p.y = y &gt; -<span class="n">1000</span> ? y : eye.y;
+        }
+        heroYaw = yaw;
+        racing = <span class="k">false</span>;
+        lap = <span class="n">0</span>;
+        best = <span class="n">0</span>;
+        nextMark = <span class="n">1</span>;
+        speed = <span class="n">0</span>;
+        <span class="k">for</span> (<span class="k">uint</span> i = <span class="n">0</span>; i &lt; roads.length() &amp;&amp; way == <span class="n">1</span> &amp;&amp; !racing; i++)
+        {
+            <span class="t">Road</span>@ r = roads[i];
+            <span class="k">if</span> (r.path.length() &lt; <span class="n">8</span>)
+                <span class="k">continue</span>;
+            road = <span class="k">int</span>(i);
+            p = r.path[<span class="n">0</span>];
+            p.y = <span class="t">Space</span>::height(p.x, p.z);
+            <span class="t">Vec3</span> d = r.at(<span class="n">1</span>) - r.at(<span class="n">0</span>);
+            heroYaw = atan2(d.x, -d.z) * <span class="n">57.29578f</span>;
+            racing = <span class="k">true</span>;
+        }
+        safe = p + <span class="t">Vec3</span>(<span class="n">0</span>, <span class="n">0.4f</span>, <span class="n">0</span>);
+        @hero = <span class="t">Space</span>::spawn(safe);
+        <span class="k">if</span> (way == <span class="n">1</span>)
+        {
+            @ship = <span class="t">Space</span>::spawn(safe);
+            ship.model(carModel);
+            ship.shine = <span class="n">0.4f</span>;
+            ship.size = <span class="t">Vec3</span>(<span class="n">0.75f</span>, <span class="n">0.75f</span>, <span class="n">0.75f</span>);
+            shipUp = <span class="t">Vec3</span>(<span class="n">0</span>, <span class="n">1</span>, <span class="n">0</span>);
+        }
+        <span class="k">else</span>
+            hero.model(heroModel);
+        hero.capsule(way == <span class="n">1</span> ? <span class="n">0.75f</span> : <span class="n">0.35f</span>, <span class="n">1.6f</span>, <span class="n">1</span>);
+        hero.colliderAt = <span class="t">Vec3</span>(<span class="n">0</span>, <span class="n">0.8f</span>, <span class="n">0</span>);
+        hero.walker = <span class="k">true</span>;
+        hero.mass = way == <span class="n">1</span> ? <span class="n">200</span> : <span class="n">60</span>;
+        hero.angles = <span class="t">Vec3</span>(<span class="n">0</span>, <span class="n">180</span> - heroYaw, <span class="n">0</span>);
+        yaw = heroYaw;
+        pitch = -<span class="n">14</span>;
+    }
+
+    <span class="c">// How high the water is there, or far below.</span>
+    <span class="k">float</span> waterAt(<span class="k">const</span> <span class="t">Vec3</span> &amp;<span class="k">in</span> p)
+    {
+        <span class="k">float</span> y = waterToggle.checked ? waterHigh.value : -<span class="n">1000.0f</span>;
+        <span class="k">for</span> (<span class="k">uint</span> i = <span class="n">0</span>; i &lt; things.length(); i++)
+        {
+            <span class="t">Json</span>@ j = things[i].json;
+            <span class="k">if</span> (j[<span class="s">&quot;name&quot;</span>].text() != <span class="s">&quot;water&quot;</span>)
+                <span class="k">continue</span>;
+            <span class="t">Vec3</span> d = spun(p - worldPlace(j), -angles(j).y), s = sizes(j);
+            <span class="k">float</span> top = s.y * <span class="n">0.5f</span>;
+            <span class="k">if</span> (abs(d.x) &lt; s.x * <span class="n">0.5f</span> &amp;&amp; abs(d.z) &lt; s.z * <span class="n">0.5f</span> &amp;&amp; d.y &lt; top + <span class="n">0.5f</span> &amp;&amp; d.y &gt; -top - <span class="n">3</span> &amp;&amp; worldPlace(j).y + top &gt; y)
+                y = worldPlace(j).y + top;
+        }
+        <span class="k">return</span> y;
+    }
+
+    <span class="k">void</span> playOne(<span class="k">float</span> dt)
+    {
+        sinceThrow += dt;
+        <span class="t">Vec2</span> stick = <span class="t">Input</span>::move;
+        <span class="t">Vec3</span> m = hero.motion;
+        <span class="t">Vec3</span> p = hero.place;
+        <span class="k">float</span> water = waterAt(p);
+        <span class="k">bool</span> swimming = p.y &lt; water - <span class="n">1</span>;
+        <span class="k">if</span> (way == <span class="n">1</span>)
+        {
+            <span class="t">Vec2</span> triggers = <span class="t">Input</span>::padTriggers(<span class="n">0</span>);
+            <span class="k">float</span> go = clamp(triggers.y - triggers.x - stick.y, -<span class="n">1</span>, <span class="n">1</span>);
+            <span class="k">bool</span> offRoad = <span class="k">false</span>;
+            <span class="t">Road</span>@ r = racing ? roadNow() : <span class="k">null</span>;
+            <span class="k">int</span> at = <span class="n">0</span>;
+            <span class="k">if</span> (r !<span class="k">is</span> <span class="k">null</span>)
+                offRoad = r.distance(p, at) &gt; r.width * <span class="n">0.55f</span>;
+            <span class="k">float</span> most = swimming ? <span class="n">4.0f</span> : offRoad ? <span class="n">12.0f</span> : <span class="n">26.0f</span>;
+            speed += (go &gt; <span class="n">0</span> ? go * <span class="n">13</span> : go * (speed &gt; <span class="n">0</span> ? <span class="n">26</span> : <span class="n">8</span>)) * dt;
+            speed -= speed * (go == <span class="n">0</span> ? <span class="n">0.7f</span> : <span class="n">0.15f</span>) * dt;
+            <span class="k">if</span> (speed &gt; most)
+                speed -= (speed - most) * clamp(<span class="n">3</span> * dt, <span class="n">0</span>, <span class="n">1</span>);
+            speed = clamp(speed, -<span class="n">7</span>, <span class="n">30</span>);
+            <span class="c">// Walls stop it.</span>
+            <span class="k">float</span> really = <span class="t">Vec3</span>(m.x, <span class="n">0</span>, m.z).length();
+            <span class="k">if</span> (abs(speed) &gt; <span class="n">4</span> &amp;&amp; really &lt; abs(speed) * <span class="n">0.5f</span> &amp;&amp; shownFor &gt; <span class="n">0.6f</span>)
+                speed *= <span class="n">0.7f</span>;
+            heroYaw += stick.x * clamp(speed * <span class="n">0.14f</span>, -<span class="n">1</span>, <span class="n">1</span>) * (speed &gt; <span class="n">14</span> ? <span class="n">75</span> : <span class="n">105</span>) * dt;
+            <span class="k">float</span> a = heroYaw * <span class="n">0.0174533f</span>;
+            <span class="t">Vec3</span> ahead(sin(a), <span class="n">0</span>, -cos(a));
+            <span class="k">float</span> grip = clamp((hero.onGround ? <span class="n">7</span> : <span class="n">1</span>) * dt, <span class="n">0</span>, <span class="n">1</span>);
+            m.x += (ahead.x * speed - m.x) * grip;
+            m.z += (ahead.z * speed - m.z) * grip;
+            <span class="k">float</span> turn_ = stick.x * clamp(speed * <span class="n">0.1f</span>, -<span class="n">1</span>, <span class="n">1</span>);
+            bank += (turn_ - bank) * clamp(<span class="n">6</span> * dt, <span class="n">0</span>, <span class="n">1</span>);
+            yaw += wrapAngle(heroYaw - yaw) * clamp(<span class="n">4</span> * dt, <span class="n">0</span>, <span class="n">1</span>);
+            <span class="k">if</span> (r !<span class="k">is</span> <span class="k">null</span>)
+                race(r, at, dt);
+        }
+        <span class="k">else</span>
+        {
+            <span class="k">float</span> a = yaw * <span class="n">0.0174533f</span>;
+            <span class="t">Vec3</span> ahead(sin(a), <span class="n">0</span>, -cos(a)), side(cos(a), <span class="n">0</span>, sin(a));
+            <span class="t">Vec3</span> wanted = (side * stick.x - ahead * stick.y) * <span class="n">6</span>;
+            <span class="k">float</span> grip = clamp((hero.onGround ? <span class="n">12</span> : <span class="n">3</span>) * dt, <span class="n">0</span>, <span class="n">1</span>);
+            m.x += (wanted.x - m.x) * grip;
+            m.z += (wanted.z - m.z) * grip;
+            <span class="k">if</span> (swimming)
+            {
+                m.y += (clamp((water - <span class="n">1.1f</span> - p.y) * <span class="n">3</span>, -<span class="n">1</span>, <span class="n">2.5f</span>) - m.y) * clamp(<span class="n">8</span> * dt, <span class="n">0</span>, <span class="n">1</span>);
+                m.x *= <span class="n">0.96f</span>;
+                m.z *= <span class="n">0.96f</span>;
+            }
+            <span class="k">if</span> (<span class="t">Input</span>::pressed(<span class="s">&quot;accept&quot;</span>) &amp;&amp; (hero.onGround || swimming))
+            {
+                m.y = <span class="n">6.4f</span>;
+                hop.play(<span class="n">0.35f</span>);
+            }
+            <span class="k">float</span> going = <span class="t">Vec3</span>(m.x, <span class="n">0</span>, m.z).length();
+            <span class="k">if</span> (wanted.length() &gt; <span class="n">0.3f</span>)
+                hero.face(wanted, clamp(<span class="n">12</span> * dt, <span class="n">0</span>, <span class="n">1</span>));
+            hero.animate(!hero.onGround &amp;&amp; !swimming &amp;&amp; abs(m.y) &gt; <span class="n">1.5f</span> ? <span class="s">&quot;jump&quot;</span> : going &gt; <span class="n">4</span> ? <span class="s">&quot;run&quot;</span> : going &gt; <span class="n">0.5f</span> || swimming ? <span class="s">&quot;walk&quot;</span> : <span class="s">&quot;idle&quot;</span>);
+            hero.animationSpeed = going &gt; <span class="n">4</span> ? going / <span class="n">6</span> : going &gt; <span class="n">0.5f</span> ? going / <span class="n">2.4f</span> : <span class="n">1</span>;
+            <span class="k">if</span> ((<span class="t">Input</span>::padTriggers(<span class="n">0</span>).y &gt; <span class="n">0.6f</span> || (<span class="t">Input</span>::mouseDown(<span class="n">0</span>) &amp;&amp; <span class="t">Input</span>::hasMouse)) &amp;&amp; sinceThrow &gt; <span class="n">0.4f</span>)
+            {
+                sinceThrow = <span class="n">0</span>;
+                throwBall();
+            }
+        }
+        hero.motion = m;
+        <span class="k">if</span> (ship !<span class="k">is</span> <span class="k">null</span>)
+            float_(dt);
+        <span class="k">if</span> (p.y &lt; -<span class="n">60</span>)
+        {
+            hero.place = safe;
+            hero.motion = <span class="t">Vec3</span>();
+            speed = <span class="n">0</span>;
+        }
+        <span class="c">// Behind it, and not through anything.</span>
+        <span class="t">Vec3</span> from = hero.place + <span class="t">Vec3</span>(<span class="n">0</span>, <span class="n">1.5f</span>, <span class="n">0</span>);
+        <span class="k">float</span> away = way == <span class="n">1</span> ? <span class="n">7.5f</span> : <span class="n">4.6f</span>;
+        <span class="t">Vec3</span> wantedEye = from - look() * away + <span class="t">Vec3</span>(<span class="n">0</span>, way == <span class="n">1</span> ? <span class="n">1.2f</span> : <span class="n">0.4f</span>, <span class="n">0</span>);
+        <span class="t">Vec3</span> hit, normal;
+        <span class="k">if</span> (<span class="t">Space</span>::raycast(from, wantedEye, hit, normal, 0xFFFD))
+            wantedEye = hit + normal * <span class="n">0.2f</span>;
+        eye = wantedEye;
+        <span class="t">Space</span>::camera(eye, from + look() * <span class="n">4</span>, <span class="n">62</span>);
+    }
+
+    <span class="c">// Higher than the land under any of it, and tipped as the land is.</span>
+    <span class="k">void</span> float_(<span class="k">float</span> dt)
+    {
+        <span class="t">Vec3</span> base = hero.place;
+        <span class="k">float</span> a = heroYaw * <span class="n">0.0174533f</span>;
+        <span class="t">Vec3</span> ahead(sin(a), <span class="n">0</span>, -cos(a)), side(cos(a), <span class="n">0</span>, sin(a));
+        <span class="k">float</span> nose = under_(base + ahead * <span class="n">1.5f</span>), tail = under_(base - ahead * <span class="n">1.5f</span>), right = under_(base + side * <span class="n">1.3f</span>), left_ = under_(base - side * <span class="n">1.3f</span>);
+        <span class="t">Vec3</span> up(<span class="n">0</span>, <span class="n">1</span>, <span class="n">0</span>);
+        <span class="k">if</span> (hero.onGround)
+            up = (<span class="t">Vec3</span>(<span class="n">0</span>, <span class="n">1</span>, <span class="n">0</span>) - ahead * ((nose - tail) / <span class="n">3</span>) - side * ((right - left_) / <span class="n">2.6f</span>)).normalized();
+        shipUp = (shipUp + (up - shipUp) * clamp(<span class="n">9</span> * dt, <span class="n">0</span>, <span class="n">1</span>)).normalized();
+        <span class="k">float</span> highest = base.y;
+        <span class="k">array</span>&lt;<span class="k">float</span>&gt; all = { (nose + tail) * <span class="n">0.5f</span>, (right + left_) * <span class="n">0.5f</span> };
+        <span class="k">for</span> (<span class="k">uint</span> i = <span class="n">0</span>; i &lt; all.length() &amp;&amp; hero.onGround; i++)
+            highest = all[i] &gt; highest ? all[i] : highest;
+        <span class="k">float</span> y = highest + <span class="n">0.6f</span> + sin(<span class="t">App</span>::time * <span class="n">3</span>) * <span class="n">0.05f</span>;
+        <span class="t">Vec3</span> was = ship.place;
+        <span class="c">// Where it is at once, but gently up and down.</span>
+        <span class="k">float</span> gentle = was.y + (y - was.y) * clamp(<span class="n">14</span> * dt, <span class="n">0</span>, <span class="n">1</span>);
+        ship.place = <span class="t">Vec3</span>(base.x, abs(y - was.y) &gt; <span class="n">3</span> ? y : gentle, base.z);
+        <span class="k">float</span> pitch_ = -atan2(-(shipUp.x * ahead.x + shipUp.z * ahead.z), shipUp.y) * <span class="n">57.29578f</span>;
+        <span class="c">// Its own right is the other way, as it faces along z.</span>
+        <span class="k">float</span> roll_ = atan2(shipUp.x * side.x + shipUp.z * side.z, shipUp.y) * <span class="n">57.29578f</span> + bank * <span class="n">22</span>;
+        ship.angles = <span class="t">Vec3</span>(pitch_, <span class="n">180</span> - heroYaw, roll_);
+    }
+
+    <span class="c">// What is under a place, near the height of the one that drives.</span>
+    <span class="k">float</span> under_(<span class="k">const</span> <span class="t">Vec3</span> &amp;<span class="k">in</span> p)
+    {
+        <span class="t">Vec3</span> hit, normal;
+        <span class="k">if</span> (<span class="t">Space</span>::raycast(p + <span class="t">Vec3</span>(<span class="n">0</span>, <span class="n">1.8f</span>, <span class="n">0</span>), p - <span class="t">Vec3</span>(<span class="n">0</span>, <span class="n">2.5f</span>, <span class="n">0</span>), hit, normal, 0xFFFD))
+            <span class="k">return</span> hit.y;
+        <span class="k">return</span> p.y;
+    }
+
+    <span class="k">float</span> wrapAngle(<span class="k">float</span> a)
+    {
+        a = wrapped(a);
+        <span class="k">return</span> a &gt; <span class="n">180</span> ? a - <span class="n">360</span> : a;
+    }
+
+    <span class="c">// Four marks, in order, and then the line.</span>
+    <span class="k">void</span> race(<span class="t">Road</span>@ r, <span class="k">int</span> at, <span class="k">float</span> dt)
+    {
+        lap += dt;
+        <span class="k">int</span> n = <span class="k">int</span>(r.path.length());
+        <span class="k">int</span> mark = nextMark * n / <span class="n">4</span>;
+        <span class="k">bool</span> last = nextMark == <span class="n">4</span>;
+        <span class="k">int</span> gap = last ? (at &lt; n / <span class="n">8</span> ? <span class="n">0</span> : n) : at &gt;= mark &amp;&amp; at &lt; mark + n / <span class="n">8</span> ? <span class="n">0</span> : n;
+        <span class="k">if</span> (!r.closed &amp;&amp; last)
+            gap = at &gt;= n - <span class="n">3</span> ? <span class="n">0</span> : n;
+        <span class="k">if</span> (gap != <span class="n">0</span>)
+            <span class="k">return</span>;
+        nextMark++;
+        <span class="k">if</span> (last)
+        {
+            best = best == <span class="n">0</span> || lap &lt; best ? lap : best;
+            <span class="t">Ui</span>::toast(<span class="s">&quot;Lap: &quot;</span> + formatFloat(lap, <span class="s">&quot;&quot;</span>, <span class="n">0</span>, <span class="n">2</span>) + <span class="s">&quot; s&quot;</span>);
+            lap = <span class="n">0</span>;
+            nextMark = <span class="n">1</span>;
+        }
     }
 
     <span class="k">void</span> throwBall()
@@ -8790,7 +10030,7 @@ summary { cursor: pointer; padding: 10px 16px; } details pre { border-width: 1px
             thrown[<span class="n">0</span>].destroy();
             thrown.removeAt(<span class="n">0</span>);
         }
-        <span class="t">Entity</span>@ e = <span class="t">Space</span>::spawn(eye + look() * <span class="n">1.5f</span>);
+        <span class="t">Entity</span>@ e = <span class="t">Space</span>::spawn(hero !<span class="k">is</span> <span class="k">null</span> ? hero.place + <span class="t">Vec3</span>(<span class="n">0</span>, <span class="n">1.4f</span>, <span class="n">0</span>) + look() : eye + look() * <span class="n">1.5f</span>);
         e.shape(<span class="t">SolidSphere</span>, colors[<span class="n">2</span> + thrown.length() % <span class="n">8</span>]);
         e.size = <span class="t">Vec3</span>(<span class="n">0.7f</span>, <span class="n">0.7f</span>, <span class="n">0.7f</span>);
         e.sphere(<span class="n">0.35f</span>, <span class="n">0</span>, <span class="n">0</span>);
@@ -8854,10 +10094,15 @@ summary { cursor: pointer; padding: 10px 16px; } details pre { border-width: 1px
     {
         <span class="t">Vec3</span> ahead = look();
         <span class="t">Vec3</span> right = ahead.cross(<span class="t">Vec3</span>(<span class="n">0</span>, <span class="n">1</span>, <span class="n">0</span>)).normalized();
+        <span class="k">float</span> was = <span class="t">Space</span>::height(eye.x, eye.z);
+        <span class="c">// Through a hole it can go under, and then look about there.</span>
+        <span class="k">bool</span> above = eye.y &gt;= was;
         eye += (right * move.x - ahead * move.y + <span class="t">Vec3</span>(<span class="n">0</span>, up, <span class="n">0</span>)) * (dt * <span class="n">12</span>);
-        eye = <span class="t">Vec3</span>(clamp(eye.x, -<span class="n">110</span>, <span class="n">110</span>), clamp(eye.y, -<span class="n">2</span>, <span class="n">60</span>), clamp(eye.z, -<span class="n">110</span>, <span class="n">110</span>));
+        <span class="k">float</span> half = <span class="t">Space</span>::landSize * <span class="n">0.5f</span> + <span class="n">20</span>;
+        eye = <span class="t">Vec3</span>(clamp(eye.x, -half, half), clamp(eye.y, -<span class="n">60</span>, <span class="n">90</span>), clamp(eye.z, -half, half));
         <span class="k">float</span> least = <span class="t">Space</span>::height(eye.x, eye.z) + <span class="n">0.6f</span>;
-        eye.y = eye.y &lt; least ? least : eye.y;
+        <span class="k">if</span> (above &amp;&amp; eye.y &lt; least)
+            eye.y = least;
     }
 
     <span class="k">void</span> turnBy(<span class="k">float</span> x, <span class="k">float</span> y)
@@ -8887,16 +10132,18 @@ summary { cursor: pointer; padding: 10px 16px; } details pre { border-width: 1px
         <span class="k">bool</span> wasFlying = flying;
         flying = right &amp;&amp; (wasFlying || move.x != <span class="n">0</span> || move.y != <span class="n">0</span>);
         <span class="k">bool</span> free = viewing || playing;
+        <span class="k">if</span> (hero !<span class="k">is</span> <span class="k">null</span>)
+            free = <span class="k">false</span>;
         <span class="k">if</span> (free || flying)
             fly(move, free ? triggers.y - triggers.x : <span class="n">0.0f</span>, dt);
-        <span class="k">if</span> (!<span class="t">Ui</span>::busy &amp;&amp; overView(mouse) &amp;&amp; <span class="t">Input</span>::wheel != <span class="n">0</span>)
+        <span class="k">if</span> (!<span class="t">Ui</span>::busy &amp;&amp; hero <span class="k">is</span> <span class="k">null</span> &amp;&amp; overView(mouse) &amp;&amp; <span class="t">Input</span>::wheel != <span class="n">0</span>)
             eye += look() * (<span class="t">Input</span>::wheel * <span class="n">1.5f</span>);
         <span class="k">if</span> (<span class="t">Input</span>::mouseDown(<span class="n">2</span>) &amp;&amp; <span class="t">Input</span>::hasMouse &amp;&amp; !<span class="t">Ui</span>::busy)
         {
             <span class="t">Vec3</span> side = look().cross(<span class="t">Vec3</span>(<span class="n">0</span>, <span class="n">1</span>, <span class="n">0</span>)).normalized();
             eye += side * (-moved.x * <span class="n">0.03f</span>) + <span class="t">Vec3</span>(<span class="n">0</span>, moved.y * <span class="n">0.03f</span>, <span class="n">0</span>);
         }
-        <span class="k">bool</span> panels = !free &amp;&amp; !flying;
+        <span class="k">bool</span> panels = !free &amp;&amp; !flying &amp;&amp; !playing;
         <span class="k">if</span> (<span class="t">Ui</span>::root.visible &amp;&amp; !panels)
             @last = <span class="t">Ui</span>::focused;
         <span class="k">if</span> (panels &amp;&amp; !<span class="t">Ui</span>::root.visible)
@@ -8908,6 +10155,13 @@ summary { cursor: pointer; padding: 10px 16px; } details pre { border-width: 1px
         <span class="t">Ui</span>::root.visible = panels;
         <span class="t">Space</span>::camera(eye, eye + look(), <span class="n">60</span>);
 
+        <span class="k">if</span> (playing &amp;&amp; hero !<span class="k">is</span> <span class="k">null</span>)
+        {
+            playOne(dt);
+            <span class="k">if</span> (<span class="t">Input</span>::pressed(<span class="s">&quot;cancel&quot;</span>) || <span class="t">Input</span>::pressed(<span class="s">&quot;alternate&quot;</span>))
+                play(<span class="k">false</span>);
+            <span class="k">return</span>;
+        }
         <span class="k">if</span> (playing)
         {
             <span class="k">if</span> (<span class="t">Input</span>::pressed(<span class="s">&quot;accept&quot;</span>))
@@ -8970,6 +10224,20 @@ summary { cursor: pointer; padding: 10px 16px; } details pre { border-width: 1px
     <span class="k">void</span> inView(<span class="k">float</span> dt)
     {
         <span class="t">Vec3</span> ahead = look();
+        <span class="k">if</span> (roading)
+        {
+            <span class="k">if</span> (<span class="t">Input</span>::pressed(<span class="s">&quot;alternate&quot;</span>) || tapped(<span class="n">5</span>, <span class="s">&quot;Tab&quot;</span>))
+            {
+                enterView(<span class="k">false</span>);
+                <span class="k">return</span>;
+            }
+            aim(ahead);
+            <span class="k">if</span> (<span class="t">Input</span>::pressed(<span class="s">&quot;accept&quot;</span>) &amp;&amp; hasSpot)
+                addPoint(spot);
+            <span class="k">if</span> (<span class="t">Input</span>::pressed(<span class="s">&quot;cancel&quot;</span>))
+                onRoadBack(<span class="k">null</span>);
+            <span class="k">return</span>;
+        }
         <span class="k">if</span> (sculpting)
         {
             <span class="k">if</span> (<span class="t">Input</span>::pressed(<span class="s">&quot;alternate&quot;</span>) || tapped(<span class="n">5</span>, <span class="s">&quot;Tab&quot;</span>))
@@ -8982,7 +10250,7 @@ summary { cursor: pointer; padding: 10px 16px; } details pre { border-width: 1px
             <span class="k">if</span> (<span class="t">Input</span>::pressed(<span class="s">&quot;cancel&quot;</span>) || sooner || later)
             {
                 endStroke();
-                brush = (brush + (sooner ? <span class="n">5</span> : <span class="n">1</span>)) % <span class="n">6</span>;
+                brush = (brush + (sooner ? brushes.length() - <span class="n">1</span> : <span class="n">1</span>)) % brushes.length();
                 brushChoice.chosen = brush;
             }
             aim(ahead);
@@ -9084,6 +10352,8 @@ summary { cursor: pointer; padding: 10px 16px; } details pre { border-width: 1px
             <span class="t">Space</span>::smooth(spot.x, spot.z, brushSize, clamp(s * dt * <span class="n">25</span>, <span class="n">0</span>, <span class="n">1</span>));
         <span class="k">else</span> <span class="k">if</span> (brush == <span class="n">3</span>)
             <span class="t">Space</span>::level(spot.x, spot.z, brushSize, levelTo, clamp(s * dt * <span class="n">8</span>, <span class="n">0</span>, <span class="n">1</span>));
+        <span class="k">else</span> <span class="k">if</span> (brush &gt;= <span class="n">6</span>)
+            <span class="t">Space</span>::hole(spot.x, spot.z, brushSize * <span class="n">0.5f</span>, brush == <span class="n">6</span>);
         <span class="k">else</span>
             <span class="t">Space</span>::paint(spot.x, spot.z, brushSize, brush == <span class="n">4</span> ? brushColor : <span class="t">Color</span>(<span class="n">0</span>, <span class="n">0</span>, <span class="n">0</span>, <span class="n">0</span>), clamp(s * dt * <span class="n">10</span>, <span class="n">0</span>, <span class="n">1</span>));
         <span class="c">// What is near goes with it.</span>
@@ -9102,6 +10372,8 @@ summary { cursor: pointer; padding: 10px 16px; } details pre { border-width: 1px
         stroking = <span class="k">false</span>;
         landText = <span class="t">Space</span>::landEdits;
         place();
+        <span class="k">for</span> (<span class="k">uint</span> i = <span class="n">0</span>; i &lt; roads.length(); i++)
+            makeRoad(roads[i]);
         changed(<span class="s">&quot;land&quot;</span>);
     }
 
@@ -9113,7 +10385,8 @@ summary { cursor: pointer; padding: 10px 16px; } details pre { border-width: 1px
         <span class="k">for</span> (<span class="k">int</span> i = <span class="n">0</span>; i &lt;= <span class="n">40</span>; i++)
         {
             <span class="k">float</span> a = i * <span class="n">0.15708f</span>;
-            <span class="k">float</span> x = spot.x + cos(a) * brushSize, z = spot.z + sin(a) * brushSize;
+            <span class="k">float</span> wideOf = roading ? (roadNow() <span class="k">is</span> <span class="k">null</span> ? <span class="n">3.5f</span> : roadNow().width * <span class="n">0.5f</span>) : brush &gt;= <span class="n">6</span> ? brushSize * <span class="n">0.5f</span> : brushSize;
+            <span class="k">float</span> x = spot.x + cos(a) * wideOf, z = spot.z + sin(a) * wideOf;
             <span class="k">float</span> y = <span class="t">Space</span>::height(x, z);
             <span class="k">bool</span> has = y &gt; -<span class="n">1000</span> &amp;&amp; <span class="t">Space</span>::toScreen(<span class="t">Vec3</span>(x, y + <span class="n">0.1f</span>, z), to);
             <span class="k">if</span> (has &amp;&amp; had)
@@ -9123,7 +10396,7 @@ summary { cursor: pointer; padding: 10px 16px; } details pre { border-width: 1px
         }
     }
 
-    <span class="k">bool</span> overView(<span class="k">const</span> <span class="t">Vec2</span> &amp;<span class="k">in</span> p) { <span class="k">return</span> p.y &gt; <span class="n">82</span> &amp;&amp; p.x &gt; <span class="n">264</span> &amp;&amp; p.x &lt; wide - <span class="n">308</span>; }
+    <span class="k">bool</span> overView(<span class="k">const</span> <span class="t">Vec2</span> &amp;<span class="k">in</span> p) { <span class="k">return</span> p.y &gt; <span class="n">82</span> &amp;&amp; p.x &gt; <span class="n">310</span> &amp;&amp; p.x &lt; wide - <span class="n">308</span>; }
     <span class="k">float</span> wide = <span class="n">1280</span>;
 
     <span class="k">void</span> withMouse(<span class="k">bool</span> pressed, <span class="k">float</span> dt)
@@ -9131,6 +10404,16 @@ summary { cursor: pointer; padding: 10px 16px; } details pre { border-width: 1px
         <span class="k">if</span> (!<span class="t">Input</span>::hasMouse)
         {
             hasSpot = <span class="k">false</span>;
+            <span class="k">return</span>;
+        }
+        <span class="k">if</span> (roading)
+        {
+            hover = -<span class="n">1</span>;
+            hasSpot = <span class="k">false</span>;
+            <span class="k">if</span> (overView(mouse))
+                aim(<span class="t">Space</span>::ray(mouse));
+            <span class="k">if</span> (pressed &amp;&amp; hasSpot)
+                addPoint(spot);
             <span class="k">return</span>;
         }
         <span class="k">if</span> (sculpting)
@@ -9271,7 +10554,7 @@ summary { cursor: pointer; padding: 10px 16px; } details pre { border-width: 1px
         <span class="k">if</span> (t.entity <span class="k">is</span> <span class="k">null</span> || !t.entity.alive)
             <span class="k">return</span>;
         <span class="t">Kind</span>@ k = kindOf(t.json);
-        <span class="k">bool</span> glow = t.json.has(<span class="s">&quot;glow&quot;</span>);
+        <span class="k">bool</span> glow = t.json.has(<span class="s">&quot;glow&quot;</span>) || t.json.has(<span class="s">&quot;sound&quot;</span>);
         <span class="k">array</span>&lt;<span class="t">Vec2</span>&gt; at(<span class="n">8</span>);
         <span class="k">for</span> (<span class="k">uint</span> i = <span class="n">0</span>; i &lt; <span class="n">8</span>; i++)
         {
@@ -9329,12 +10612,28 @@ summary { cursor: pointer; padding: 10px 16px; } details pre { border-width: 1px
         <span class="t">Space</span>::draw(c);
         <span class="k">if</span> (!playing)
         {
-            <span class="k">if</span> (sculpting &amp;&amp; hasSpot)
+            <span class="k">if</span> ((sculpting || roading) &amp;&amp; hasSpot)
                 ring(c);
-            <span class="k">if</span> (viewing &amp;&amp; !sculpting &amp;&amp; under &gt;= <span class="n">0</span> &amp;&amp; under != chosen &amp;&amp; under &lt; <span class="k">int</span>(things.length()))
+            <span class="k">if</span> (viewing &amp;&amp; !sculpting &amp;&amp; !roading &amp;&amp; under &gt;= <span class="n">0</span> &amp;&amp; under != chosen &amp;&amp; under &lt; <span class="k">int</span>(things.length()))
                 box(c, things[<span class="k">uint</span>(under)], <span class="t">Color</span>(<span class="n">1</span>, <span class="n">1</span>, <span class="n">1</span>, <span class="n">0.5f</span>));
-            <span class="k">if</span> (chosen &gt;= <span class="n">0</span> &amp;&amp; !sculpting)
+            <span class="k">if</span> (roading &amp;&amp; roadNow() !<span class="k">is</span> <span class="k">null</span>)
+                <span class="k">for</span> (<span class="k">uint</span> i = <span class="n">0</span>; i &lt; roadNow().points.length(); i++)
+                {
+                    <span class="t">Vec3</span> p = roadNow().points[i];
+                    <span class="t">Vec2</span> at;
+                    p.y = <span class="t">Space</span>::height(p.x, p.z) + <span class="n">0.2f</span>;
+                    <span class="k">if</span> (<span class="t">Space</span>::toScreen(p, at))
+                        c.circle(at.x, at.y, <span class="n">6</span>, i == <span class="n">0</span> ? <span class="t">Color</span>(<span class="n">0.4f</span>, <span class="n">1</span>, <span class="n">0.5f</span>) : <span class="t">Color</span>(<span class="n">1</span>, <span class="n">0.9f</span>, <span class="n">0.4f</span>));
+                }
+            <span class="k">if</span> (chosen &gt;= <span class="n">0</span> &amp;&amp; !sculpting &amp;&amp; !roading)
             {
+                <span class="t">Json</span>@ j = things[<span class="k">uint</span>(chosen)].json;
+                <span class="t">Vec2</span> one, two;
+                <span class="k">if</span> (j.has(<span class="s">&quot;moves&quot;</span>) &amp;&amp; <span class="t">Space</span>::toScreen(worldPlace(j), one) &amp;&amp; <span class="t">Space</span>::toScreen(worldPlace(j) + j[<span class="s">&quot;moves&quot;</span>].vec3(), two))
+                {
+                    c.line(one.x, one.y, two.x, two.y, <span class="n">2</span>, <span class="t">Color</span>(<span class="n">0.5f</span>, <span class="n">0.9f</span>, <span class="n">1</span>, <span class="n">0.8f</span>));
+                    c.ring(two.x, two.y, <span class="n">7</span>, <span class="n">2</span>, <span class="t">Color</span>(<span class="n">0.5f</span>, <span class="n">0.9f</span>, <span class="n">1</span>));
+                }
                 box(c, things[<span class="k">uint</span>(chosen)], <span class="t">Color</span>(<span class="n">1</span>, <span class="n">0.75f</span>, <span class="n">0.25f</span>, <span class="n">0.9f</span>));
                 <span class="k">if</span> (!viewing)
                     handles(c);
@@ -9343,11 +10642,16 @@ summary { cursor: pointer; padding: 10px 16px; } details pre { border-width: 1px
         <span class="k">if</span> (viewing || playing)
         {
             <span class="k">float</span> x = wide * <span class="n">0.5f</span>;
+            <span class="k">if</span> (hero <span class="k">is</span> <span class="k">null</span>)
+            {
             c.line(x - <span class="n">11</span>, <span class="n">360</span>, x - <span class="n">4</span>, <span class="n">360</span>, <span class="n">2</span>, <span class="t">Color</span>(<span class="n">1</span>, <span class="n">1</span>, <span class="n">1</span>, <span class="n">0.8f</span>));
             c.line(x + <span class="n">4</span>, <span class="n">360</span>, x + <span class="n">11</span>, <span class="n">360</span>, <span class="n">2</span>, <span class="t">Color</span>(<span class="n">1</span>, <span class="n">1</span>, <span class="n">1</span>, <span class="n">0.8f</span>));
             c.line(x, <span class="n">349</span>, x, <span class="n">356</span>, <span class="n">2</span>, <span class="t">Color</span>(<span class="n">1</span>, <span class="n">1</span>, <span class="n">1</span>, <span class="n">0.8f</span>));
             c.line(x, <span class="n">364</span>, x, <span class="n">371</span>, <span class="n">2</span>, <span class="t">Color</span>(<span class="n">1</span>, <span class="n">1</span>, <span class="n">1</span>, <span class="n">0.8f</span>));
-            <span class="k">string</span> text = playing ? <span class="s">&quot;Accept throws a ball      Cancel goes back to editing&quot;</span>
+            }
+            <span class="k">string</span> text = playing &amp;&amp; hero !<span class="k">is</span> <span class="k">null</span> ? (way == <span class="n">1</span> ? (racing ? <span class="s">&quot;Lap &quot;</span> + formatFloat(lap, <span class="s">&quot;&quot;</span>, <span class="n">0</span>, <span class="n">1</span>) + (best &gt; <span class="n">0</span> ? <span class="s">&quot;      Best &quot;</span> + formatFloat(best, <span class="s">&quot;&quot;</span>, <span class="n">0</span>, <span class="n">2</span>) : <span class="s">&quot;&quot;</span>) + <span class="s">&quot;      &quot;</span> : <span class="s">&quot;&quot;</span>) + <span class="s">&quot;Cancel goes back to editing&quot;</span> : <span class="s">&quot;Accept jumps      Right trigger throws a ball      Cancel goes back to editing&quot;</span>)
+                : playing ? <span class="s">&quot;Accept throws a ball      Cancel goes back to editing&quot;</span>
+                : roading ? <span class="s">&quot;Accept adds a point      Cancel takes one back      Alternate brings the panels back&quot;</span>
                 : sculpting ? brushes[<span class="k">uint</span>(brush)] + <span class="s">&quot;      Hold Accept to change the land      Cancel or shoulders for another brush&quot;</span>
                 : carrying ? <span class="s">&quot;Accept puts it down      Shoulders turn it      Cancel puts it back&quot;</span>
                 : <span class="s">&quot;Accept takes what is in the middle      Alternate brings the panels back&quot;</span>;

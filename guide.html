@@ -233,12 +233,15 @@ hero.walker = <span class="k">true</span>;</code></pre>
 <tr><td><code>light</code>, <code>range</code></td><td>Lights other things</td></tr>
 <tr><td><code>sphere</code>, <code>cube</code>, <code>capsule</code>, <code>colliderAt</code>, <code>group</code>, <code>hits</code>, <code>wall</code></td><td>Its collider</td></tr>
 <tr><td><code>mass</code>, <code>friction</code>, <code>bounce</code>, <code>gravity</code>, <code>drag</code>, <code>walker</code></td><td>How it moves</td></tr>
+<tr><td><code>exact</code></td><td>Every triangle of its model is its collider</td></tr>
+<tr><td><code>moves</code>, <code>seconds</code>, <code>pathTime</code></td><td>It goes that far and back again, for ever, and takes walkers along</td></tr>
+<tr><td><code>sound</code>, <code>reach</code>, <code>volume</code></td><td>Something to hear from where it is, over and over</td></tr>
 <tr><td><code>behaviour</code></td><td>A class in the script</td></tr>
 </table></div>
 <p><code>Space::make</code> makes one entity from a <code>Json</code> of the same kind. The showcase&#x27;s <b>Scene editor</b> makes such files: fly about, add</p>
-<p>things, move, turn, size and colour them, shape and paint the land, try the place, and save it. It is a screen like any other, in</p>
-<p><code>showcase/editor</code>, and can be taken for your own tools. Models of your own appear at the end of its list: drop them on the window (on</p>
-<p>Windows), or put them in the folder <code>own</code> beside the saves, or in <code>media/own</code> on the original Xbox. Names there are small letters, digits, dots and dashes.</p>
+<p>things, move, turn, size and colour them, shape and paint the land, lay roads, join caves together, set the sky and the fog, then walk, drive or fly through the place, and save it; there can be several. It is a screen like any other, in</p>
+<p><code>showcase/editor</code>, and can be taken for your own tools. Models of your own appear at the end of its list: drop them on the window,</p>
+<p>or put them in the folder <code>own</code> beside the saves, or in <code>media/own</code> on the original Xbox. Names there are small letters, digits, dots and dashes.</p>
 <h3 id="land-by-hand">Land by hand</h3>
 <p>Land that has an end can be changed, while a game runs too, and things on it follow:</p>
 <pre><code><span class="t">Space</span>::raise(x, z, <span class="n">6</span>, <span class="n">2</span>);                            <span class="c">// a hill six metres round; less than 0 digs</span>
@@ -247,6 +250,9 @@ hero.walker = <span class="k">true</span>;</code></pre>
 <span class="t">Space</span>::paint(x, z, <span class="n">4</span>, <span class="t">Color</span>(<span class="n">0.55f</span>, <span class="n">0.42f</span>, <span class="n">0.28f</span>), <span class="n">1</span>);  <span class="c">// a path; a clear colour takes it away</span>
 <span class="k">string</span> kept = <span class="t">Space</span>::landEdits;                      <span class="c">// all of it, as text for a Json</span>
 <span class="t">Space</span>::restoreLand(kept);                            <span class="c">// on land of as many squares</span></code></pre>
+<p><code>Space::hole(x, z, 3)</code> opens the land, so that there can be something under it: the cave pieces in <code>global:model</code> (<code>cave-mouth</code>,</p>
+<p><code>cave-tunnel</code>, <code>cave-bend</code>, <code>cave-slope</code>, <code>cave-room</code> and <code>cave-end</code>) meet on a grid of 4 metres. A model of your own whose name begins with one of those joins them in the editor, so an entrance can look</p>
+<p>like anything. The sun doesn&#x27;t reach what has a material whose name begins with <code>indoors</code>. <code>Space::edges = true</code> puts walls that can&#x27;t be seen at the sides of the land.</p>
 <p><code>Space::lines = true</code> draws only the edges of triangles, to see how things are made.</p>
 <h3 id="files-that-players-bring">Files that players bring</h3>
 <p><code>Assets::list(&quot;own:&quot;)</code> has the names of the player&#x27;s own files, and <code>Assets::dropped()</code> those that were just dropped on the window. They</p>
