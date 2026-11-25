@@ -6378,7 +6378,7 @@ summary { cursor: pointer; padding: 10px 16px; } details pre { border-width: 1px
 <section id="3d" data-title="3d"><h2>3D</h2>
 <div data-find="island a world to walk about in, from day to night explore"><h3 id="demo-explore">Island</h3><p>A world to walk about in, from day to night</p>
 <div class="shots"><img loading="lazy" src="screenshots/explore.png" alt="Island"></div>
-<details><summary><code>explore/main.as</code> <span class="tag">422 lines</span></summary><pre><code><span class="c">// A world to walk about in: land, water, trees, houses, a day that passes, and someone to be.</span>
+<details><summary><code>explore/main.as</code> <span class="tag">428 lines</span></summary><pre><code><span class="c">// A world to walk about in: land, water, trees, houses, a day that passes, and someone to be.</span>
 
 <span class="t">Sound</span>@ chime = <span class="t">Assets</span>::sound(<span class="s">&quot;global:sound/coin.wav&quot;</span>);
 <span class="k">int</span> found = <span class="n">0</span>;
@@ -6452,6 +6452,7 @@ summary { cursor: pointer; padding: 10px 16px; } details pre { border-width: 1px
     <span class="t">Model</span>@ well = <span class="t">Assets</span>::model(<span class="s">&quot;global:model/well.glb&quot;</span>);
     <span class="t">Model</span>@ crystal = <span class="t">Assets</span>::model(<span class="s">&quot;global:model/crystal.glb&quot;</span>);
     <span class="t">Model</span>@ mushroom = <span class="t">Assets</span>::model(<span class="s">&quot;global:model/mushroom.glb&quot;</span>);
+    <span class="t">Model</span>@ grass = <span class="t">Assets</span>::model(<span class="s">&quot;global:model/grass.glb&quot;</span>);
 
     <span class="t">Entity</span>@ hero;
     <span class="t">Entity</span>@ camp;
@@ -6547,12 +6548,13 @@ summary { cursor: pointer; padding: 10px 16px; } details pre { border-width: 1px
             {
                 <span class="k">bool</span> high = p.y &gt; <span class="n">7</span> + random(-<span class="n">2</span>, <span class="n">2</span>);
                 <span class="t">Entity</span>@ tree = place(trees[high ? <span class="n">0</span> : <span class="n">1</span>], p, random(<span class="n">0</span>, <span class="n">360</span>), random(<span class="n">0.8f</span>, <span class="n">1.5f</span>));
+                tree.sway = <span class="n">0.02f</span>;
                 tree.capsule(<span class="n">0.3f</span>, <span class="n">4</span>, <span class="n">2</span>);
                 tree.colliderAt = <span class="t">Vec3</span>(<span class="n">0</span>, <span class="n">2</span>, <span class="n">0</span>);
                 tree.wall = <span class="k">true</span>;
             }
             <span class="k">if</span> (i % <span class="n">2</span> == <span class="n">0</span> &amp;&amp; spot(p, <span class="n">0.8f</span>, <span class="n">16</span>, <span class="n">0.75f</span>, <span class="n">20</span>))
-                place(bush, p, random(<span class="n">0</span>, <span class="n">360</span>), random(<span class="n">0.6f</span>, <span class="n">1.2f</span>));
+                place(bush, p, random(<span class="n">0</span>, <span class="n">360</span>), random(<span class="n">0.6f</span>, <span class="n">1.2f</span>)).sway = <span class="n">0.05f</span>;
             <span class="k">if</span> (i % <span class="n">4</span> == <span class="n">0</span> &amp;&amp; spot(p, -<span class="n">1</span>, <span class="n">25</span>, <span class="n">0.5f</span>, <span class="n">20</span>))
             {
                 <span class="t">Entity</span>@ stone = place(rock, p, random(<span class="n">0</span>, <span class="n">360</span>), random(<span class="n">0.4f</span>, <span class="n">1.6f</span>));
@@ -6560,6 +6562,10 @@ summary { cursor: pointer; padding: 10px 16px; } details pre { border-width: 1px
                 stone.colliderAt = <span class="t">Vec3</span>(<span class="n">0</span>, <span class="n">0.2f</span>, <span class="n">0</span>);
                 stone.wall = <span class="k">true</span>;
             }
+            <span class="c">// Grass, more of it near the village.</span>
+            <span class="k">for</span> (<span class="k">int</span> g = <span class="n">0</span>; g &lt; <span class="n">3</span>; g++)
+                <span class="k">if</span> (spot(p, <span class="n">0.6f</span>, <span class="n">12</span>, <span class="n">0.8f</span>, <span class="n">6</span>, g == <span class="n">0</span> ? <span class="n">130</span> : <span class="n">45</span>))
+                    place(grass, p, random(<span class="n">0</span>, <span class="n">360</span>), random(<span class="n">0.8f</span>, <span class="n">1.6f</span>)).sway = <span class="n">0.15f</span>;
             <span class="k">if</span> (i % <span class="n">5</span> == <span class="n">0</span> &amp;&amp; spot(p, <span class="n">1</span>, <span class="n">12</span>, <span class="n">0.85f</span>, <span class="n">18</span>))
                 place(mushroom, p, random(<span class="n">0</span>, <span class="n">360</span>), random(<span class="n">0.5f</span>, <span class="n">1.1f</span>));
             <span class="k">if</span> (i % <span class="n">12</span> == <span class="n">0</span> &amp;&amp; spot(p, <span class="n">1</span>, <span class="n">12</span>, <span class="n">0.8f</span>, <span class="n">10</span>))
@@ -7363,7 +7369,7 @@ summary { cursor: pointer; padding: 10px 16px; } details pre { border-width: 1px
 </code></pre></details></div>
 <div data-find="forest two thousand trees: culling and levels of detail forest"><h3 id="demo-forest">Forest</h3><p>Two thousand trees: culling and levels of detail</p>
 <div class="shots"><img loading="lazy" src="screenshots/forest.png" alt="Forest"></div>
-<details><summary><code>forest/main.as</code> <span class="tag">71 lines</span></summary><pre><code><span class="c">// Two thousand trees. What can&#x27;t be seen isn&#x27;t drawn, and what is far away is drawn more simply.</span>
+<details><summary><code>forest/main.as</code> <span class="tag">72 lines</span></summary><pre><code><span class="c">// Two thousand trees. What can&#x27;t be seen isn&#x27;t drawn, and what is far away is drawn more simply.</span>
 
 <span class="k">class</span> <span class="t">ForestScreen</span> : <span class="t">Screen</span>
 {
@@ -7387,6 +7393,7 @@ summary { cursor: pointer; padding: 10px 16px; } details pre { border-width: 1px
             <span class="k">float</span> x = random(-<span class="n">190</span>, <span class="n">190</span>), z = random(-<span class="n">190</span>, <span class="n">190</span>);
             <span class="t">Entity</span>@ e = <span class="t">Space</span>::spawn(<span class="t">Vec3</span>(x, <span class="t">Space</span>::height(x, z), z));
             e.model(random(<span class="n">0</span>, <span class="n">1</span>) &lt; <span class="n">0.65f</span> ? pine : oak);
+            e.sway = <span class="n">0.02f</span>;
             <span class="k">float</span> size = random(<span class="n">0.8f</span>, <span class="n">1.7f</span>);
             e.size = <span class="t">Vec3</span>(size, size * random(<span class="n">0.9f</span>, <span class="n">1.2f</span>), size);
             e.angles = <span class="t">Vec3</span>(<span class="n">0</span>, random(<span class="n">0</span>, <span class="n">360</span>), <span class="n">0</span>);
@@ -7616,7 +7623,7 @@ summary { cursor: pointer; padding: 10px 16px; } details pre { border-width: 1px
 </code></pre></details></div>
 <div data-find="endless land regions of a world that arrive and leave as you fly endless"><h3 id="demo-endless">Endless land</h3><p>Regions of a world that arrive and leave as you fly</p>
 <div class="shots"><img loading="lazy" src="screenshots/endless.png" alt="Endless land"></div>
-<details><summary><code>endless/main.as</code> <span class="tag">139 lines</span></summary><pre><code><span class="c">// Land without end. Regions of it are made in the background as the camera comes near, and go when it</span>
+<details><summary><code>endless/main.as</code> <span class="tag">140 lines</span></summary><pre><code><span class="c">// Land without end. Regions of it are made in the background as the camera comes near, and go when it</span>
 <span class="c">// has left; what stands in them comes and goes with them. One place is read from a file.</span>
 
 <span class="k">class</span> <span class="t">EndlessScreen</span> : <span class="t">Screen</span>
@@ -7669,6 +7676,7 @@ summary { cursor: pointer; padding: 10px 16px; } details pre { border-width: 1px
                 <span class="k">continue</span>;
             <span class="t">Entity</span>@ e = <span class="t">Space</span>::spawn(<span class="t">Vec3</span>(px, y, pz));
             e.model(n % <span class="n">5</span> == <span class="n">0</span> ? rock : y &gt; <span class="n">13</span> ? pine : oak);
+            e.sway = n % <span class="n">5</span> == <span class="n">0</span> ? <span class="n">0.0f</span> : <span class="n">0.02f</span>;
             <span class="k">float</span> big = <span class="n">0.9f</span> + chance(x, z, n + <span class="n">200</span>) * <span class="n">0.9f</span>;
             e.size = <span class="t">Vec3</span>(big, big, big);
             e.angles = <span class="t">Vec3</span>(<span class="n">0</span>, chance(x, z, n + <span class="n">300</span>) * <span class="n">360</span>, <span class="n">0</span>);
@@ -7911,7 +7919,7 @@ summary { cursor: pointer; padding: 10px 16px; } details pre { border-width: 1px
 </code></pre></details></div>
 <div data-find="scene editor build a place, try it and keep it editor"><h3 id="demo-editor">Scene editor</h3><p>Build a place, try it and keep it</p>
 <div class="shots"><img loading="lazy" src="screenshots/editor.png" alt="Scene editor"></div>
-<details><summary><code>editor/main.as</code> <span class="tag">3146 lines</span></summary><pre><code>#include <span class="s">&quot;global:scene.as&quot;</span>
+<details><summary><code>editor/main.as</code> <span class="tag">3159 lines</span></summary><pre><code>#include <span class="s">&quot;global:scene.as&quot;</span>
 
 <span class="c">// A scene editor, written as any screen is. What it makes is a file that Space::load reads.</span>
 
@@ -7966,6 +7974,7 @@ summary { cursor: pointer; padding: 10px 16px; } details pre { border-width: 1px
         <span class="t">Kind</span>(<span class="s">&quot;Nature&quot;</span>, <span class="s">&quot;Pine&quot;</span>, <span class="s">&quot;model&quot;</span>, <span class="s">&quot;pine&quot;</span>, <span class="t">Vec3</span>(-<span class="n">1.7f</span>, -<span class="n">0.4f</span>, -<span class="n">1.8f</span>), <span class="t">Vec3</span>(<span class="n">1.7f</span>, <span class="n">6</span>, <span class="n">1.7f</span>), <span class="n">3</span>, <span class="n">0.3f</span>),
         <span class="t">Kind</span>(<span class="s">&quot;Nature&quot;</span>, <span class="s">&quot;Bush&quot;</span>, <span class="s">&quot;model&quot;</span>, <span class="s">&quot;bush&quot;</span>, <span class="t">Vec3</span>(-<span class="n">0.9f</span>, -<span class="n">0.2f</span>, -<span class="n">0.9f</span>), <span class="t">Vec3</span>(<span class="n">1</span>, <span class="n">0.8f</span>, <span class="n">0.6f</span>)),
         <span class="t">Kind</span>(<span class="s">&quot;Nature&quot;</span>, <span class="s">&quot;Rock&quot;</span>, <span class="s">&quot;model&quot;</span>, <span class="s">&quot;rock&quot;</span>, <span class="t">Vec3</span>(-<span class="n">1</span>, -<span class="n">0.3f</span>, -<span class="n">1</span>), <span class="t">Vec3</span>(<span class="n">1</span>, <span class="n">0.9f</span>, <span class="n">1.1f</span>), <span class="n">2</span>),
+        <span class="t">Kind</span>(<span class="s">&quot;Nature&quot;</span>, <span class="s">&quot;Grass&quot;</span>, <span class="s">&quot;model&quot;</span>, <span class="s">&quot;grass&quot;</span>, <span class="t">Vec3</span>(-<span class="n">0.25f</span>, <span class="n">0</span>, -<span class="n">0.25f</span>), <span class="t">Vec3</span>(<span class="n">0.25f</span>, <span class="n">0.6f</span>, <span class="n">0.25f</span>)),
         <span class="t">Kind</span>(<span class="s">&quot;Nature&quot;</span>, <span class="s">&quot;Mushroom&quot;</span>, <span class="s">&quot;model&quot;</span>, <span class="s">&quot;mushroom&quot;</span>, <span class="t">Vec3</span>(-<span class="n">0.3f</span>, -<span class="n">0.1f</span>, -<span class="n">0.3f</span>), <span class="t">Vec3</span>(<span class="n">0.3f</span>, <span class="n">0.6f</span>, <span class="n">0.3f</span>)),
         <span class="t">Kind</span>(<span class="s">&quot;Nature&quot;</span>, <span class="s">&quot;Crystal&quot;</span>, <span class="s">&quot;model&quot;</span>, <span class="s">&quot;crystal&quot;</span>, <span class="t">Vec3</span>(-<span class="n">0.6f</span>, -<span class="n">0.1f</span>, -<span class="n">0.6f</span>), <span class="t">Vec3</span>(<span class="n">0.7f</span>, <span class="n">1.2f</span>, <span class="n">0.3f</span>), <span class="n">1</span>),
         <span class="t">Kind</span>(<span class="s">&quot;Nature&quot;</span>, <span class="s">&quot;Pool&quot;</span>, <span class="s">&quot;water&quot;</span>, <span class="s">&quot;&quot;</span>, <span class="t">Vec3</span>(-<span class="n">0.5f</span>, -<span class="n">0.5f</span>, -<span class="n">0.5f</span>), <span class="t">Vec3</span>(<span class="n">0.5f</span>, <span class="n">0.5f</span>, <span class="n">0.5f</span>)),
@@ -9826,6 +9835,10 @@ summary { cursor: pointer; padding: 10px 16px; } details pre { border-width: 1px
         }
         <span class="k">if</span> (k.collider &gt; <span class="n">0</span>)
             setCollider(j, k.collider);
+        <span class="c">// Plants lean in the wind.</span>
+        <span class="k">float</span> sway = k.name == <span class="s">&quot;oak&quot;</span> || k.name == <span class="s">&quot;pine&quot;</span> ? <span class="n">0.02f</span> : k.name == <span class="s">&quot;bush&quot;</span> ? <span class="n">0.05f</span> : k.name == <span class="s">&quot;grass&quot;</span> ? <span class="n">0.15f</span> : <span class="n">0.0f</span>;
+        <span class="k">if</span> (sway &gt; <span class="n">0</span>)
+            j.<span class="k">set</span>(<span class="s">&quot;sway&quot;</span>, sway);
         <span class="k">if</span> (k.group == <span class="s">&quot;Roads&quot;</span>)
         {
             <span class="c">// On a grid of 8 metres, the land flat under it; and on from the chosen one, where it is a road too.</span>
@@ -10001,6 +10014,7 @@ summary { cursor: pointer; padding: 10px 16px; } details pre { border-width: 1px
             ship.destroy();
         <span class="k">if</span> (gun !<span class="k">is</span> <span class="k">null</span>)
             gun.destroy();
+        <span class="t">Input</span>::lockMouse(<span class="k">false</span>);
         @hero = <span class="k">null</span>;
         @ship = <span class="k">null</span>;
         @gun = <span class="k">null</span>;
@@ -10232,7 +10246,7 @@ summary { cursor: pointer; padding: 10px 16px; } details pre { border-width: 1px
             <span class="k">float</span> a = yaw * <span class="n">0.0174533f</span>;
             <span class="t">Vec3</span> ahead = look(), right(cos(a), <span class="n">0</span>, sin(a));
             gun.place = eyes + ahead * <span class="n">0.5f</span> + right * <span class="n">0.2f</span> - <span class="t">Vec3</span>(<span class="n">0</span>, <span class="n">0.17f</span>, <span class="n">0</span>) + ahead * (sinceShot &lt; <span class="n">0.08f</span> ? -<span class="n">0.06f</span> : <span class="n">0.0f</span>);
-            gun.angles = <span class="t">Vec3</span>(-pitch, -yaw, <span class="n">0</span>);
+            gun.angles = <span class="t">Vec3</span>(pitch, -yaw, <span class="n">0</span>);
             <span class="k">return</span>;
         }
         <span class="c">// Behind it, and not through anything.</span>
@@ -10287,10 +10301,10 @@ summary { cursor: pointer; padding: 10px 16px; } details pre { border-width: 1px
     <span class="k">void</span> shoot(<span class="t">Vec3</span> &amp;<span class="k">out</span> m, <span class="k">const</span> <span class="t">Vec3</span> &amp;<span class="k">in</span> was, <span class="k">const</span> <span class="t">Vec2</span> &amp;<span class="k">in</span> stick, <span class="k">float</span> dt, <span class="k">bool</span> swimming, <span class="k">float</span> water)
     {
         m = was;
-        <span class="t">Vec2</span> moved = <span class="t">Input</span>::mouse - lastMouse;
-        lastMouse = <span class="t">Input</span>::mouse;
-        <span class="k">if</span> (<span class="t">Input</span>::hasMouse &amp;&amp; shownFor &gt; <span class="n">0.3f</span> &amp;&amp; !<span class="t">Ui</span>::busy)
-            turnBy(moved.x * <span class="n">0.25f</span>, -moved.y * <span class="n">0.25f</span>);
+        <span class="t">Vec2</span> moved = <span class="t">Input</span>::mouseMove;
+        <span class="t">Input</span>::lockMouse(!<span class="t">Ui</span>::busy);
+        <span class="k">if</span> (shownFor &gt; <span class="n">0.3f</span> &amp;&amp; !<span class="t">Ui</span>::busy)
+            turnBy(moved.x * <span class="n">0.2f</span>, -moved.y * <span class="n">0.2f</span>);
         <span class="k">float</span> a = yaw * <span class="n">0.0174533f</span>;
         <span class="t">Vec3</span> ahead(sin(a), <span class="n">0</span>, -cos(a)), side(cos(a), <span class="n">0</span>, sin(a));
         <span class="t">Vec3</span> wanted = (side * stick.x - ahead * stick.y) * <span class="n">6.5f</span>;
@@ -10318,7 +10332,7 @@ summary { cursor: pointer; padding: 10px 16px; } details pre { border-width: 1px
                 hit = from + along * <span class="n">200</span>;
             <span class="k">if</span> (e !<span class="k">is</span> <span class="k">null</span>)
                 e.push(along * <span class="n">9</span>, hit);
-            shotFrom = gun.place + look() * <span class="n">0.3f</span>;
+            shotFrom = muzzle();
             shotTo = hit;
             shotNow = <span class="k">true</span>;
             bang.play(<span class="n">0.3f</span>, <span class="n">0</span>, random(<span class="n">0.9f</span>, <span class="n">1.1f</span>));
@@ -10381,7 +10395,7 @@ summary { cursor: pointer; padding: 10px 16px; } details pre { border-width: 1px
         <span class="k">if</span> (last)
         {
             best = best == <span class="n">0</span> || lap &lt; best ? lap : best;
-            <span class="t">Ui</span>::toast(<span class="s">&quot;Lap: &quot;</span> + formatFloat(lap, <span class="s">&quot;&quot;</span>, <span class="n">0</span>, <span class="n">2</span>) + <span class="s">&quot; s&quot;</span>);
+            level.say(<span class="s">&quot;Lap: &quot;</span> + formatFloat(lap, <span class="s">&quot;&quot;</span>, <span class="n">0</span>, <span class="n">2</span>) + <span class="s">&quot; s&quot;</span>, <span class="n">2.5f</span>);
             lap = <span class="n">0</span>;
             nextMark = <span class="n">1</span>;
         }
@@ -10404,6 +10418,12 @@ summary { cursor: pointer; padding: 10px 16px; } details pre { border-width: 1px
         e.friction = <span class="n">0.5f</span>;
         e.motion = look() * <span class="n">22</span>;
         thrown.insertLast(e);
+    }
+
+    <span class="c">// The end of the gun&#x27;s barrel, wherever it is pointing.</span>
+    <span class="t">Vec3</span> muzzle()
+    {
+        <span class="k">return</span> gun <span class="k">is</span> <span class="k">null</span> ? eye + look() : gun.place - gun.forward * <span class="n">0.29f</span>;
     }
 
     <span class="t">Vec3</span> look()
@@ -11024,6 +11044,7 @@ summary { cursor: pointer; padding: 10px 16px; } details pre { border-width: 1px
             <span class="k">if</span> (way == <span class="n">3</span> &amp;&amp; sinceShot &lt; <span class="n">0.07f</span>)
             {
                 <span class="t">Vec2</span> a_, b_;
+                shotFrom = muzzle();
                 <span class="k">if</span> (<span class="t">Space</span>::toScreen(shotFrom, a_) &amp;&amp; <span class="t">Space</span>::toScreen(shotTo, b_))
                     c.line(a_.x, a_.y, b_.x, b_.y, <span class="n">2</span>, <span class="t">Color</span>(<span class="n">1</span>, <span class="n">0.9f</span>, <span class="n">0.5f</span>, <span class="n">0.8f</span>));
                 <span class="t">Vec2</span> m_;
@@ -11055,6 +11076,257 @@ summary { cursor: pointer; padding: 10px 16px; } details pre { border-width: 1px
             c.text(font, text, x, <span class="n">667</span>, <span class="t">Color</span>(<span class="n">0.9f</span>, <span class="n">0.94f</span>, <span class="n">1</span>), <span class="t">AlignCenter</span>);
         }
         <span class="t">Ui</span>::draw(c);
+    }
+}
+</code></pre></details></div>
+<div data-find="lost key a small game made in the scene editor: find the key, go through the ring, gather the crystals quest"><h3 id="demo-quest">Lost key</h3><p>A small game made in the scene editor: find the key, go through the ring, gather the crystals</p>
+<div class="shots"><img loading="lazy" src="screenshots/quest.png" alt="Lost key"></div>
+<details><summary><code>quest/main.as</code> <span class="tag">248 lines</span></summary><pre><code><span class="c">// A small game made from two scenes, as the scene editor saves them: the village, where a key opens the ring,</span>
+<span class="c">// and the island beyond it, with crystals to gather. The scenes say what is where, which triggers do what,</span>
+<span class="c">// and what the HUD shows; this script only walks, follows, and keeps the score.</span>
+#include <span class="s">&quot;global:scene.as&quot;</span>
+
+<span class="c">// Turns, and bobs a little.</span>
+<span class="k">class</span> <span class="t">Spin</span> : <span class="t">Behaviour</span>
+{
+    <span class="t">Vec3</span> home;
+    <span class="k">float</span> at = <span class="n">0</span>;
+
+    <span class="k">void</span> start()
+    {
+        home = entity.place;
+        at = random(<span class="n">0</span>, <span class="n">6</span>);
+    }
+
+    <span class="k">void</span> update(<span class="k">float</span> dt)
+    {
+        at += dt;
+        entity.place = home + <span class="t">Vec3</span>(<span class="n">0</span>, sin(at * <span class="n">2</span>) * <span class="n">0.15f</span>, <span class="n">0</span>);
+        entity.turn(<span class="t">Vec3</span>(<span class="n">0</span>, <span class="n">1</span>, <span class="n">0</span>), <span class="n">80</span> * dt);
+    }
+}
+
+<span class="k">class</span> <span class="t">QuestScreen</span> : <span class="t">Screen</span>
+{
+    <span class="t">Font</span>@ font = <span class="t">Assets</span>::font(<span class="s">&quot;global:freesans.sfn&quot;</span>, <span class="n">24</span>);
+    <span class="t">Font</span>@ big = <span class="t">Assets</span>::font(<span class="s">&quot;global:freesans.sfn&quot;</span>, <span class="n">48</span>);
+    <span class="t">Sound</span>@ chime = <span class="t">Assets</span>::sound(<span class="s">&quot;global:sound/coin.wav&quot;</span>);
+    <span class="t">Sound</span>@ gate = <span class="t">Assets</span>::sound(<span class="s">&quot;global:sound/gate.wav&quot;</span>);
+    <span class="t">Sound</span>@ jump = <span class="t">Assets</span>::sound(<span class="s">&quot;global:sound/whoosh.wav&quot;</span>);
+    <span class="t">Sound</span>@ step = <span class="t">Assets</span>::sound(<span class="s">&quot;global:sound/step.wav&quot;</span>);
+    <span class="t">Model</span>@ robot = <span class="t">Assets</span>::model(<span class="s">&quot;global:model/robot.glb&quot;</span>);
+
+    <span class="t">Level</span> level;
+    <span class="t">Entity</span>@ hero;
+    <span class="k">string</span> scene;
+    <span class="c">// What has been taken, in any scene, so that it stays gone when you come back.</span>
+    <span class="k">array</span>&lt;<span class="k">string</span>&gt; taken;
+    <span class="k">bool</span> hasKey = <span class="k">false</span>;
+    <span class="k">int</span> crystals = <span class="n">0</span>;
+    <span class="k">int</span> total = <span class="n">5</span>;
+    <span class="k">float</span> time = <span class="n">0</span>, shown = <span class="n">0</span>, strode = <span class="n">0</span>, sinceArrived = <span class="n">0</span>;
+    <span class="k">float</span> fade = <span class="n">1</span>;              <span class="c">// black over everything, after going through</span>
+    <span class="k">bool</span> won = <span class="k">false</span>;
+    <span class="k">float</span> yaw = <span class="n">0</span>, lean = <span class="n">0.3f</span>;
+    <span class="t">Vec3</span> look;
+    <span class="t">Vec2</span> mouseWas;
+    <span class="k">bool</span> wasDown = <span class="k">false</span>;
+
+    <span class="k">void</span> onEnter()
+    {
+        <span class="t">Scene</span>::load(<span class="s">&quot;asset:effects.json&quot;</span>);
+        @level.onTouch = <span class="t">LevelTouch</span>(<span class="k">this</span>.touched);
+        go(<span class="s">&quot;village&quot;</span>, <span class="s">&quot;start&quot;</span>);
+    }
+
+    <span class="k">void</span> onExit()
+    {
+        level.clear();
+    }
+
+    <span class="c">// A scene, from its arrival.</span>
+    <span class="k">void</span> go(<span class="k">const</span> <span class="k">string</span> &amp;<span class="k">in</span> name, <span class="k">const</span> <span class="k">string</span> &amp;<span class="k">in</span> arrive)
+    {
+        <span class="k">if</span> (hero !<span class="k">is</span> <span class="k">null</span>)
+            hero.destroy();
+        scene = name;
+        level.load(<span class="s">&quot;asset:&quot;</span> + name + <span class="s">&quot;.json&quot;</span>);
+        <span class="c">// What was taken before stays taken.</span>
+        <span class="k">for</span> (<span class="k">uint</span> i = <span class="n">0</span>; i &lt; taken.length(); i++)
+        {
+            level.hide(taken[i], <span class="n">0</span>);
+            level.switchOn(<span class="s">&quot;get &quot;</span> + taken[i], <span class="k">false</span>);
+        }
+        <span class="k">if</span> (hasKey &amp;&amp; name == <span class="s">&quot;village&quot;</span>)
+        {
+            level.switchOn(<span class="s">&quot;locked&quot;</span>, <span class="k">false</span>);
+            level.switchOn(<span class="s">&quot;through&quot;</span>, <span class="k">true</span>);
+            level.show(<span class="s">&quot;portal&quot;</span>, <span class="n">0</span>);
+        }
+        level.<span class="k">set</span>(<span class="s">&quot;crystals&quot;</span>, crystals + <span class="s">&quot; of &quot;</span> + total);
+        level.<span class="k">set</span>(<span class="s">&quot;key&quot;</span>, hasKey ? <span class="s">&quot;yes&quot;</span> : <span class="s">&quot;not yet&quot;</span>);
+
+        <span class="t">Vec3</span> at(<span class="n">0</span>, <span class="n">0</span>, <span class="n">0</span>);
+        <span class="k">float</span> turned = <span class="n">0</span>;
+        level.arrival(arrive, at, turned);
+        @hero = <span class="t">Space</span>::spawn(at + <span class="t">Vec3</span>(<span class="n">0</span>, <span class="n">0.3f</span>, <span class="n">0</span>));
+        hero.model(robot);
+        hero.capsule(<span class="n">0.35f</span>, <span class="n">1.6f</span>, <span class="n">1</span>);
+        hero.colliderAt = <span class="t">Vec3</span>(<span class="n">0</span>, <span class="n">0.8f</span>, <span class="n">0</span>);
+        hero.walker = <span class="k">true</span>;
+        hero.mass = <span class="n">60</span>;
+        hero.shine = <span class="n">0.5f</span>;
+        hero.angles = <span class="t">Vec3</span>(<span class="n">0</span>, turned + <span class="n">180</span>, <span class="n">0</span>);
+        yaw = turned * <span class="n">0.0174533f</span>;
+        look = hero.place + <span class="t">Vec3</span>(<span class="n">0</span>, <span class="n">1.4f</span>, <span class="n">0</span>);
+        fade = <span class="n">1</span>;
+        sinceArrived = scene == <span class="s">&quot;village&quot;</span> &amp;&amp; !hasKey ? <span class="n">0.0f</span> : <span class="n">5.0f</span>;
+    }
+
+    <span class="c">// What the scenes&#x27; triggers tell the game.</span>
+    <span class="k">void</span> touched(<span class="k">const</span> <span class="k">string</span> &amp;<span class="k">in</span> name, <span class="t">Entity</span>@ who)
+    {
+        <span class="k">if</span> (name == <span class="s">&quot;get key&quot;</span>)
+        {
+            hasKey = <span class="k">true</span>;
+            taken.insertLast(<span class="s">&quot;key&quot;</span>);
+            level.<span class="k">set</span>(<span class="s">&quot;key&quot;</span>, <span class="s">&quot;yes&quot;</span>);
+            level.switchOn(<span class="s">&quot;locked&quot;</span>, <span class="k">false</span>);
+            level.switchOn(<span class="s">&quot;through&quot;</span>, <span class="k">true</span>);
+            level.show(<span class="s">&quot;portal&quot;</span>, <span class="n">1.2f</span>, <span class="s">&quot;grow&quot;</span>);
+            gate.play(<span class="n">0.8f</span>);
+            <span class="t">Space</span>::burst(<span class="s">&quot;gold&quot;</span>, who.place + <span class="t">Vec3</span>(<span class="n">0</span>, <span class="n">1</span>, <span class="n">0</span>), <span class="n">40</span>);
+        }
+        <span class="k">else</span> <span class="k">if</span> (name.findFirst(<span class="s">&quot;get c&quot;</span>) == <span class="n">0</span>)
+        {
+            crystals++;
+            taken.insertLast(name.substr(<span class="n">4</span>));
+            level.<span class="k">set</span>(<span class="s">&quot;crystals&quot;</span>, crystals + <span class="s">&quot; of &quot;</span> + total);
+            chime.play(<span class="n">0.7f</span>);
+            <span class="t">Space</span>::burst(<span class="s">&quot;shard&quot;</span>, who.place + <span class="t">Vec3</span>(<span class="n">0</span>, <span class="n">1</span>, <span class="n">0</span>), <span class="n">40</span>);
+            <span class="k">if</span> (crystals == total)
+            {
+                won = <span class="k">true</span>;
+                level.say(<span class="s">&quot;All five, in &quot;</span> + clock(time), <span class="n">6</span>);
+            }
+            <span class="k">else</span>
+                level.say(crystals + <span class="s">&quot; found&quot;</span>, <span class="n">1.5f</span>);
+        }
+    }
+
+    <span class="k">string</span> clock(<span class="k">float</span> t)
+    {
+        <span class="k">int</span> s = <span class="k">int</span>(t);
+        <span class="k">return</span> (s / <span class="n">60</span>) + <span class="s">&quot;:&quot;</span> + (s % <span class="n">60</span> &lt; <span class="n">10</span> ? <span class="s">&quot;0&quot;</span> : <span class="s">&quot;&quot;</span>) + (s % <span class="n">60</span>);
+    }
+
+    <span class="k">void</span> update(<span class="k">float</span> dt)
+    {
+        shown += dt;
+        sinceArrived += dt;
+        fade = clamp(fade - dt * <span class="n">2</span>, <span class="n">0</span>, <span class="n">1</span>);
+        <span class="k">if</span> (!won)
+            time += dt;
+        level.<span class="k">set</span>(<span class="s">&quot;time&quot;</span>, clock(time));
+        walk(dt);
+        follow(dt);
+        <span class="k">string</span> goes = level.update(dt, hero);
+        <span class="k">if</span> (goes != <span class="s">&quot;&quot;</span>)
+        {
+            <span class="k">int</span> bar = goes.findFirst(<span class="s">&quot;|&quot;</span>);
+            go(goes.substr(<span class="n">0</span>, <span class="k">uint</span>(bar)), goes.substr(<span class="k">uint</span>(bar) + <span class="n">1</span>));
+        }
+    }
+
+    <span class="k">void</span> walk(<span class="k">float</span> dt)
+    {
+        <span class="t">Vec2</span> stick = <span class="t">Input</span>::move;
+        <span class="t">Vec3</span> ahead(-sin(yaw), <span class="n">0</span>, -cos(yaw));
+        <span class="t">Vec3</span> side(cos(yaw), <span class="n">0</span>, -sin(yaw));
+        <span class="t">Vec3</span> way = side * stick.x - ahead * stick.y;
+        <span class="t">Vec3</span> wanted = way * <span class="n">6</span>;
+        <span class="t">Vec3</span> motion = hero.motion;
+        <span class="k">float</span> grip = clamp((hero.onGround ? <span class="n">12</span> : <span class="n">3</span>) * dt, <span class="n">0</span>, <span class="n">1</span>);
+        motion.x += (wanted.x - motion.x) * grip;
+        motion.z += (wanted.z - motion.z) * grip;
+        <span class="k">if</span> (<span class="t">Input</span>::pressed(<span class="s">&quot;accept&quot;</span>) &amp;&amp; hero.onGround)
+        {
+            motion.y = <span class="n">6.4f</span>;
+            jump.play(<span class="n">0.35f</span>);
+        }
+        hero.motion = motion;
+        <span class="k">float</span> going = <span class="t">Vec3</span>(motion.x, <span class="n">0</span>, motion.z).length();
+        strode += going * dt;
+        <span class="k">if</span> (strode &gt; (going &gt; <span class="n">4</span> ? <span class="n">1.5f</span> : <span class="n">0.9f</span>) &amp;&amp; hero.onGround)
+        {
+            strode = <span class="n">0</span>;
+            step.play(<span class="n">0.25f</span>, <span class="n">0</span>, random(<span class="n">0.85f</span>, <span class="n">1.15f</span>));
+        }
+        <span class="k">if</span> (way.length() &gt; <span class="n">0.1f</span>)
+            hero.face(way, clamp(<span class="n">12</span> * dt, <span class="n">0</span>, <span class="n">1</span>));
+        hero.animate(!hero.onGround &amp;&amp; abs(motion.y) &gt; <span class="n">1.5f</span> ? <span class="s">&quot;jump&quot;</span> : going &gt; <span class="n">4</span> ? <span class="s">&quot;run&quot;</span> : going &gt; <span class="n">0.5f</span> ? <span class="s">&quot;walk&quot;</span> : <span class="s">&quot;idle&quot;</span>);
+        hero.animationSpeed = going &gt; <span class="n">4</span> ? going / <span class="n">6</span> : going &gt; <span class="n">0.5f</span> ? going / <span class="n">2.4f</span> : <span class="n">1</span>;
+        <span class="c">// Into the sea, or off the edge: back to where this scene began.</span>
+        <span class="k">if</span> (hero.place.y &lt; -<span class="n">8</span>)
+        {
+            <span class="t">Vec3</span> at;
+            <span class="k">float</span> turned;
+            <span class="k">if</span> (level.arrival(scene == <span class="s">&quot;village&quot;</span> ? <span class="s">&quot;start&quot;</span> : <span class="s">&quot;in&quot;</span>, at, turned))
+                hero.place = at + <span class="t">Vec3</span>(<span class="n">0</span>, <span class="n">0.5f</span>, <span class="n">0</span>);
+            hero.motion = <span class="t">Vec3</span>();
+        }
+    }
+
+    <span class="k">void</span> follow(<span class="k">float</span> dt)
+    {
+        <span class="t">Vec2</span> turn = <span class="t">Input</span>::padRight(<span class="n">0</span>);
+        yaw -= turn.x * <span class="n">2.4f</span> * dt;
+        lean = clamp(lean - turn.y * <span class="n">1.4f</span> * dt, -<span class="n">0.1f</span>, <span class="n">1.1f</span>);
+        <span class="t">Vec2</span> mouse = <span class="t">Input</span>::mouse;
+        <span class="k">if</span> (<span class="t">Input</span>::mouseDown(<span class="n">1</span>) &amp;&amp; wasDown)
+        {
+            yaw -= (mouse.x - mouseWas.x) * <span class="n">0.006f</span>;
+            lean = clamp(lean + (mouse.y - mouseWas.y) * <span class="n">0.004f</span>, -<span class="n">0.1f</span>, <span class="n">1.1f</span>);
+        }
+        wasDown = <span class="t">Input</span>::mouseDown(<span class="n">1</span>);
+        mouseWas = mouse;
+        <span class="c">// It swings round behind as you walk.</span>
+        <span class="t">Vec3</span> side(cos(yaw), <span class="n">0</span>, -sin(yaw));
+        yaw -= clamp(hero.motion.dot(side) * <span class="n">0.1f</span>, -<span class="n">1</span>, <span class="n">1</span>) * dt * <span class="n">1.5f</span>;
+
+        look = lerp(look, hero.place + <span class="t">Vec3</span>(<span class="n">0</span>, <span class="n">1.4f</span>, <span class="n">0</span>), clamp(<span class="n">9</span> * dt, <span class="n">0</span>, <span class="n">1</span>));
+        <span class="k">float</span> away = <span class="n">6.5f</span>;
+        <span class="t">Vec3</span> back(sin(yaw) * cos(lean), sin(lean), cos(yaw) * cos(lean));
+        <span class="t">Vec3</span> from = look + back * away;
+        <span class="t">Vec3</span> hit, normal;
+        <span class="k">if</span> (<span class="t">Space</span>::raycast(look, look + back * (away + <span class="n">0.4f</span>), hit, normal, (<span class="n">1</span> &lt;&lt; <span class="n">0</span>) | (<span class="n">1</span> &lt;&lt; <span class="n">2</span>), hero))
+            from = look + back * clamp((hit - look).length() - <span class="n">0.4f</span>, <span class="n">1</span>, away);
+        <span class="k">float</span> least = <span class="t">Space</span>::height(from.x, from.z) + <span class="n">0.5f</span>;
+        from.y = from.y &lt; least ? least : from.y;
+        <span class="t">Space</span>::camera(from, look + <span class="t">Vec3</span>(<span class="n">0</span>, <span class="n">0.3f</span>, <span class="n">0</span>), <span class="n">62</span>);
+    }
+
+    <span class="k">void</span> draw(<span class="t">Canvas</span>@ c)
+    {
+        c.designHeight(<span class="n">720</span>);
+        <span class="t">Space</span>::draw(c);
+        c.bloom(<span class="n">0.35f</span>, <span class="n">0.8f</span>);
+        level.drawHud(c);
+        c.designHeight(<span class="n">720</span>);
+        <span class="k">if</span> (won)
+            c.text(big, <span class="s">&quot;Well done!&quot;</span>, c.width * <span class="n">0.5f</span>, <span class="n">220</span>, <span class="t">Color</span>(<span class="n">1</span>, <span class="n">0.9f</span>, <span class="n">0.4f</span>), <span class="t">AlignCenter</span>);
+        <span class="k">float</span> help = clamp(<span class="n">8</span> - sinceArrived, <span class="n">0</span>, <span class="n">1</span>);
+        <span class="k">if</span> (help &gt; <span class="n">0</span>)
+        {
+            c.alpha = help;
+            <span class="k">string</span> goal = scene == <span class="s">&quot;island&quot;</span> ? <span class="s">&quot;Gather the five crystals&quot;</span> : hasKey ? <span class="s">&quot;Go through the stone ring&quot;</span> : <span class="s">&quot;Find the key that opens the stone ring&quot;</span>;
+            c.roundRect(c.width * <span class="n">0.5f</span> - <span class="n">420</span>, <span class="n">600</span>, <span class="n">840</span>, <span class="n">88</span>, <span class="n">14</span>, <span class="t">Color</span>(<span class="n">0</span>, <span class="n">0</span>, <span class="n">0</span>, <span class="n">0.45f</span>));
+            c.text(font, goal, c.width * <span class="n">0.5f</span>, <span class="n">610</span>, <span class="t">Color</span>(<span class="n">1</span>, <span class="n">0.9f</span>, <span class="n">0.6f</span>), <span class="t">AlignCenter</span>);
+            c.text(font, <span class="t">Input</span>::usingPad ? <span class="s">&quot;Left stick: walk    Right stick: look    A: jump&quot;</span> : <span class="s">&quot;Arrows: walk    Right button: look    Space: jump&quot;</span>, c.width * <span class="n">0.5f</span>, <span class="n">648</span>, <span class="t">White</span>, <span class="t">AlignCenter</span>);
+            c.alpha = <span class="n">1</span>;
+        }
+        <span class="k">if</span> (fade &gt; <span class="n">0</span>)
+            c.rect(<span class="n">0</span>, <span class="n">0</span>, c.width, <span class="n">720</span>, <span class="t">Color</span>(<span class="n">0</span>, <span class="n">0</span>, <span class="n">0</span>, fade));
     }
 }
 </code></pre></details></div>
