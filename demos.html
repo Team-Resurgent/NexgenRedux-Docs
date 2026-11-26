@@ -12038,6 +12038,302 @@ summary { cursor: pointer; padding: 10px 16px; } details pre { border-width: 1px
     }
 }
 </code></pre></details></div>
+<div data-find="blocks a world of blocks to dig and build in, made from a number blocks"><h3 id="demo-blocks">Blocks</h3><p>A world of blocks to dig and build in, made from a number</p>
+<div class="shots"><img loading="lazy" src="screenshots/blocks.png" alt="Blocks"></div>
+<details><summary><code>blocks/main.as</code> <span class="tag">293 lines</span></summary><pre><code><span class="c">// A world of blocks to dig and build in: hills of grass, earth and stone with hollows under them, sand by the sea,</span>
+<span class="c">// snow on the tops and trees, all made in the engine from a number. Each chunk of 16 blocks a side is made into only</span>
+<span class="c">// the faces that can be seen, joined where they are alike, with corners darker where blocks crowd them.</span>
+
+<span class="k">class</span> <span class="t">BlocksScreen</span> : <span class="t">Screen</span>
+{
+    <span class="t">Font</span>@ font = <span class="t">Assets</span>::font(<span class="s">&quot;global:freesans.sfn&quot;</span>, <span class="n">22</span>);
+    <span class="t">Font</span>@ small = <span class="t">Assets</span>::font(<span class="s">&quot;global:freesans.sfn&quot;</span>, <span class="n">16</span>);
+    <span class="t">Sound</span>@ dig = <span class="t">Assets</span>::sound(<span class="s">&quot;global:sound/hit.wav&quot;</span>);
+    <span class="t">Sound</span>@ put = <span class="t">Assets</span>::sound(<span class="s">&quot;global:sound/pop.wav&quot;</span>);
+    <span class="t">Sound</span>@ boom = <span class="t">Assets</span>::sound(<span class="s">&quot;global:sound/boom.wav&quot;</span>);
+    <span class="t">Sound</span>@ jump = <span class="t">Assets</span>::sound(<span class="s">&quot;global:sound/whoosh.wav&quot;</span>);
+    <span class="k">array</span>&lt;<span class="k">uint</span>&gt; kinds = { <span class="n">1</span>, <span class="n">2</span>, <span class="n">3</span>, <span class="n">4</span>, <span class="n">5</span>, <span class="n">6</span>, <span class="n">7</span>, <span class="n">9</span>, <span class="n">11</span> };
+    <span class="k">array</span>&lt;<span class="k">string</span>&gt; names = { <span class="s">&quot;Grass&quot;</span>, <span class="s">&quot;Earth&quot;</span>, <span class="s">&quot;Stone&quot;</span>, <span class="s">&quot;Sand&quot;</span>, <span class="s">&quot;Wood&quot;</span>, <span class="s">&quot;Leaves&quot;</span>, <span class="s">&quot;Brick&quot;</span>, <span class="s">&quot;Planks&quot;</span>, <span class="s">&quot;Gold&quot;</span> };
+    <span class="t">Entity</span>@ hero;
+    <span class="t">Entity</span>@ aim;
+    <span class="k">float</span> yaw = <span class="n">200</span>, pitch = -<span class="n">30</span>, shown = <span class="n">0</span>, again = <span class="n">0</span>;
+    <span class="k">uint</span> chosen = <span class="n">6</span>;
+    <span class="k">bool</span> hasTarget = <span class="k">false</span>;
+    <span class="t">Vec3</span> cell, face;
+    <span class="k">int</span> across = <span class="n">160</span>, deep = <span class="n">160</span>, high = <span class="n">48</span>, sea = <span class="n">12</span>;
+    <span class="k">bool</span> wasLeft = <span class="k">false</span>, wasRight = <span class="k">false</span>, wasLeftShoulder = <span class="k">false</span>, wasRightShoulder = <span class="k">false</span>;
+    <span class="t">Vec2</span> wasTriggers;
+
+    <span class="k">void</span> onEnter()
+    {
+        <span class="t">Scene</span>::load(<span class="s">&quot;asset:scene.json&quot;</span>);
+        <span class="k">if</span> (<span class="t">App</span>::platform == <span class="s">&quot;Original Xbox&quot;</span>)
+        {
+            across = <span class="n">112</span>;
+            deep = <span class="n">112</span>;
+            high = <span class="n">40</span>;
+        }
+        <span class="c">// From a corner, so that the sea is at 0.</span>
+        <span class="t">Space</span>::voxels(<span class="t">Vec3</span>(-across / <span class="n">2</span>, -sea - <span class="n">0.5f</span>, -deep / <span class="n">2</span>), <span class="k">uint</span>(across), <span class="k">uint</span>(high), <span class="k">uint</span>(deep), <span class="n">1</span>);
+        <span class="t">Space</span>::voxelHills(<span class="n">7</span>, <span class="n">22</span>, <span class="n">0.55f</span>, sea, <span class="n">0.55f</span>);
+        <span class="t">Space</span>::water(<span class="n">0</span>, <span class="t">Color</span>(<span class="n">0.14f</span>, <span class="n">0.36f</span>, <span class="n">0.5f</span>, <span class="n">0.8f</span>));
+        <span class="t">Space</span>::waterStyle(<span class="s">&quot;calm&quot;</span>);
+        <span class="t">Space</span>::sky(<span class="t">Color</span>(<span class="n">0.28f</span>, <span class="n">0.5f</span>, <span class="n">0.86f</span>), <span class="t">Color</span>(<span class="n">0.78f</span>, <span class="n">0.86f</span>, <span class="n">0.94f</span>));
+        <span class="t">Space</span>::fog(<span class="t">Color</span>(<span class="n">0.78f</span>, <span class="n">0.86f</span>, <span class="n">0.94f</span>), <span class="n">50</span>, <span class="n">150</span>);
+        <span class="t">Space</span>::sun(<span class="t">Vec3</span>(<span class="n">0.5f</span>, <span class="n">0.75f</span>, <span class="n">0.35f</span>), <span class="t">Color</span>(<span class="n">1</span>, <span class="n">0.93f</span>, <span class="n">0.8f</span>));
+        <span class="t">Space</span>::ambient(<span class="t">Color</span>(<span class="n">0.45f</span>, <span class="n">0.5f</span>, <span class="n">0.62f</span>), <span class="t">Color</span>(<span class="n">0.25f</span>, <span class="n">0.22f</span>, <span class="n">0.18f</span>));
+        <span class="t">Space</span>::farthest(<span class="n">160</span>);
+        <span class="t">Space</span>::shadows(<span class="n">0.55f</span>, <span class="n">36</span>);
+        plantTrees();
+        buildHouse();
+
+        <span class="c">// Where to start: on the land nearest the middle.</span>
+        <span class="k">int</span> sx = across / <span class="n">2</span>, sz = deep / <span class="n">2</span>;
+        <span class="k">for</span> (<span class="k">int</span> r = <span class="n">0</span>; r &lt; <span class="n">40</span> &amp;&amp; <span class="t">Space</span>::voxelTop(sx, sz) &lt;= sea; r++)
+            sx += <span class="n">2</span>;
+        <span class="t">Vec3</span> start = <span class="t">Space</span>::voxelPlace(sx, <span class="t">Space</span>::voxelTop(sx, sz) + <span class="n">1</span>, sz) - <span class="t">Vec3</span>(<span class="n">0</span>, <span class="n">0.5f</span>, <span class="n">0</span>);
+        @hero = <span class="t">Space</span>::spawn(start + <span class="t">Vec3</span>(<span class="n">0</span>, <span class="n">0.2f</span>, <span class="n">0</span>));
+        hero.capsule(<span class="n">0.35f</span>, <span class="n">1.7f</span>, <span class="n">1</span>);
+        hero.colliderAt = <span class="t">Vec3</span>(<span class="n">0</span>, <span class="n">0.85f</span>, <span class="n">0</span>);
+        hero.walker = <span class="k">true</span>;
+        hero.mass = <span class="n">60</span>;
+        <span class="c">// The block looked at, a little larger, and see-through.</span>
+        @aim = <span class="t">Space</span>::spawn(<span class="t">Vec3</span>());
+        <span class="c">// The edges of the block looked at.</span>
+        <span class="t">Mesh</span>@ frame = <span class="t">Mesh</span>();
+        <span class="k">for</span> (<span class="k">int</span> i = <span class="n">0</span>; i &lt; <span class="n">4</span>; i++)
+        {
+            <span class="k">float</span> a = (i &amp; <span class="n">1</span>) == <span class="n">0</span> ? -<span class="n">0.51f</span> : <span class="n">0.51f</span>, b = (i &amp; <span class="n">2</span>) == <span class="n">0</span> ? -<span class="n">0.51f</span> : <span class="n">0.51f</span>;
+            frame.box(<span class="t">Vec3</span>(<span class="n">0</span>, a, b), <span class="t">Vec3</span>(<span class="n">1.06f</span>, <span class="n">0.04f</span>, <span class="n">0.04f</span>), <span class="t">Color</span>(<span class="n">0.08f</span>, <span class="n">0.08f</span>, <span class="n">0.1f</span>));
+            frame.box(<span class="t">Vec3</span>(a, <span class="n">0</span>, b), <span class="t">Vec3</span>(<span class="n">0.04f</span>, <span class="n">1.06f</span>, <span class="n">0.04f</span>), <span class="t">Color</span>(<span class="n">0.08f</span>, <span class="n">0.08f</span>, <span class="n">0.1f</span>));
+            frame.box(<span class="t">Vec3</span>(a, b, <span class="n">0</span>), <span class="t">Vec3</span>(<span class="n">0.04f</span>, <span class="n">0.04f</span>, <span class="n">1.06f</span>), <span class="t">Color</span>(<span class="n">0.08f</span>, <span class="n">0.08f</span>, <span class="n">0.1f</span>));
+        }
+        aim.mesh(frame);
+        aim.shadow = <span class="k">false</span>;
+        aim.visible = <span class="k">false</span>;
+    }
+
+    <span class="k">void</span> onExit()
+    {
+        <span class="t">Input</span>::lockMouse(<span class="k">false</span>);
+    }
+
+    <span class="k">void</span> plantTrees()
+    {
+        <span class="k">for</span> (<span class="k">int</span> i = <span class="n">0</span>; i &lt; across * deep / <span class="n">220</span>; i++)
+        {
+            <span class="k">int</span> x = <span class="k">int</span>(random(<span class="n">4</span>, <span class="k">float</span>(across - <span class="n">4</span>))), z = <span class="k">int</span>(random(<span class="n">4</span>, <span class="k">float</span>(deep - <span class="n">4</span>)));
+            <span class="k">int</span> top = <span class="t">Space</span>::voxelTop(x, z);
+            <span class="k">if</span> (top &lt;= sea + <span class="n">1</span> || <span class="t">Space</span>::voxel(x, top, z) != <span class="n">1</span> || top &gt; high - <span class="n">10</span>)
+                <span class="k">continue</span>;
+            <span class="k">int</span> tall = <span class="k">int</span>(random(<span class="n">4</span>, <span class="n">7</span>));
+            <span class="t">Space</span>::voxelBall(<span class="t">Space</span>::voxelPlace(x, top + tall, z), random(<span class="n">2</span>, <span class="n">2.8f</span>), <span class="n">6</span>);
+            <span class="t">Space</span>::fillVoxels(x, top + <span class="n">1</span>, z, x, top + tall, z, <span class="n">5</span>);
+        }
+    }
+
+    <span class="c">// A little brick house with a plank roof, near the start, to show that building is just more blocks.</span>
+    <span class="k">void</span> buildHouse()
+    {
+        <span class="k">int</span> x = across / <span class="n">2</span> + <span class="n">6</span>, z = deep / <span class="n">2</span> - <span class="n">8</span>;
+        <span class="k">int</span> ground = <span class="n">0</span>;
+        <span class="k">for</span> (<span class="k">int</span> dz = <span class="n">0</span>; dz &lt; <span class="n">7</span>; dz++)
+            <span class="k">for</span> (<span class="k">int</span> dx = <span class="n">0</span>; dx &lt; <span class="n">7</span>; dx++)
+                <span class="k">if</span> (<span class="t">Space</span>::voxelTop(x + dx, z + dz) &gt; ground)
+                    ground = <span class="t">Space</span>::voxelTop(x + dx, z + dz);
+        <span class="k">if</span> (ground &lt;= sea)
+            <span class="k">return</span>;
+        <span class="t">Space</span>::fillVoxels(x, ground - <span class="n">3</span>, z, x + <span class="n">6</span>, ground, z + <span class="n">6</span>, <span class="n">3</span>);
+        <span class="t">Space</span>::fillVoxels(x, ground + <span class="n">1</span>, z, x + <span class="n">6</span>, ground + <span class="n">4</span>, z + <span class="n">6</span>, <span class="n">7</span>);
+        <span class="t">Space</span>::fillVoxels(x + <span class="n">1</span>, ground + <span class="n">1</span>, z + <span class="n">1</span>, x + <span class="n">5</span>, ground + <span class="n">4</span>, z + <span class="n">5</span>, <span class="n">0</span>);
+        <span class="t">Space</span>::fillVoxels(x + <span class="n">3</span>, ground + <span class="n">1</span>, z, x + <span class="n">3</span>, ground + <span class="n">2</span>, z, <span class="n">0</span>);
+        <span class="t">Space</span>::fillVoxels(x, ground + <span class="n">3</span>, z + <span class="n">3</span>, x, ground + <span class="n">3</span>, z + <span class="n">3</span>, <span class="n">0</span>);
+        <span class="t">Space</span>::fillVoxels(x + <span class="n">6</span>, ground + <span class="n">3</span>, z + <span class="n">3</span>, x + <span class="n">6</span>, ground + <span class="n">3</span>, z + <span class="n">3</span>, <span class="n">0</span>);
+        <span class="k">for</span> (<span class="k">int</span> step = <span class="n">0</span>; step &lt; <span class="n">4</span>; step++)
+            <span class="t">Space</span>::fillVoxels(x - <span class="n">1</span> + step, ground + <span class="n">5</span> + step, z - <span class="n">1</span> + step, x + <span class="n">7</span> - step, ground + <span class="n">5</span> + step, z + <span class="n">7</span> - step, <span class="n">9</span>);
+        <span class="t">Space</span>::fillVoxels(x + <span class="n">1</span>, ground + <span class="n">1</span>, z + <span class="n">1</span>, x + <span class="n">5</span>, ground + <span class="n">1</span>, z + <span class="n">5</span>, <span class="n">0</span>);
+        <span class="c">// Up to the open sky, and clear in front of the door.</span>
+        <span class="t">Space</span>::fillVoxels(x - <span class="n">1</span>, ground + <span class="n">1</span>, z - <span class="n">3</span>, x + <span class="n">7</span>, ground + <span class="n">12</span>, z - <span class="n">1</span>, <span class="n">0</span>);
+    }
+
+    <span class="k">void</span> update(<span class="k">float</span> dt)
+    {
+        shown += dt;
+        look(dt);
+        walk(dt);
+        target();
+        act(dt);
+    }
+
+    <span class="k">void</span> look(<span class="k">float</span> dt)
+    {
+        <span class="t">Input</span>::lockMouse(<span class="k">true</span>);
+        <span class="t">Vec2</span> turn = <span class="t">Input</span>::mouseMove;
+        <span class="k">if</span> (shown &gt; <span class="n">0.3f</span>)
+        {
+            yaw += turn.x * <span class="n">0.2f</span>;
+            pitch = clamp(pitch - turn.y * <span class="n">0.2f</span>, -<span class="n">85</span>, <span class="n">85</span>);
+        }
+        <span class="t">Vec2</span> pad = <span class="t">Input</span>::padRight(<span class="n">0</span>);
+        yaw += pad.x * <span class="n">130</span> * dt;
+        pitch = clamp(pitch + pad.y * <span class="n">100</span> * dt, -<span class="n">85</span>, <span class="n">85</span>);
+    }
+
+    <span class="t">Vec3</span> eye() { <span class="k">return</span> hero.place + <span class="t">Vec3</span>(<span class="n">0</span>, <span class="n">1.55f</span>, <span class="n">0</span>); }
+
+    <span class="t">Vec3</span> gaze()
+    {
+        <span class="k">float</span> a = yaw * <span class="n">0.0174533f</span>, p = pitch * <span class="n">0.0174533f</span>;
+        <span class="k">return</span> <span class="t">Vec3</span>(sin(a) * cos(p), sin(p), -cos(a) * cos(p));
+    }
+
+    <span class="k">void</span> walk(<span class="k">float</span> dt)
+    {
+        <span class="t">Vec2</span> stick = <span class="t">Input</span>::move;
+        <span class="k">float</span> a = yaw * <span class="n">0.0174533f</span>;
+        <span class="t">Vec3</span> ahead(sin(a), <span class="n">0</span>, -cos(a)), side(cos(a), <span class="n">0</span>, sin(a));
+        <span class="t">Vec3</span> wanted = (ahead * -stick.y + side * stick.x) * <span class="n">4.6f</span>;
+        <span class="t">Vec3</span> m = hero.motion;
+        <span class="k">float</span> grip = hero.onGround ? <span class="n">14</span> * dt : <span class="n">4</span> * dt;
+        m.x += (wanted.x - m.x) * clamp(grip, <span class="n">0</span>, <span class="n">1</span>);
+        m.z += (wanted.z - m.z) * clamp(grip, <span class="n">0</span>, <span class="n">1</span>);
+        <span class="k">bool</span> swimming = hero.place.y &lt; -<span class="n">1</span>;
+        <span class="k">if</span> (swimming)
+            m.y += (clamp((-<span class="n">0.9f</span> - hero.place.y) * <span class="n">3</span>, -<span class="n">1</span>, <span class="n">2</span>) - m.y) * clamp(<span class="n">6</span> * dt, <span class="n">0</span>, <span class="n">1</span>);
+        <span class="c">// A block high, and a little more.</span>
+        <span class="k">if</span> (<span class="t">Input</span>::pressed(<span class="s">&quot;accept&quot;</span>) &amp;&amp; (hero.onGround || swimming))
+        {
+            m.y = <span class="n">6.4f</span>;
+            jump.play(<span class="n">0.25f</span>);
+        }
+        hero.motion = m;
+        <span class="k">if</span> (hero.place.y &lt; -<span class="n">30</span>)
+            hero.place = <span class="t">Vec3</span>(hero.place.x, <span class="n">30</span>, hero.place.z);
+        <span class="t">Vec3</span> e = eye();
+        <span class="t">Space</span>::camera(e, e + gaze(), <span class="n">72</span>);
+    }
+
+    <span class="k">void</span> target()
+    {
+        <span class="t">Vec3</span> hit;
+        <span class="t">Vec3</span> e = eye();
+        hasTarget = <span class="t">Space</span>::voxelRay(e, e + gaze() * <span class="n">8</span>, cell, face, hit);
+        aim.visible = hasTarget;
+        <span class="k">if</span> (hasTarget)
+            aim.place = <span class="t">Space</span>::voxelPlace(<span class="k">int</span>(cell.x), <span class="k">int</span>(cell.y), <span class="k">int</span>(cell.z));
+    }
+
+    <span class="k">void</span> act(<span class="k">float</span> dt)
+    {
+        <span class="c">// Which kind to build with: the wheel, the shoulders or the numbers.</span>
+        <span class="k">bool</span> ls = <span class="t">Input</span>::padButton(<span class="n">0</span>, <span class="n">12</span>), rs = <span class="t">Input</span>::padButton(<span class="n">0</span>, <span class="n">13</span>);
+        <span class="k">int</span> turn = (<span class="t">Input</span>::wheel &lt; <span class="n">0</span> || (rs &amp;&amp; !wasRightShoulder)) ? <span class="n">1</span> : (<span class="t">Input</span>::wheel &gt; <span class="n">0</span> || (ls &amp;&amp; !wasLeftShoulder)) ? -<span class="n">1</span> : <span class="n">0</span>;
+        wasLeftShoulder = ls;
+        wasRightShoulder = rs;
+        chosen = <span class="k">uint</span>((<span class="k">int</span>(chosen) + turn + <span class="k">int</span>(kinds.length())) % <span class="k">int</span>(kinds.length()));
+        <span class="k">for</span> (<span class="k">uint</span> i = <span class="n">0</span>; i &lt; kinds.length(); i++)
+            <span class="k">if</span> (<span class="t">Input</span>::key(formatInt(i + <span class="n">1</span>)))
+                chosen = i;
+
+        <span class="t">Vec2</span> triggers = <span class="t">Input</span>::padTriggers(<span class="n">0</span>);
+        <span class="k">bool</span> left = <span class="t">Input</span>::mouseDown(<span class="n">0</span>), right = <span class="t">Input</span>::mouseDown(<span class="n">1</span>);
+        <span class="k">bool</span> digging = (left &amp;&amp; !wasLeft) || (triggers.y &gt; <span class="n">0.5f</span> &amp;&amp; wasTriggers.y &lt;= <span class="n">0.5f</span>) || <span class="t">Input</span>::pressed(<span class="s">&quot;alternate&quot;</span>);
+        <span class="k">bool</span> building = (right &amp;&amp; !wasRight) || (triggers.x &gt; <span class="n">0.5f</span> &amp;&amp; wasTriggers.x &lt;= <span class="n">0.5f</span>);
+        <span class="c">// Held, again and again.</span>
+        <span class="k">bool</span> holding = left || right || triggers.x &gt; <span class="n">0.5f</span> || triggers.y &gt; <span class="n">0.5f</span> || <span class="t">Input</span>::held(<span class="s">&quot;alternate&quot;</span>);
+        again = holding ? again - dt : <span class="n">0.35f</span>;
+        <span class="k">if</span> (again &lt; <span class="n">0</span>)
+        {
+            again = <span class="n">0.2f</span>;
+            digging = left || triggers.y &gt; <span class="n">0.5f</span> || <span class="t">Input</span>::held(<span class="s">&quot;alternate&quot;</span>);
+            building = right || triggers.x &gt; <span class="n">0.5f</span>;
+        }
+        wasLeft = left;
+        wasRight = right;
+        wasTriggers = triggers;
+        <span class="k">if</span> (!hasTarget)
+            <span class="k">return</span>;
+        <span class="k">int</span> x = <span class="k">int</span>(cell.x), y = <span class="k">int</span>(cell.y), z = <span class="k">int</span>(cell.z);
+        <span class="k">if</span> (digging)
+        {
+            <span class="k">uint</span> was = <span class="t">Space</span>::voxel(x, y, z);
+            <span class="k">if</span> (<span class="t">Space</span>::setVoxel(x, y, z, <span class="n">0</span>))
+            {
+                <span class="t">Space</span>::burst(was == <span class="n">4</span> || was == <span class="n">8</span> ? <span class="s">&quot;puff&quot;</span> : <span class="s">&quot;chips&quot;</span>, <span class="t">Space</span>::voxelPlace(x, y, z), <span class="n">18</span>);
+                dig.playAt(<span class="t">Space</span>::voxelPlace(x, y, z), <span class="n">0.5f</span>, <span class="n">30</span>, random(<span class="n">0.8f</span>, <span class="n">1.2f</span>));
+            }
+        }
+        <span class="k">else</span> <span class="k">if</span> (building)
+        {
+            <span class="k">int</span> bx = x + <span class="k">int</span>(face.x), by = y + <span class="k">int</span>(face.y), bz = z + <span class="k">int</span>(face.z);
+            <span class="t">Vec3</span> middle = <span class="t">Space</span>::voxelPlace(bx, by, bz);
+            <span class="c">// Not where the one building is standing.</span>
+            <span class="t">Vec3</span> d = middle - hero.place;
+            <span class="k">bool</span> inside = abs(d.x) &lt; <span class="n">0.85f</span> &amp;&amp; abs(d.z) &lt; <span class="n">0.85f</span> &amp;&amp; d.y &gt; -<span class="n">0.5f</span> &amp;&amp; d.y &lt; <span class="n">2.2f</span>;
+            <span class="k">if</span> (!inside &amp;&amp; <span class="t">Space</span>::setVoxel(bx, by, bz, kinds[chosen]))
+                put.playAt(middle, <span class="n">0.5f</span>, <span class="n">30</span>, random(<span class="n">0.9f</span>, <span class="n">1.1f</span>));
+        }
+        <span class="c">// Y, or the middle button: a round hole, all at once.</span>
+        <span class="k">if</span> (<span class="t">Input</span>::padButton(<span class="n">0</span>, <span class="n">11</span>) &amp;&amp; !wasY || <span class="t">Input</span>::mouseDown(<span class="n">2</span>) &amp;&amp; !wasMiddle)
+        {
+            <span class="t">Vec3</span> at = <span class="t">Space</span>::voxelPlace(x, y, z);
+            <span class="k">if</span> (<span class="t">Space</span>::voxelBall(at, <span class="n">2.6f</span>, <span class="n">0</span>) &gt; <span class="n">0</span>)
+            {
+                <span class="t">Space</span>::burst(<span class="s">&quot;chips&quot;</span>, at, <span class="n">60</span>);
+                <span class="t">Space</span>::burst(<span class="s">&quot;puff&quot;</span>, at, <span class="n">30</span>);
+                boom.playAt(at, <span class="n">0.6f</span>, <span class="n">50</span>);
+            }
+        }
+        wasY = <span class="t">Input</span>::padButton(<span class="n">0</span>, <span class="n">11</span>);
+        wasMiddle = <span class="t">Input</span>::mouseDown(<span class="n">2</span>);
+    }
+    <span class="k">bool</span> wasY = <span class="k">false</span>, wasMiddle = <span class="k">false</span>;
+
+    <span class="k">void</span> draw(<span class="t">Canvas</span>@ c)
+    {
+        c.designHeight(<span class="n">720</span>);
+        <span class="t">Space</span>::draw(c);
+        <span class="k">float</span> mid = c.width * <span class="n">0.5f</span>;
+        <span class="c">// Where it is aimed.</span>
+        c.rect(mid - <span class="n">9</span>, <span class="n">359</span>, <span class="n">18</span>, <span class="n">2</span>, <span class="t">Color</span>(<span class="n">1</span>, <span class="n">1</span>, <span class="n">1</span>, <span class="n">0.8f</span>));
+        c.rect(mid - <span class="n">1</span>, <span class="n">351</span>, <span class="n">2</span>, <span class="n">18</span>, <span class="t">Color</span>(<span class="n">1</span>, <span class="n">1</span>, <span class="n">1</span>, <span class="n">0.8f</span>));
+        <span class="c">// What it builds with.</span>
+        <span class="k">float</span> w = <span class="n">54</span>, left = mid - w * <span class="k">float</span>(kinds.length()) * <span class="n">0.5f</span>;
+        c.roundRect(left - <span class="n">8</span>, <span class="n">640</span>, w * <span class="k">float</span>(kinds.length()) + <span class="n">16</span>, <span class="n">64</span>, <span class="n">12</span>, <span class="t">Color</span>(<span class="n">0</span>, <span class="n">0</span>, <span class="n">0</span>, <span class="n">0.45f</span>));
+        <span class="k">for</span> (<span class="k">uint</span> i = <span class="n">0</span>; i &lt; kinds.length(); i++)
+        {
+            <span class="k">float</span> x = left + w * <span class="k">float</span>(i);
+            <span class="t">Color</span> top = kindColor(kinds[i]);
+            <span class="k">if</span> (i == chosen)
+                c.roundRect(x + <span class="n">2</span>, <span class="n">644</span>, w - <span class="n">4</span>, <span class="n">56</span>, <span class="n">8</span>, <span class="t">Color</span>(<span class="n">1</span>, <span class="n">1</span>, <span class="n">1</span>, <span class="n">0.85f</span>));
+            c.roundRect(x + <span class="n">8</span>, <span class="n">650</span>, w - <span class="n">16</span>, w - <span class="n">16</span>, <span class="n">6</span>, top);
+            c.text(small, formatInt(i + <span class="n">1</span>), x + <span class="n">12</span>, <span class="n">650</span>, <span class="t">Color</span>(<span class="n">0</span>, <span class="n">0</span>, <span class="n">0</span>, <span class="n">0.6f</span>));
+        }
+        c.text(small, names[chosen], mid, <span class="n">616</span>, <span class="t">White</span>, <span class="t">AlignCenter</span>);
+        <span class="k">float</span> help = clamp(<span class="n">8</span> - shown, <span class="n">0</span>, <span class="n">1</span>);
+        <span class="k">if</span> (help &gt; <span class="n">0</span>)
+        {
+            c.alpha = help;
+            c.roundRect(mid - <span class="n">470</span>, <span class="n">24</span>, <span class="n">940</span>, <span class="n">44</span>, <span class="n">14</span>, <span class="t">Color</span>(<span class="n">0</span>, <span class="n">0</span>, <span class="n">0</span>, <span class="n">0.5f</span>));
+            c.text(font, <span class="t">Input</span>::usingPad ? <span class="s">&quot;Sticks: walk and look   A: jump   RT: dig   LT: build   Y: big hole   Shoulders: kind&quot;</span> : <span class="s">&quot;Arrows: walk   Mouse: look   Space: jump   Left: dig   Right: build   Middle: big hole   Wheel: kind&quot;</span>, mid, <span class="n">34</span>, <span class="t">White</span>, <span class="t">AlignCenter</span>);
+            c.alpha = <span class="n">1</span>;
+        }
+    }
+
+    <span class="t">Color</span> kindColor(<span class="k">uint</span> kind)
+    {
+        <span class="k">if</span> (kind == <span class="n">1</span>) <span class="k">return</span> <span class="t">Color</span>(<span class="n">0.36f</span>, <span class="n">0.62f</span>, <span class="n">0.26f</span>);
+        <span class="k">if</span> (kind == <span class="n">2</span>) <span class="k">return</span> <span class="t">Color</span>(<span class="n">0.5f</span>, <span class="n">0.38f</span>, <span class="n">0.26f</span>);
+        <span class="k">if</span> (kind == <span class="n">3</span>) <span class="k">return</span> <span class="t">Color</span>(<span class="n">0.55f</span>, <span class="n">0.55f</span>, <span class="n">0.56f</span>);
+        <span class="k">if</span> (kind == <span class="n">4</span>) <span class="k">return</span> <span class="t">Color</span>(<span class="n">0.86f</span>, <span class="n">0.8f</span>, <span class="n">0.58f</span>);
+        <span class="k">if</span> (kind == <span class="n">5</span>) <span class="k">return</span> <span class="t">Color</span>(<span class="n">0.4f</span>, <span class="n">0.29f</span>, <span class="n">0.18f</span>);
+        <span class="k">if</span> (kind == <span class="n">6</span>) <span class="k">return</span> <span class="t">Color</span>(<span class="n">0.24f</span>, <span class="n">0.47f</span>, <span class="n">0.2f</span>);
+        <span class="k">if</span> (kind == <span class="n">7</span>) <span class="k">return</span> <span class="t">Color</span>(<span class="n">0.66f</span>, <span class="n">0.33f</span>, <span class="n">0.26f</span>);
+        <span class="k">if</span> (kind == <span class="n">9</span>) <span class="k">return</span> <span class="t">Color</span>(<span class="n">0.76f</span>, <span class="n">0.62f</span>, <span class="n">0.42f</span>);
+        <span class="k">return</span> <span class="t">Color</span>(<span class="n">0.95f</span>, <span class="n">0.78f</span>, <span class="n">0.3f</span>);
+    }
+}
+</code></pre></details></div>
 </section>
 <section id="network" data-title="network"><h2>Network</h2>
 <div data-find="together draw with others on the same network together"><h3 id="demo-together">Together</h3><p>Draw with others on the same network</p>
