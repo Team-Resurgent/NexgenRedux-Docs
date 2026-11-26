@@ -99,6 +99,9 @@ summary { cursor: pointer; padding: 10px 16px; } details pre { border-width: 1px
 <p>Call <code>design(1280, 720)</code> first and draw as if the screen were that size; it is fitted to the real one, with bars if the shape differs. <code>designHeight(720)</code> fills any shape instead, and you lay out by <code>width</code>.</p>
 <p><code>push()</code> saves position, rotation, scale, alpha, blend, filter and clip, and <code>pop()</code> goes back. Drawing that uses one image and</p>
 <p>one blend mode goes to the GPU together, so sort by image where you can.</p>
+<p><code>rich</code> draws a paragraph with some of it marked: <code>[color=orange]</code>, <code>[b]</code>, <code>[u]</code> and <code>[s]</code>, each ended with <code>[/color]</code>, <code>[/b]</code>,</p>
+<p><code>[/u]</code> or <code>[/s]</code>, and <code>[[</code> for a bracket itself. Colours are names (white, black, red, green, blue, yellow, orange, pink, purple,</p>
+<p>cyan, gray) or <code>#rrggbb</code>. It wraps as <code>paragraph</code> does, and <code>richHeight</code> says how tall it will be.</p>
 <h2 id="scenes">Scenes</h2>
 <p><code>Canvas</code> draws whatever you tell it to each frame. For things that move, collide and come and go, let the engine keep them:</p>
 <pre><code><span class="t">Entity</span>@ rock = <span class="t">Scene</span>::spawn(<span class="t">Vec2</span>(<span class="n">640</span>, <span class="n">100</span>));

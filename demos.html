@@ -262,9 +262,9 @@ summary { cursor: pointer; padding: 10px 16px; } details pre { border-width: 1px
     }
 }
 </code></pre></details></div>
-<div data-find="text scalable fonts, alignment, wrapping and per-letter effects text"><h3 id="demo-text">Text</h3><p>Scalable fonts, alignment, wrapping and per-letter effects</p>
+<div data-find="text scalable fonts, alignment, wrapping, rich text and per-letter effects text"><h3 id="demo-text">Text</h3><p>Scalable fonts, alignment, wrapping, rich text and per-letter effects</p>
 <div class="shots"><img loading="lazy" src="screenshots/text.png" alt="Text"></div>
-<details><summary><code>text/main.as</code> <span class="tag">94 lines</span></summary><pre><code><span class="c">// Text: one scalable font at several sizes, alignment, wrapping and effects letter by letter.</span>
+<details><summary><code>text/main.as</code> <span class="tag">100 lines</span></summary><pre><code><span class="c">// Text: one scalable font at several sizes, alignment, wrapping, marked-up text and effects letter by letter.</span>
 
 <span class="k">class</span> <span class="t">TextScreen</span> : <span class="t">Screen</span>
 {
@@ -276,6 +276,9 @@ summary { cursor: pointer; padding: 10px 16px; } details pre { border-width: 1px
     <span class="k">string</span> story = <span class="s">&quot;Glyphs are drawn once into an atlas, so changing a line of text costs nothing but a few quads. &quot;</span>
         <span class="s">&quot;This paragraph is wrapped to the width of the box beside it, and the box changes width all the time. &quot;</span>
         <span class="s">&quot;Accents work too: caf\xC3\xA9, na\xC3\xAFve, \xC3\x9C&quot;</span> <span class="s">&quot;ber, \xC2\xA3&quot;</span> <span class="s">&quot;5 and \xC2\xA9.&quot;</span>;
+
+    <span class="k">string</span> marked = <span class="s">&quot;Rich text marks a few words: [color=orange]a colour[/color], [b]bold[/b], [u]underlined[/u] and &quot;</span>
+        <span class="s">&quot;[s]struck out[/s], or [color=#66ddff]all [b]at [u]once[/u][/b][/color]. It wraps as a [color=pink]paragraph[/color] does.&quot;</span>;
 
     <span class="k">void</span> onEnter()
     {
@@ -308,6 +311,9 @@ summary { cursor: pointer; padding: 10px 16px; } details pre { border-width: 1px
         <span class="k">float</span> width = <span class="n">420</span> + <span class="n">140</span> * sin(t * <span class="n">0.7f</span>);
         <span class="k">float</span> height = c.paragraph(body, story, <span class="n">60</span>, <span class="n">280</span>, width, <span class="t">Color</span>(<span class="n">0.85f</span>, <span class="n">0.88f</span>, <span class="n">0.95f</span>));
         c.rectLine(<span class="n">50</span>, <span class="n">270</span>, width + <span class="n">20</span>, height + <span class="n">20</span>, <span class="n">2</span>, <span class="t">Color</span>(<span class="n">0.3f</span>, <span class="n">0.4f</span>, <span class="n">0.6f</span>));
+
+        <span class="c">// Marked up.</span>
+        c.rich(body, marked, <span class="n">60</span>, <span class="n">530</span>, <span class="n">560</span>, <span class="t">Color</span>(<span class="n">0.85f</span>, <span class="n">0.88f</span>, <span class="n">0.95f</span>));
 
         <span class="c">// Letter by letter.</span>
         wave(c, <span class="s">&quot;WAVE&quot;</span>, <span class="n">700</span>, <span class="n">290</span>);
