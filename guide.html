@@ -418,6 +418,9 @@ music.stop(<span class="n">1.5f</span>);                <span class="c">// fadin
 <p>A <code>Voice</code> is safe to use after the sound has ended. A screen&#x27;s sounds pause while it is covered and stop when it closes.</p>
 <h2 id="input">Input</h2>
 <p>Scripts ask for actions, not keys: <code>up</code>, <code>down</code>, <code>left</code>, <code>right</code>, <code>accept</code>, <code>cancel</code>, <code>fire</code>, <code>alternate</code> and <code>menu</code>. Players can change every one except <code>menu</code>; the Settings demo shows how. <code>Input::move</code> gives a direction from keys, d-pad or stick.</p>
+<p>On the original Xbox, a USB keyboard and mouse work too, through an adapter in a controller port or its bottom slot: keys, typing and the mouse are read as they are on a computer, and the engine draws the pointer, since nothing else there does. Where there is only a controller, the stick can move a pointer instead, and A click with it: the player chooses that in Settings (<code>Input::stickPointer</code>, kept with the other settings), and a screen says it has a use for one with</p>
+<p><code>Input::wantsPointer = true</code>, as the scene editor does while editing. The stick and A then do nothing else, and a mouse</p>
+<p>that moves takes over.</p>
 <h2 id="coroutines-and-tweens">Coroutines and tweens</h2>
 <p>A coroutine is a function that can wait:</p>
 <pre><code><span class="k">void</span> onEnter() { start(<span class="t">Coroutine</span>(<span class="k">this</span>.intro)); }

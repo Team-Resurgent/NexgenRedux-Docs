@@ -1965,7 +1965,7 @@ summary { cursor: pointer; padding: 10px 16px; } details pre { border-width: 1px
 </code></pre></details></div>
 <div data-find="settings volumes and controls, remembered next time settings"><h3 id="demo-settings">Settings</h3><p>Volumes and controls, remembered next time</p>
 <div class="shots"><img loading="lazy" src="screenshots/settings.png" alt="Settings"></div>
-<details><summary><code>settings/main.as</code> <span class="tag">97 lines</span></summary><pre><code><span class="c">// Volumes and bindings. The engine keeps them between runs.</span>
+<details><summary><code>settings/main.as</code> <span class="tag">108 lines</span></summary><pre><code><span class="c">// Volumes, bindings, and whether the stick can move a pointer. The engine keeps them between runs.</span>
 
 <span class="k">class</span> <span class="t">SettingsScreen</span> : <span class="t">Screen</span>
 {
@@ -1979,7 +1979,8 @@ summary { cursor: pointer; padding: 10px 16px; } details pre { border-width: 1px
     <span class="k">uint</span> chosen = <span class="n">0</span>;
     <span class="k">bool</span> waiting = <span class="k">false</span>;
 
-    <span class="k">uint</span> rows() { <span class="k">return</span> <span class="n">3</span> + actions.length() + <span class="n">1</span>; }
+    <span class="k">uint</span> rows() { <span class="k">return</span> <span class="n">3</span> + actions.length() + <span class="n">2</span>; }
+    <span class="k">uint</span> pointerRow() { <span class="k">return</span> rows() - <span class="n">2</span>; }
 
     <span class="k">float</span> volume(<span class="k">uint</span> i)
     {
@@ -2008,7 +2009,12 @@ summary { cursor: pointer; padding: 10px 16px; } details pre { border-width: 1px
         }
         <span class="k">if</span> (<span class="t">Input</span>::repeated(<span class="s">&quot;up&quot;</span>)) { chosen = chosen == <span class="n">0</span> ? rows() - <span class="n">1</span> : chosen - <span class="n">1</span>; move.play(<span class="n">0.5f</span>); }
         <span class="k">if</span> (<span class="t">Input</span>::repeated(<span class="s">&quot;down&quot;</span>)) { chosen = (chosen + <span class="n">1</span>) % rows(); move.play(<span class="n">0.5f</span>); }
-        <span class="k">if</span> (chosen &lt; <span class="n">3</span>)
+        <span class="k">if</span> (chosen == pointerRow() &amp;&amp; (<span class="t">Input</span>::pressed(<span class="s">&quot;accept&quot;</span>) || <span class="t">Input</span>::pressed(<span class="s">&quot;left&quot;</span>) || <span class="t">Input</span>::pressed(<span class="s">&quot;right&quot;</span>)))
+        {
+            <span class="t">Input</span>::stickPointer = !<span class="t">Input</span>::stickPointer;
+            accept.play(<span class="n">0.7f</span>);
+        }
+        <span class="k">else</span> <span class="k">if</span> (chosen &lt; <span class="n">3</span>)
         {
             <span class="k">if</span> (<span class="t">Input</span>::repeated(<span class="s">&quot;left&quot;</span>)) setVolume(chosen, volume(chosen) - <span class="n">0.05f</span>);
             <span class="k">if</span> (<span class="t">Input</span>::repeated(<span class="s">&quot;right&quot;</span>)) setVolume(chosen, volume(chosen) + <span class="n">0.05f</span>);
@@ -2033,8 +2039,8 @@ summary { cursor: pointer; padding: 10px 16px; } details pre { border-width: 1px
         c.text(big, <span class="s">&quot;Settings&quot;</span>, <span class="n">80</span>, <span class="n">26</span>);
         <span class="k">for</span> (<span class="k">uint</span> i = <span class="n">0</span>; i &lt; rows(); i++)
         {
-            <span class="k">float</span> y = <span class="n">92</span> + <span class="k">float</span>(i) * <span class="n">48</span> + (i &gt;= <span class="n">3</span> ? <span class="n">14.0f</span> : <span class="n">0.0f</span>);
-            <span class="k">if</span> (i == chosen) c.roundRect(<span class="n">60</span>, y - <span class="n">4</span>, <span class="n">1160</span>, <span class="n">42</span>, <span class="n">10</span>, <span class="t">Color</span>(<span class="n">0.2f</span>, <span class="n">0.28f</span>, <span class="n">0.44f</span>));
+            <span class="k">float</span> y = <span class="n">92</span> + <span class="k">float</span>(i) * <span class="n">44</span> + (i &gt;= <span class="n">3</span> ? <span class="n">14.0f</span> : <span class="n">0.0f</span>);
+            <span class="k">if</span> (i == chosen) c.roundRect(<span class="n">60</span>, y - <span class="n">4</span>, <span class="n">1160</span>, <span class="n">40</span>, <span class="n">10</span>, <span class="t">Color</span>(<span class="n">0.2f</span>, <span class="n">0.28f</span>, <span class="n">0.44f</span>));
             <span class="k">if</span> (i &lt; <span class="n">3</span>)
             {
                 c.text(font, volumes[i], <span class="n">80</span>, y);
@@ -2046,6 +2052,11 @@ summary { cursor: pointer; padding: 10px 16px; } details pre { border-width: 1px
             }
             <span class="k">else</span> <span class="k">if</span> (i == rows() - <span class="n">1</span>)
                 c.text(font, <span class="s">&quot;Put the controls back&quot;</span>, <span class="n">80</span>, y, <span class="t">Yellow</span>);
+            <span class="k">else</span> <span class="k">if</span> (i == pointerRow())
+            {
+                c.text(font, <span class="s">&quot;Pointer&quot;</span>, <span class="n">80</span>, y);
+                c.text(font, <span class="t">Input</span>::stickPointer ? <span class="s">&quot;The stick moves it, where a screen has one&quot;</span> : <span class="s">&quot;Only a mouse moves it&quot;</span>, <span class="n">420</span>, y, <span class="t">Color</span>(<span class="n">0.75f</span>, <span class="n">0.85f</span>, <span class="n">1</span>));
+            }
             <span class="k">else</span>
             {
                 <span class="k">string</span> action = actions[i - <span class="n">3</span>];
@@ -7923,7 +7934,7 @@ summary { cursor: pointer; padding: 10px 16px; } details pre { border-width: 1px
 </code></pre></details></div>
 <div data-find="scene editor build a place, try it and keep it editor"><h3 id="demo-editor">Scene editor</h3><p>Build a place, try it and keep it</p>
 <div class="shots"><img loading="lazy" src="screenshots/editor.png" alt="Scene editor"></div>
-<details><summary><code>editor/main.as</code> <span class="tag">3226 lines</span></summary><pre><code>#include <span class="s">&quot;global:scene.as&quot;</span>
+<details><summary><code>editor/main.as</code> <span class="tag">3228 lines</span></summary><pre><code>#include <span class="s">&quot;global:scene.as&quot;</span>
 
 <span class="c">// A scene editor, written as any screen is. What it makes is a file that Space::load reads.</span>
 
@@ -10567,6 +10578,8 @@ summary { cursor: pointer; padding: 10px 16px; } details pre { border-width: 1px
 
     <span class="k">void</span> update(<span class="k">float</span> dt)
     {
+        <span class="c">// While editing, the stick can move a pointer, if the player chose it: in Play it walks.</span>
+        <span class="t">Input</span>::wantsPointer = !playing;
         shownFor += dt;
         measureOwn();
         takeDropped();
