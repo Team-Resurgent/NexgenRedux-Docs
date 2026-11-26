@@ -3418,7 +3418,7 @@ summary { cursor: pointer; padding: 10px 16px; } details pre { border-width: 1px
 <section id="games" data-title="games"><h2>Games</h2>
 <div data-find="sky patrol a small complete game: move, fire, dodge patrol"><h3 id="demo-patrol">Sky Patrol</h3><p>A small complete game: move, fire, dodge</p>
 <div class="shots"><img loading="lazy" src="screenshots/patrol.png" alt="Sky Patrol"></div>
-<details><summary><code>patrol/main.as</code> <span class="tag">365 lines</span></summary><pre><code><span class="c">// Sky Patrol: a complete little game. Drones drift in on curves, some fire back, and clearing a wave</span>
+<details><summary><code>patrol/main.as</code> <span class="tag">394 lines</span></summary><pre><code><span class="c">// Sky Patrol: a complete little game. Drones drift in on curves, some fire back, and clearing a wave</span>
 <span class="c">// brings a faster one. All the art is drawn from shapes.</span>
 
 <span class="k">class</span> <span class="t">Drone</span>
@@ -3448,6 +3448,21 @@ summary { cursor: pointer; padding: 10px 16px; } details pre { border-width: 1px
     <span class="t">Texture</span>@ stars = <span class="t">Assets</span>::texture(<span class="s">&quot;asset:stars.png&quot;</span>);
     <span class="t">Font</span>@ font = <span class="t">Assets</span>::font(<span class="s">&quot;global:freesans.sfn&quot;</span>, <span class="n">28</span>);
     <span class="t">Font</span>@ big = <span class="t">Assets</span>::font(<span class="s">&quot;global:freesans.sfn&quot;</span>, <span class="n">70</span>);
+    <span class="t">Sound</span>@ laser = <span class="t">Assets</span>::sound(<span class="s">&quot;global:sound/laser.wav&quot;</span>);
+    <span class="t">Sound</span>@ zap = <span class="t">Assets</span>::sound(<span class="s">&quot;global:sound/zap.wav&quot;</span>);
+    <span class="t">Sound</span>@ hitSound = <span class="t">Assets</span>::sound(<span class="s">&quot;global:sound/hit.wav&quot;</span>);
+    <span class="t">Sound</span>@ pop = <span class="t">Assets</span>::sound(<span class="s">&quot;global:sound/pop.wav&quot;</span>);
+    <span class="t">Sound</span>@ boom = <span class="t">Assets</span>::sound(<span class="s">&quot;global:sound/boom.wav&quot;</span>);
+    <span class="t">Sound</span>@ gate = <span class="t">Assets</span>::sound(<span class="s">&quot;global:sound/gate.wav&quot;</span>);
+    <span class="t">Sound</span>@ lose = <span class="t">Assets</span>::sound(<span class="s">&quot;global:sound/lose.wav&quot;</span>);
+    <span class="t">Sound</span>@ startSound = <span class="t">Assets</span>::sound(<span class="s">&quot;global:sound/accept.wav&quot;</span>);
+    <span class="t">Sound</span>@ engine = <span class="t">Assets</span>::sound(<span class="s">&quot;global:sound/engine.wav&quot;</span>);
+    <span class="t">Voice</span> hum;
+
+    <span class="c">// Left of the screen sounds from the left.</span>
+    <span class="k">float</span> pan(<span class="k">float</span> x) { <span class="k">return</span> clamp((x - <span class="n">640</span>) / <span class="n">640</span>, -<span class="n">1</span>, <span class="n">1</span>) * <span class="n">0.7f</span>; }
+
+    <span class="k">void</span> onEnter() { hum = engine.play(<span class="n">0</span>, <span class="n">0</span>, <span class="n">0.6f</span>, <span class="k">true</span>); }
 
     <span class="c">// Fixed pools: nothing is made or thrown away while playing.</span>
     <span class="k">array</span>&lt;<span class="t">Drone</span>&gt; drones(<span class="n">24</span>);
@@ -3463,6 +3478,7 @@ summary { cursor: pointer; padding: 10px 16px; } details pre { border-width: 1px
 
     <span class="k">void</span> start()
     {
+        startSound.play(<span class="n">0.6f</span>);
         state = <span class="n">1</span>;
         score = <span class="n">0</span>;
         lives = <span class="n">3</span>;
@@ -3478,6 +3494,8 @@ summary { cursor: pointer; padding: 10px 16px; } details pre { border-width: 1px
     <span class="k">void</span> nextWave()
     {
         wave++;
+        <span class="k">if</span> (wave &gt; <span class="n">1</span>)
+            gate.play(<span class="n">0.5f</span>);
         waiting = <span class="n">5</span> + wave * <span class="n">2</span>;
         spawnIn = <span class="n">1.2f</span>;
         banner = <span class="n">2</span>;
@@ -3549,6 +3567,7 @@ summary { cursor: pointer; padding: 10px 16px; } details pre { border-width: 1px
 
     <span class="k">void</span> update(<span class="k">float</span> dt)
     {
+        hum.fade(state == <span class="n">1</span> ? <span class="n">0.14f</span> : <span class="n">0.0f</span>, <span class="n">0.4f</span>);
         t += dt;
         shake = clamp(shake - dt * <span class="n">2</span>, <span class="n">0</span>, <span class="n">1</span>);
         banner -= dt;
@@ -3585,6 +3604,7 @@ summary { cursor: pointer; padding: 10px 16px; } details pre { border-width: 1px
             reload = <span class="n">0.14f</span>;
             shoot(px - <span class="n">18</span>, py - <span class="n">20</span>, <span class="n">0</span>, -<span class="n">760</span>, <span class="k">true</span>);
             shoot(px + <span class="n">18</span>, py - <span class="n">20</span>, <span class="n">0</span>, -<span class="n">760</span>, <span class="k">true</span>);
+            laser.play(<span class="n">0.35f</span>, pan(px), random(<span class="n">0.94f</span>, <span class="n">1.06f</span>));
         }
     }
 
@@ -3614,6 +3634,7 @@ summary { cursor: pointer; padding: 10px 16px; } details pre { border-width: 1px
                 <span class="k">float</span> dx = px - d.x, dy = py - d.y;
                 <span class="k">float</span> l = sqrt(dx * dx + dy * dy) + <span class="n">1</span>;
                 shoot(d.x, d.y + <span class="n">20</span>, dx / l * <span class="n">260</span>, dy / l * <span class="n">260</span>, <span class="k">false</span>);
+                zap.play(<span class="n">0.45f</span>, pan(d.x));
             }
             <span class="k">if</span> (d.y &gt; <span class="n">780</span>)
                 d.alive = <span class="k">false</span>;
@@ -3659,9 +3680,15 @@ summary { cursor: pointer; padding: 10px 16px; } details pre { border-width: 1px
                     s.alive = <span class="k">false</span>;
                     d.health--;
                     d.hurt = <span class="n">1</span>;
+                    <span class="k">if</span> (d.health &gt; <span class="n">0</span>)
+                        hitSound.play(<span class="n">0.35f</span>, pan(d.x), <span class="n">1.3f</span>);
                     <span class="k">if</span> (d.health &lt;= <span class="n">0</span>)
                     {
                         d.alive = <span class="k">false</span>;
+                        <span class="k">if</span> (d.kind == <span class="n">1</span>)
+                            boom.play(<span class="n">0.6f</span>, pan(d.x), <span class="n">1.2f</span>);
+                        <span class="k">else</span>
+                            pop.play(<span class="n">0.6f</span>, pan(d.x), random(<span class="n">0.85f</span>, <span class="n">1.15f</span>));
                         score += d.kind == <span class="n">1</span> ? <span class="n">50</span> : <span class="n">10</span>;
                         burst(d.x, d.y, d.kind == <span class="n">1</span> ? <span class="t">Purple</span> : <span class="t">Green</span>, <span class="n">18</span>);
                     }
@@ -3676,11 +3703,13 @@ summary { cursor: pointer; padding: 10px 16px; } details pre { border-width: 1px
         lives--;
         safe = <span class="n">2</span>;
         shake = <span class="n">1</span>;
+        boom.play(<span class="n">0.9f</span>, pan(px));
         burst(px, py, <span class="t">Yellow</span>, <span class="n">40</span>);
         <span class="k">if</span> (lives &lt;= <span class="n">0</span>)
         {
             state = <span class="n">2</span>;
             best = score &gt; best ? score : best;
+            lose.play(<span class="n">0.7f</span>);
         }
     }
 
@@ -7934,7 +7963,7 @@ summary { cursor: pointer; padding: 10px 16px; } details pre { border-width: 1px
 </code></pre></details></div>
 <div data-find="scene editor build a place, try it and keep it editor"><h3 id="demo-editor">Scene editor</h3><p>Build a place, try it and keep it</p>
 <div class="shots"><img loading="lazy" src="screenshots/editor.png" alt="Scene editor"></div>
-<details><summary><code>editor/main.as</code> <span class="tag">3228 lines</span></summary><pre><code>#include <span class="s">&quot;global:scene.as&quot;</span>
+<details><summary><code>editor/main.as</code> <span class="tag">3270 lines</span></summary><pre><code>#include <span class="s">&quot;global:scene.as&quot;</span>
 
 <span class="c">// A scene editor, written as any screen is. What it makes is a file that Space::load reads.</span>
 
@@ -7965,6 +7994,7 @@ summary { cursor: pointer; padding: 10px 16px; } details pre { border-width: 1px
 {
     <span class="t">Json</span>@ json;
     <span class="t">Entity</span>@ entity;
+    <span class="t">Kind</span>@ kind;            <span class="c">// what it is, as it was last made</span>
     <span class="t">Thing</span>(<span class="t">Json</span>@ j) { @json = j; }
 }
 
@@ -8137,6 +8167,9 @@ summary { cursor: pointer; padding: 10px 16px; } details pre { border-width: 1px
     <span class="t">Widget</span>@ fogTo;
     <span class="t">Widget</span>@ waterToggle;
     <span class="t">Widget</span>@ waterHigh;
+    <span class="t">Widget</span>@ seaStyle;
+    <span class="k">array</span>&lt;<span class="k">string</span>&gt; seaStyleNames = { <span class="s">&quot;Calm&quot;</span>, <span class="s">&quot;Sea&quot;</span>, <span class="s">&quot;Choppy&quot;</span>, <span class="s">&quot;Storm&quot;</span>, <span class="s">&quot;Cartoon&quot;</span> };
+    <span class="k">array</span>&lt;<span class="k">string</span>&gt; seaStyleKeys = { <span class="s">&quot;calm&quot;</span>, <span class="s">&quot;sea&quot;</span>, <span class="s">&quot;choppy&quot;</span>, <span class="s">&quot;storm&quot;</span>, <span class="s">&quot;cartoon&quot;</span> };
     <span class="t">Widget</span>@ roadLabel;
     <span class="t">Widget</span>@ hudKind;
     <span class="t">Widget</span>@ hudName;
@@ -8282,6 +8315,7 @@ summary { cursor: pointer; padding: 10px 16px; } details pre { border-width: 1px
         @waterToggle = above.toggle(<span class="s">&quot;Sea&quot;</span>, <span class="k">false</span>, <span class="t">WidgetEvent</span>(<span class="k">this</span>.onWater));
         @waterHigh = above.slider(<span class="n">0</span>, -<span class="n">8</span>, <span class="n">12</span>, <span class="t">WidgetEvent</span>(<span class="k">this</span>.onWater));
         waterHigh.step = <span class="n">0.5f</span>;
+        @seaStyle = above.choice(seaStyleNames, <span class="n">1</span>, <span class="t">WidgetEvent</span>(<span class="k">this</span>.onWater));
         <span class="t">Widget</span>@ earth = tabs.tab(<span class="s">&quot;Land&quot;</span>);
         @brushChoice = earth.choice(brushes, <span class="n">0</span>, <span class="t">WidgetEvent</span>(<span class="k">this</span>.onBrush));
         earth.label(<span class="s">&quot;Size&quot;</span>, <span class="s">&quot;small&quot;</span>);
@@ -8528,7 +8562,7 @@ summary { cursor: pointer; padding: 10px 16px; } details pre { border-width: 1px
             models.insertLast(k.own);
             @k.own = <span class="k">null</span>;
             <span class="k">for</span> (<span class="k">uint</span> n = <span class="n">0</span>; n &lt; things.length(); n++)
-                <span class="k">if</span> (kindOf(things[n].json) <span class="k">is</span> k)
+                <span class="k">if</span> (kindOfThing(n) <span class="k">is</span> k)
                     make(n);
         }
     }
@@ -8808,6 +8842,7 @@ summary { cursor: pointer; padding: 10px 16px; } details pre { border-width: 1px
 
     <span class="k">void</span> onSave(<span class="t">Widget</span>@ w)
     {
+        keepChange();
         <span class="k">if</span> (!<span class="t">Assets</span>::write(file, write().write()))
         {
             <span class="t">Ui</span>::toast(<span class="s">&quot;It couldn&#x27;t be saved&quot;</span>);
@@ -9049,6 +9084,15 @@ summary { cursor: pointer; padding: 10px 16px; } details pre { border-width: 1px
 
     <span class="c">// --- What there is ---</span>
 
+    <span class="c">// What one of them is: known since it was made, so lists of them don&#x27;t look it up each time.</span>
+    <span class="t">Kind</span>@ kindOfThing(<span class="k">uint</span> n)
+    {
+        <span class="t">Thing</span>@ t = things[n];
+        <span class="k">if</span> (t.kind <span class="k">is</span> <span class="k">null</span>)
+            @t.kind = kindOf(t.json);
+        <span class="k">return</span> t.kind;
+    }
+
     <span class="t">Kind</span>@ kindOf(<span class="t">Json</span>@ j)
     {
         <span class="k">string</span> model = j[<span class="s">&quot;model&quot;</span>].text(), shape = j[<span class="s">&quot;shape&quot;</span>].text(), sound = j[<span class="s">&quot;sound&quot;</span>].text();
@@ -9190,6 +9234,7 @@ summary { cursor: pointer; padding: 10px 16px; } details pre { border-width: 1px
     <span class="k">void</span> make(<span class="k">uint</span> i)
     {
         <span class="t">Thing</span>@ t = things[i];
+        @t.kind = kindOf(t.json);
         <span class="k">if</span> (t.entity !<span class="k">is</span> <span class="k">null</span>)
             t.entity.destroy();
         <span class="t">Json</span> j;
@@ -9294,6 +9339,8 @@ summary { cursor: pointer; padding: 10px 16px; } details pre { border-width: 1px
         <span class="k">bool</span> sea = sky[<span class="s">&quot;sea&quot;</span>].flag(ground == <span class="n">2</span>);
         waterToggle.checked = sea;
         waterHigh.value = <span class="k">float</span>(sky[<span class="s">&quot;seaHigh&quot;</span>].number(<span class="n">0</span>));
+        <span class="k">int</span> styleAt = seaStyleKeys.find(sky[<span class="s">&quot;seaStyle&quot;</span>].text(<span class="s">&quot;sea&quot;</span>));
+        seaStyle.chosen = styleAt &lt; <span class="n">0</span> ? <span class="n">1</span> : styleAt;
         <span class="k">int</span> picture = pictures.find(sky[<span class="s">&quot;picture&quot;</span>].text());
         skyChoice.chosen = picture &lt; <span class="n">0</span> ? <span class="n">0</span> : picture;
         level.makeSky(write());
@@ -9335,6 +9382,7 @@ summary { cursor: pointer; padding: 10px 16px; } details pre { border-width: 1px
     {
         sky.<span class="k">set</span>(<span class="s">&quot;sea&quot;</span>, waterToggle.checked);
         sky.<span class="k">set</span>(<span class="s">&quot;seaHigh&quot;</span>, waterHigh.value);
+        sky.<span class="k">set</span>(<span class="s">&quot;seaStyle&quot;</span>, seaStyleKeys[<span class="k">uint</span>(seaStyle.chosen)]);
         light();
         changed(<span class="s">&quot;sea&quot;</span>, <span class="k">false</span>);
     }
@@ -9359,6 +9407,7 @@ summary { cursor: pointer; padding: 10px 16px; } details pre { border-width: 1px
 
     <span class="k">void</span> openScene(<span class="k">int</span> which)
     {
+        keepChange();
         <span class="t">Json</span>@ one = scenes[<span class="s">&quot;scenes&quot;</span>][<span class="k">uint</span>(which)];
         file = path(one[<span class="s">&quot;file&quot;</span>].text(<span class="s">&quot;scene&quot;</span>));
         sceneName = one[<span class="s">&quot;name&quot;</span>].text(<span class="s">&quot;Village&quot;</span>);
@@ -9745,16 +9794,33 @@ summary { cursor: pointer; padding: 10px 16px; } details pre { border-width: 1px
 
     <span class="c">// --- Undoing ---</span>
 
-    <span class="c">// Once for each change. What goes on changing, such as a slider, is one.</span>
+    <span class="c">// Once for each change. What goes on changing, such as a slider, is one. The copy for undoing, and the caps on</span>
+    <span class="c">// the ends of caves, are made a frame later, so that a change costs little in the frame it is made, and several</span>
+    <span class="c">// in one frame make one copy.</span>
+    <span class="k">bool</span> waitingChange = <span class="k">false</span>, waitingApart = <span class="k">false</span>;
+    <span class="k">string</span> waitingKey;
+
     <span class="k">void</span> changed(<span class="k">const</span> <span class="k">string</span> &amp;<span class="k">in</span> key, <span class="k">bool</span> apart = <span class="k">true</span>)
     {
+        dirty = <span class="k">true</span>;
+        waitingApart = waitingChange ? waitingApart || apart : apart;
+        waitingKey = key;
+        waitingChange = <span class="k">true</span>;
+        show();
+    }
+
+    <span class="c">// What changed, made into a copy for undoing. Before anything that needs the copy as it is.</span>
+    <span class="k">void</span> keepChange()
+    {
+        <span class="k">if</span> (!waitingChange)
+            <span class="k">return</span>;
+        waitingChange = <span class="k">false</span>;
+        <span class="k">string</span> key = waitingKey;
+        <span class="k">bool</span> apart = waitingApart;
         closeEnds();
         <span class="k">string</span> text = write().write(<span class="k">true</span>);
         <span class="k">if</span> (text == now)
-        {
-            show();
             <span class="k">return</span>;
-        }
         <span class="k">string</span> named = key + chosen;
         <span class="k">if</span> (apart || named != lastKey || <span class="t">App</span>::time - lastAt &gt; <span class="n">1.5f</span> || before.length() == <span class="n">0</span>)
         {
@@ -9766,8 +9832,6 @@ summary { cursor: pointer; padding: 10px 16px; } details pre { border-width: 1px
         lastAt = <span class="t">App</span>::time;
         now = text;
         after.resize(<span class="n">0</span>);
-        dirty = <span class="k">true</span>;
-        show();
     }
 
     <span class="k">void</span> back(<span class="k">const</span> <span class="k">string</span> &amp;<span class="k">in</span> text)
@@ -9787,6 +9851,7 @@ summary { cursor: pointer; padding: 10px 16px; } details pre { border-width: 1px
 
     <span class="k">void</span> undo()
     {
+        keepChange();
         <span class="k">if</span> (before.length() == <span class="n">0</span>)
             <span class="k">return</span>;
         after.insertLast(now);
@@ -9797,6 +9862,7 @@ summary { cursor: pointer; padding: 10px 16px; } details pre { border-width: 1px
 
     <span class="k">void</span> redo()
     {
+        keepChange();
         <span class="k">if</span> (after.length() == <span class="n">0</span>)
             <span class="k">return</span>;
         before.insertLast(now);
@@ -9925,7 +9991,7 @@ summary { cursor: pointer; padding: 10px 16px; } details pre { border-width: 1px
             <span class="c">// On a grid of 8 metres, the land flat under it; and on from the chosen one, where it is a road too.</span>
             <span class="t">Vec3</span> at(floor(p.x / <span class="n">8</span> + <span class="n">0.5f</span>) * <span class="n">8</span>, <span class="n">0</span>, floor(p.z / <span class="n">8</span> + <span class="n">0.5f</span>) * <span class="n">8</span>);
             <span class="k">float</span> turned = <span class="n">0</span>;
-            <span class="k">if</span> (chosen &gt;= <span class="n">0</span> &amp;&amp; kindOf(things[<span class="k">uint</span>(chosen)].json).group == <span class="s">&quot;Roads&quot;</span>)
+            <span class="k">if</span> (chosen &gt;= <span class="n">0</span> &amp;&amp; kindOfThing(<span class="k">uint</span>(chosen)).group == <span class="s">&quot;Roads&quot;</span>)
             {
                 <span class="t">Json</span>@ c = things[<span class="k">uint</span>(chosen)].json;
                 turned = angles(c).y;
@@ -9979,7 +10045,7 @@ summary { cursor: pointer; padding: 10px 16px; } details pre { border-width: 1px
     {
         <span class="k">if</span> (chosen &lt; <span class="n">0</span>)
             <span class="k">return</span> <span class="k">false</span>;
-        <span class="t">Kind</span>@ from = kindOf(things[<span class="k">uint</span>(chosen)].json);
+        <span class="t">Kind</span>@ from = kindOfThing(<span class="k">uint</span>(chosen));
         <span class="k">if</span> (from.group != <span class="s">&quot;Caves&quot;</span>)
             <span class="k">return</span> <span class="k">false</span>;
         <span class="t">Thing</span>@ t = things[<span class="k">uint</span>(chosen)];
@@ -9996,7 +10062,7 @@ summary { cursor: pointer; padding: 10px 16px; } details pre { border-width: 1px
             {
                 <span class="k">if</span> (<span class="k">int</span>(n) == chosen)
                     <span class="k">continue</span>;
-                <span class="t">Kind</span>@ o = kindOf(things[n].json);
+                <span class="t">Kind</span>@ o = kindOfThing(n);
                 <span class="k">for</span> (<span class="k">uint</span> e = <span class="n">0</span>; e &lt; o.exits.length(); e++)
                     taken = taken || (worldPlace(things[n].json) + spun(o.exits[e].place, angles(things[n].json).y) - out_).length() &lt; <span class="n">0.6f</span>;
             }
@@ -10086,6 +10152,7 @@ summary { cursor: pointer; padding: 10px 16px; } details pre { border-width: 1px
 
     <span class="k">void</span> play(<span class="k">bool</span> on)
     {
+        keepChange();
         <span class="k">for</span> (<span class="k">uint</span> i = <span class="n">0</span>; i &lt; thrown.length(); i++)
             thrown[i].destroy();
         thrown.resize(<span class="n">0</span>);
@@ -10348,14 +10415,15 @@ summary { cursor: pointer; padding: 10px 16px; } details pre { border-width: 1px
         <span class="k">float</span> a = heroYaw * <span class="n">0.0174533f</span>;
         <span class="t">Vec3</span> ahead(sin(a), <span class="n">0</span>, -cos(a)), side(cos(a), <span class="n">0</span>, sin(a));
         <span class="k">float</span> nose = under_(base + ahead * <span class="n">1.5f</span>), tail = under_(base - ahead * <span class="n">1.5f</span>), right = under_(base + side * <span class="n">1.3f</span>), left_ = under_(base - side * <span class="n">1.3f</span>);
-        <span class="t">Vec3</span> up(<span class="n">0</span>, <span class="n">1</span>, <span class="n">0</span>);
-        <span class="k">if</span> (hero.onGround)
-            up = (<span class="t">Vec3</span>(<span class="n">0</span>, <span class="n">1</span>, <span class="n">0</span>) - ahead * ((nose - tail) / <span class="n">3</span>) - side * ((right - left_) / <span class="n">2.6f</span>)).normalized();
-        shipUp = (shipUp + (up - shipUp) * clamp(<span class="n">9</span> * dt, <span class="n">0</span>, <span class="n">1</span>)).normalized();
+        <span class="k">float</span> middle = under_(base);
+        <span class="c">// Lying as the ground does under it; more slowly while it is in the air.</span>
+        <span class="t">Vec3</span> up = (<span class="t">Vec3</span>(<span class="n">0</span>, <span class="n">1</span>, <span class="n">0</span>) - ahead * ((nose - tail) / <span class="n">3</span>) - side * ((right - left_) / <span class="n">2.6f</span>)).normalized();
+        shipUp = (shipUp + (up - shipUp) * clamp((hero.onGround ? <span class="n">9</span> : <span class="n">3</span>) * dt, <span class="n">0</span>, <span class="n">1</span>)).normalized();
+        <span class="c">// Above the ground under its middle and, tipped as it is, under its nose, tail and sides: never in it.</span>
         <span class="k">float</span> highest = base.y;
-        <span class="k">array</span>&lt;<span class="k">float</span>&gt; all = { (nose + tail) * <span class="n">0.5f</span>, (right + left_) * <span class="n">0.5f</span> };
-        <span class="k">for</span> (<span class="k">uint</span> i = <span class="n">0</span>; i &lt; all.length() &amp;&amp; hero.onGround; i++)
-            highest = all[i] &gt; highest ? all[i] : highest;
+        <span class="k">array</span>&lt;<span class="k">float</span>&gt; all = { middle, (nose + tail) * <span class="n">0.5f</span>, (right + left_) * <span class="n">0.5f</span>, max(max(nose, tail), max(right, left_)) - <span class="n">0.3f</span> };
+        <span class="k">for</span> (<span class="k">uint</span> i = <span class="n">0</span>; i &lt; all.length(); i++)
+            highest = max(highest, all[i]);
         <span class="k">float</span> y = highest + <span class="n">0.6f</span> + sin(<span class="t">App</span>::time * <span class="n">3</span>) * <span class="n">0.05f</span>;
         <span class="t">Vec3</span> was = ship.place;
         <span class="c">// Where it is at once, but gently up and down.</span>
@@ -10367,13 +10435,15 @@ summary { cursor: pointer; padding: 10px 16px; } details pre { border-width: 1px
         ship.angles = <span class="t">Vec3</span>(pitch_, <span class="n">180</span> - heroYaw, roll_);
     }
 
-    <span class="c">// What is under a place, near the height of the one that drives.</span>
+    <span class="c">// What is under a place: the land, which is known everywhere, or anything standing higher on it. From well above,</span>
+    <span class="c">// so that a slope that rises ahead isn&#x27;t missed by starting inside it.</span>
     <span class="k">float</span> under_(<span class="k">const</span> <span class="t">Vec3</span> &amp;<span class="k">in</span> p)
     {
+        <span class="k">float</span> y = <span class="t">Space</span>::height(p.x, p.z);
         <span class="t">Vec3</span> hit, normal;
-        <span class="k">if</span> (<span class="t">Space</span>::raycast(p + <span class="t">Vec3</span>(<span class="n">0</span>, <span class="n">1.8f</span>, <span class="n">0</span>), p - <span class="t">Vec3</span>(<span class="n">0</span>, <span class="n">2.5f</span>, <span class="n">0</span>), hit, normal, 0xFFFD))
-            <span class="k">return</span> hit.y;
-        <span class="k">return</span> p.y;
+        <span class="k">if</span> (<span class="t">Space</span>::raycast(p + <span class="t">Vec3</span>(<span class="n">0</span>, <span class="n">6</span>, <span class="n">0</span>), p - <span class="t">Vec3</span>(<span class="n">0</span>, <span class="n">3</span>, <span class="n">0</span>), hit, normal, 0xFFFD))
+            y = max(y, hit.y);
+        <span class="k">return</span> y &gt; -<span class="n">1000</span> ? y : p.y;
     }
 
     <span class="k">bool</span> shotNow = <span class="k">false</span>;
@@ -10580,6 +10650,7 @@ summary { cursor: pointer; padding: 10px 16px; } details pre { border-width: 1px
     {
         <span class="c">// While editing, the stick can move a pointer, if the player chose it: in Play it walks.</span>
         <span class="t">Input</span>::wantsPointer = !playing;
+        keepChange();
         shownFor += dt;
         measureOwn();
         takeDropped();
@@ -11163,7 +11234,7 @@ summary { cursor: pointer; padding: 10px 16px; } details pre { border-width: 1px
     }
 }
 </code></pre></details></div>
-<div data-find="lost key a game made in the scene editor: find the key, gather the crystals quest"><h3 id="demo-quest">Lost key</h3><p>A game made in the scene editor: find the key, gather the crystals</p>
+<div data-find="lost key find the key and gather the crystals: made in the editor quest"><h3 id="demo-quest">Lost key</h3><p>Find the key and gather the crystals: made in the editor</p>
 <div class="shots"><img loading="lazy" src="screenshots/quest.png" alt="Lost key"></div>
 <details><summary><code>quest/main.as</code> <span class="tag">256 lines</span></summary><pre><code><span class="c">// A small game made from two scenes, as the scene editor saves them: the village, where a key opens the ring,</span>
 <span class="c">// and the island beyond it, with crystals to gather. The scenes say what is where, which triggers do what,</span>
@@ -11422,7 +11493,7 @@ summary { cursor: pointer; padding: 10px 16px; } details pre { border-width: 1px
     }
 }
 </code></pre></details></div>
-<div data-find="wisps sprites: pictures that turn to show the side you see them from, in a maze wisps"><h3 id="demo-wisps">Wisps</h3><p>Sprites: pictures that turn to show the side you see them from, in a maze</p>
+<div data-find="wisps pictures that turn to show the side you see, in a maze wisps"><h3 id="demo-wisps">Wisps</h3><p>Pictures that turn to show the side you see, in a maze</p>
 <div class="shots"><img loading="lazy" src="screenshots/wisps.png" alt="Wisps"></div>
 <details><summary><code>wisps/main.as</code> <span class="tag">177 lines</span></summary><pre><code><span class="c">// Sprites: each wisp is one picture from a sheet, chosen by which side of it you see and how far its flicker has</span>
 <span class="c">// got. They stand upright and turn to face you, as the characters of old maze games did; the maze is boxes.</span>
@@ -11602,7 +11673,7 @@ summary { cursor: pointer; padding: 10px 16px; } details pre { border-width: 1px
     }
 }
 </code></pre></details></div>
-<div data-find="guards take the gem unseen: guards patrol, look, listen, chase and find a way round guards"><h3 id="demo-guards">Guards</h3><p>Take the gem unseen: guards patrol, look, listen, chase and find a way round</p>
+<div data-find="guards take the gem unseen: guards patrol, look, listen and chase guards"><h3 id="demo-guards">Guards</h3><p>Take the gem unseen: guards patrol, look, listen and chase</p>
 <div class="shots"><img loading="lazy" src="screenshots/guards.png" alt="Guards"></div>
 <details><summary><code>guards/main.as</code> <span class="tag">215 lines</span></summary><pre><code><span class="c">// Take the gem without being caught. The scene file says who guards, who patrols which route, who runs away and who</span>
 <span class="c">// follows; global:ai.as moves them, as the level&#x27;s crowd: they see what is in front of them and not behind a wall, hear running, chase,</span>
@@ -11817,6 +11888,72 @@ summary { cursor: pointer; padding: 10px 16px; } details pre { border-width: 1px
         }
         <span class="k">if</span> (fade &gt; <span class="n">0</span>)
             c.rect(<span class="n">0</span>, <span class="n">0</span>, c.width, <span class="n">720</span>, <span class="t">Color</span>(<span class="n">0</span>, <span class="n">0</span>, <span class="n">0</span>, fade));
+    }
+}
+</code></pre></details></div>
+<div data-find="water calm, sea, choppy, storm and cartoon: waves, depth and foam water"><h3 id="demo-water">Water</h3><p>Calm, sea, choppy, storm and cartoon: waves, depth and foam</p>
+<div class="shots"><img loading="lazy" src="screenshots/water.png" alt="Water"></div>
+<details><summary><code>water/main.as</code> <span class="tag">63 lines</span></summary><pre><code><span class="c">// Water in five styles round an island: waves that lean and sharpen as they grow, clear in the shallows and dark</span>
+<span class="c">// where it is deep, the sky in it at a low angle, and foam on the shore and on crests.</span>
+
+<span class="k">class</span> <span class="t">WaterScreen</span> : <span class="t">Screen</span>
+{
+    <span class="t">Font</span>@ font = <span class="t">Assets</span>::font(<span class="s">&quot;global:freesans.sfn&quot;</span>, <span class="n">26</span>);
+    <span class="t">Font</span>@ big = <span class="t">Assets</span>::font(<span class="s">&quot;global:freesans.sfn&quot;</span>, <span class="n">54</span>);
+    <span class="k">array</span>&lt;<span class="k">string</span>&gt; styles = { <span class="s">&quot;calm&quot;</span>, <span class="s">&quot;sea&quot;</span>, <span class="s">&quot;choppy&quot;</span>, <span class="s">&quot;storm&quot;</span>, <span class="s">&quot;cartoon&quot;</span> };
+    <span class="k">array</span>&lt;<span class="k">string</span>&gt; names = { <span class="s">&quot;Calm&quot;</span>, <span class="s">&quot;Sea&quot;</span>, <span class="s">&quot;Choppy&quot;</span>, <span class="s">&quot;Storm&quot;</span>, <span class="s">&quot;Cartoon&quot;</span> };
+    <span class="k">uint</span> style = <span class="n">1</span>;
+    <span class="k">float</span> t = <span class="n">0</span>, shownFor = <span class="n">0</span>, turn = <span class="n">0.6f</span>;
+
+    <span class="k">void</span> onEnter()
+    {
+        <span class="t">Space</span>::land(<span class="n">9</span>, <span class="n">128</span>, <span class="n">2</span>, <span class="n">22</span>, <span class="n">0.5f</span>, <span class="k">true</span>);
+        <span class="t">Space</span>::water(<span class="n">0</span>, <span class="t">Color</span>(<span class="n">0.12f</span>, <span class="n">0.36f</span>, <span class="n">0.5f</span>, <span class="n">0.8f</span>));
+        <span class="t">Space</span>::farthest(<span class="n">260</span>);
+        <span class="t">Space</span>::shadows(<span class="n">0.6f</span>, <span class="n">40</span>);
+        <span class="t">Space</span>::grass(<span class="t">Assets</span>::model(<span class="s">&quot;global:model/grass.glb&quot;</span>), <span class="t">App</span>::platform == <span class="s">&quot;Original Xbox&quot;</span> ? <span class="n">0.5f</span> : <span class="n">2</span>, <span class="n">30</span>);
+        use(<span class="n">1</span>);
+    }
+
+    <span class="k">void</span> use(<span class="k">uint</span> n)
+    {
+        style = n;
+        shownFor = <span class="n">0</span>;
+        <span class="t">Space</span>::waterStyle(styles[n]);
+        <span class="k">bool</span> stormy = n == <span class="n">3</span>;
+        <span class="c">// A sky to suit.</span>
+        <span class="t">Space</span>::sky(stormy ? <span class="t">Color</span>(<span class="n">0.22f</span>, <span class="n">0.25f</span>, <span class="n">0.3f</span>) : <span class="t">Color</span>(<span class="n">0.25f</span>, <span class="n">0.5f</span>, <span class="n">0.85f</span>), stormy ? <span class="t">Color</span>(<span class="n">0.5f</span>, <span class="n">0.53f</span>, <span class="n">0.56f</span>) : <span class="t">Color</span>(<span class="n">0.75f</span>, <span class="n">0.86f</span>, <span class="n">0.94f</span>));
+        <span class="t">Space</span>::fog(stormy ? <span class="t">Color</span>(<span class="n">0.5f</span>, <span class="n">0.53f</span>, <span class="n">0.56f</span>) : <span class="t">Color</span>(<span class="n">0.75f</span>, <span class="n">0.86f</span>, <span class="n">0.94f</span>), stormy ? <span class="n">40</span> : <span class="n">90</span>, stormy ? <span class="n">160</span> : <span class="n">250</span>);
+        <span class="t">Space</span>::sun(<span class="t">Vec3</span>(<span class="n">0.5f</span>, stormy ? <span class="n">0.4f</span> : <span class="n">0.7f</span>, <span class="n">0.3f</span>), stormy ? <span class="t">Color</span>(<span class="n">0.45f</span>, <span class="n">0.47f</span>, <span class="n">0.5f</span>) : <span class="t">Color</span>(<span class="n">1</span>, <span class="n">0.94f</span>, <span class="n">0.82f</span>));
+        <span class="t">Space</span>::wind = stormy ? <span class="t">Vec3</span>(<span class="n">3</span>, <span class="n">0</span>, <span class="n">1.2f</span>) : <span class="t">Vec3</span>(<span class="n">0.94f</span>, <span class="n">0</span>, <span class="n">0.34f</span>);
+    }
+
+    <span class="k">void</span> update(<span class="k">float</span> dt)
+    {
+        t += dt;
+        shownFor += dt;
+        <span class="k">if</span> (<span class="t">Input</span>::pressed(<span class="s">&quot;right&quot;</span>) || (shownFor &gt; <span class="n">4.8f</span> &amp;&amp; !<span class="t">Input</span>::usingPad &amp;&amp; !<span class="t">Input</span>::hasMouse))
+            use((style + <span class="n">1</span>) % styles.length());
+        <span class="k">else</span> <span class="k">if</span> (<span class="t">Input</span>::pressed(<span class="s">&quot;left&quot;</span>))
+            use((style + styles.length() - <span class="n">1</span>) % styles.length());
+        <span class="c">// Round the island, low over the shore.</span>
+        turn += dt * <span class="n">0.08f</span>;
+        <span class="c">// Out at sea, looking back at the beach, and down a little at the waves.</span>
+        <span class="k">float</span> r = <span class="n">128</span>;
+        <span class="t">Vec3</span> at(sin(turn) * r, <span class="n">0</span>, cos(turn) * r);
+        at.y = max(<span class="t">Space</span>::height(at.x, at.z), <span class="n">0</span>) + (style == <span class="n">3</span> ? <span class="n">7</span> : <span class="n">5</span>);
+        <span class="t">Vec3</span> look(sin(turn + <span class="n">0.5f</span>) * <span class="n">82</span>, <span class="n">0</span>, cos(turn + <span class="n">0.5f</span>) * <span class="n">82</span>);
+        <span class="t">Space</span>::camera(at, look, <span class="n">60</span>);
+    }
+
+    <span class="k">void</span> draw(<span class="t">Canvas</span>@ c)
+    {
+        c.designHeight(<span class="n">720</span>);
+        <span class="t">Space</span>::draw(c);
+        c.bloom(<span class="n">0.25f</span>, <span class="n">0.85f</span>);
+        <span class="k">float</span> a = clamp(shownFor * <span class="n">3</span>, <span class="n">0</span>, <span class="n">1</span>) * clamp((<span class="n">4.6f</span> - shownFor) * <span class="n">2</span> + <span class="n">1</span>, <span class="n">0.35f</span>, <span class="n">1</span>);
+        c.text(big, names[style], <span class="n">60</span>, <span class="n">40</span>, <span class="t">Color</span>(<span class="n">1</span>, <span class="n">1</span>, <span class="n">1</span>, a));
+        c.text(font, <span class="t">Input</span>::usingPad ? <span class="s">&quot;Left and right: another&quot;</span> : <span class="s">&quot;Left and right: another style&quot;</span>, <span class="n">62</span>, <span class="n">104</span>, <span class="t">Color</span>(<span class="n">0.85f</span>, <span class="n">0.9f</span>, <span class="n">1</span>, <span class="n">0.8f</span> * a));
     }
 }
 </code></pre></details></div>

@@ -279,6 +279,11 @@ guard.route = { <span class="t">Vec3</span>(-<span class="n">10</span>, <span cl
 ...each update: crowd.update(dt);         <span class="c">// crowd.noise(place) when the player runs; crowd.draw(c) shows what they see</span></code></pre>
 <p>Ways round what is in the way come from the engine: <code>Space::navigate(middle, size)</code> works out where things can walk, in squares over a part of the world, and <code>Space::path(from, to, way)</code> gives the shortest way between two places, made as straight as it can be. In a scene file, a thing with a <code>&quot;role&quot;</code> moves by itself as the level&#x27;s crowd, and a patrol&#x27;s</p>
 <p><code>&quot;route&quot;</code> is the waypoints of that name; the editor has both. The <b>Guards</b> showcase is a game of getting past them.</p>
+<h3 id="water">Water</h3>
+<p><code>Space::water(height, color)</code> fills everything below a height: clear in the shallows and dark where it is deep, the sky in</p>
+<p>it at a low angle, and foam where it meets the land. <code>Space::waterStyle</code> sets how it moves: <code>calm</code>, <code>sea</code>, <code>choppy</code> (crests that lean and break white), <code>storm</code>, or <code>cartoon</code> (flat light and a hard line of foam). Or set it yourself with</p>
+<p><code>waterWaves(height, length, speed, choppy)</code>, <code>waterColors(shallow, deep)</code> and <code>waterFoam(shore, crests)</code>. The waves are moved</p>
+<p>on the CPU, so they look and cost the same everywhere; a scene file says <code>&quot;seaStyle&quot;</code> in its sky, and the editor has it on the Sky tab. The <b>Water</b> showcase goes round an island in each style.</p>
 <h3 id="wind">Wind</h3>
 <p>Plants lean with the wind: give a thing a <code>sway</code>, how far its top moves for each metre of height (about 0.02 for a tree, 0.15 for</p>
 <p><code>global:model/grass.glb</code>), or <code>&quot;sway&quot;</code> in a scene file. <code>Space::wind = Vec3(1, 0, 0.4f)</code> says which way it blows and how hard, and</p>
