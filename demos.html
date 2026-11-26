@@ -1965,7 +1965,7 @@ summary { cursor: pointer; padding: 10px 16px; } details pre { border-width: 1px
 </code></pre></details></div>
 <div data-find="settings volumes and controls, remembered next time settings"><h3 id="demo-settings">Settings</h3><p>Volumes and controls, remembered next time</p>
 <div class="shots"><img loading="lazy" src="screenshots/settings.png" alt="Settings"></div>
-<details><summary><code>settings/main.as</code> <span class="tag">143 lines</span></summary><pre><code><span class="c">// Volumes, bindings, whether the stick can move a pointer, and where rooms meet on the internet. The engine keeps</span>
+<details><summary><code>settings/main.as</code> <span class="tag">156 lines</span></summary><pre><code><span class="c">// Volumes, bindings, whether the stick can move a pointer, whether pads rumble, and where rooms meet on the internet. The engine keeps</span>
 <span class="c">// them between runs.</span>
 
 <span class="k">class</span> <span class="t">SettingsScreen</span> : <span class="t">Screen</span>
@@ -1982,8 +1982,9 @@ summary { cursor: pointer; padding: 10px 16px; } details pre { border-width: 1px
 
     <span class="t">Widget</span>@ placeField;
 
-    <span class="k">uint</span> rows() { <span class="k">return</span> <span class="n">3</span> + actions.length() + <span class="n">3</span>; }
-    <span class="k">uint</span> pointerRow() { <span class="k">return</span> rows() - <span class="n">3</span>; }
+    <span class="k">uint</span> rows() { <span class="k">return</span> <span class="n">3</span> + actions.length() + <span class="n">4</span>; }
+    <span class="k">uint</span> pointerRow() { <span class="k">return</span> rows() - <span class="n">4</span>; }
+    <span class="k">uint</span> rumbleRow() { <span class="k">return</span> rows() - <span class="n">3</span>; }
     <span class="k">uint</span> meetingRow() { <span class="k">return</span> rows() - <span class="n">2</span>; }
 
     <span class="c">// Typed in front of everything, with a keyboard or the one on the screen.</span>
@@ -2038,6 +2039,13 @@ summary { cursor: pointer; padding: 10px 16px; } details pre { border-width: 1px
             <span class="t">Input</span>::stickPointer = !<span class="t">Input</span>::stickPointer;
             accept.play(<span class="n">0.7f</span>);
         }
+        <span class="k">else</span> <span class="k">if</span> (chosen == rumbleRow() &amp;&amp; (<span class="t">Input</span>::pressed(<span class="s">&quot;accept&quot;</span>) || <span class="t">Input</span>::pressed(<span class="s">&quot;left&quot;</span>) || <span class="t">Input</span>::pressed(<span class="s">&quot;right&quot;</span>)))
+        {
+            <span class="t">Input</span>::rumbleOn = !<span class="t">Input</span>::rumbleOn;
+            accept.play(<span class="n">0.7f</span>);
+            <span class="c">// So that it can be felt what it is.</span>
+            <span class="t">Input</span>::rumble(<span class="n">0.6f</span>, <span class="n">0.25f</span>);
+        }
         <span class="k">else</span> <span class="k">if</span> (chosen == meetingRow() &amp;&amp; <span class="t">Input</span>::pressed(<span class="s">&quot;accept&quot;</span>))
         {
             editMeeting();
@@ -2085,6 +2093,11 @@ summary { cursor: pointer; padding: 10px 16px; } details pre { border-width: 1px
             {
                 c.text(font, <span class="s">&quot;Meeting place&quot;</span>, <span class="n">80</span>, y);
                 c.text(font, <span class="t">Net</span>::meetingPlace == <span class="s">&quot;&quot;</span> ? <span class="s">&quot;None: this network only&quot;</span> : <span class="t">Net</span>::meetingPlace, <span class="n">420</span>, y, <span class="t">Color</span>(<span class="n">0.75f</span>, <span class="n">0.85f</span>, <span class="n">1</span>));
+            }
+            <span class="k">else</span> <span class="k">if</span> (i == rumbleRow())
+            {
+                c.text(font, <span class="s">&quot;Rumble&quot;</span>, <span class="n">80</span>, y);
+                c.text(font, <span class="t">Input</span>::rumbleOn ? <span class="s">&quot;Pads shake when something happens&quot;</span> : <span class="s">&quot;Off&quot;</span>, <span class="n">420</span>, y, <span class="t">Color</span>(<span class="n">0.75f</span>, <span class="n">0.85f</span>, <span class="n">1</span>));
             }
             <span class="k">else</span> <span class="k">if</span> (i == pointerRow())
             {
@@ -3850,7 +3863,7 @@ summary { cursor: pointer; padding: 10px 16px; } details pre { border-width: 1px
 </code></pre></details></div>
 <div data-find="shooter waves, bosses and power-ups from prefabs shooter"><h3 id="demo-shooter">Shooter</h3><p>Waves, bosses and power-ups from prefabs</p>
 <div class="shots"><img loading="lazy" src="screenshots/shooter.png" alt="Shooter"></div>
-<details><summary><code>shooter/main.as</code> <span class="tag">260 lines</span></summary><pre><code><span class="c">// Everything that flies is a prefab in scene.json: how it looks, moves and collides, and which class</span>
+<details><summary><code>shooter/main.as</code> <span class="tag">264 lines</span></summary><pre><code><span class="c">// Everything that flies is a prefab in scene.json: how it looks, moves and collides, and which class</span>
 <span class="c">// below runs it. The engine moves, collides and draws them.</span>
 
 <span class="k">const</span> <span class="k">uint</span> <span class="t">EnemyGroup</span> = <span class="n">1</span>, <span class="t">PlayerGroup</span> = <span class="n">0</span>;
@@ -3900,6 +3913,7 @@ summary { cursor: pointer; padding: 10px 16px; } details pre { border-width: 1px
         {
             <span class="t">Scene</span>::burst(<span class="s">&quot;fire&quot;</span>, entity.position, <span class="n">60</span>);
             game.boomSound.play(<span class="n">0.9f</span>);
+            <span class="t">Input</span>::rumbleMotors(<span class="n">1</span>, <span class="n">0.7f</span>, <span class="n">0.6f</span>);
             entity.destroy();
             game.lost();
         }
@@ -3967,6 +3981,9 @@ summary { cursor: pointer; padding: 10px 16px; } details pre { border-width: 1px
         <span class="k">if</span> (health &gt; <span class="n">0</span> || !entity.alive) <span class="k">return</span>;
         game.score += worth;
         game.shake = worth &gt; <span class="n">500</span> ? <span class="n">1.0f</span> : <span class="n">0.25f</span>;
+        <span class="c">// A thud for a big one, a tap for the rest.</span>
+        <span class="k">if</span> (worth &gt; <span class="n">500</span>) <span class="t">Input</span>::rumbleMotors(<span class="n">1</span>, <span class="n">0.5f</span>, <span class="n">0.7f</span>);
+        <span class="k">else</span> <span class="t">Input</span>::rumbleMotors(<span class="n">0</span>, <span class="n">0.35f</span>, <span class="n">0.07f</span>);
         game.boomSound.play(worth &gt; <span class="n">500</span> ? <span class="n">1.0f</span> : <span class="n">0.35f</span>, (entity.x - <span class="n">640</span>) / <span class="n">800</span>, random(<span class="n">0.9f</span>, <span class="n">1.2f</span>));
         <span class="t">Scene</span>::burst(<span class="s">&quot;fire&quot;</span>, entity.position, worth &gt; <span class="n">500</span> ? <span class="n">200</span> : <span class="n">26</span>);
         <span class="t">Scene</span>::burst(<span class="s">&quot;smoke&quot;</span>, entity.position, worth &gt; <span class="n">500</span> ? <span class="n">40</span> : <span class="n">6</span>);
@@ -5806,9 +5823,11 @@ summary { cursor: pointer; padding: 10px 16px; } details pre { border-width: 1px
 </code></pre></details></div>
 </section>
 <section id="sound" data-title="sound"><h2>Sound</h2>
-<div data-find="sounds pads, pitch, panning and many voices sounds"><h3 id="demo-sounds">Sounds</h3><p>Pads, pitch, panning and many voices</p>
+<div data-find="sounds pads, pitch, panning, many voices, and rooms, echoes and filters sounds"><h3 id="demo-sounds">Sounds</h3><p>Pads, pitch, panning, many voices, and rooms, echoes and filters</p>
 <div class="shots"><img loading="lazy" src="screenshots/sounds.png" alt="Sounds"></div>
-<details><summary><code>sounds/main.as</code> <span class="tag">101 lines</span></summary><pre><code><span class="c">// Sixteen pads. Where a pad is decides its panning, and holding the second button lowers its pitch.</span>
+<details><summary><code>sounds/main.as</code> <span class="tag">126 lines</span></summary><pre><code><span class="c">// Sixteen pads. Where a pad is decides its panning, and holding the second button lowers its pitch. The right trigger, or</span>
+<span class="c">// R, changes where they are heard: a room, a hall, a canyon, under water or on the radio, by the effects every sound on a</span>
+<span class="c">// bus goes through.</span>
 
 <span class="k">class</span> <span class="t">SoundsScreen</span> : <span class="t">Screen</span>
 {
@@ -5823,6 +5842,9 @@ summary { cursor: pointer; padding: 10px 16px; } details pre { border-width: 1px
     <span class="k">uint</span> beatStep = <span class="n">0</span>;
     <span class="k">array</span>&lt;<span class="k">float</span>&gt; levels(<span class="n">90</span>);
     <span class="k">uint</span> at = <span class="n">0</span>;
+    <span class="k">array</span>&lt;<span class="k">string</span>&gt; places = { <span class="s">&quot;Nowhere in particular&quot;</span>, <span class="s">&quot;A small room&quot;</span>, <span class="s">&quot;A hall&quot;</span>, <span class="s">&quot;A canyon&quot;</span>, <span class="s">&quot;Under water&quot;</span>, <span class="s">&quot;On the radio&quot;</span> };
+    <span class="k">uint</span> place = <span class="n">0</span>;
+    <span class="k">bool</span> wasNext = <span class="k">false</span>;
 
     <span class="t">SoundsScreen</span>()
     {
@@ -5871,8 +5893,27 @@ summary { cursor: pointer; padding: 10px 16px; } details pre { border-width: 1px
             beat = !beat;
             beatStep = <span class="n">0</span>;
         }
+        <span class="c">// Not an action of its own, as the others are taken: the right trigger, or R; or fire where it isn&#x27;t also accept.</span>
+        <span class="k">bool</span> next = <span class="t">Input</span>::padTriggers(<span class="n">0</span>).y &gt; <span class="n">0.5f</span> || <span class="t">Input</span>::key(<span class="s">&quot;R&quot;</span>) || (<span class="t">Input</span>::held(<span class="s">&quot;fire&quot;</span>) &amp;&amp; !<span class="t">Input</span>::held(<span class="s">&quot;accept&quot;</span>));
+        <span class="k">if</span> (next &amp;&amp; !wasNext)
+        {
+            place = (place + <span class="n">1</span>) % places.length();
+            hear(place);
+        }
+        wasNext = next;
         levels[at] = <span class="t">Audio</span>::level;
         at = (at + <span class="n">1</span>) % levels.length();
+    }
+
+    <span class="c">// Each place is what the effects bus goes through; the rest is taken away first.</span>
+    <span class="k">void</span> hear(<span class="k">uint</span> where)
+    {
+        <span class="t">Audio</span>::clearEffects();
+        <span class="k">if</span> (where == <span class="n">1</span>) <span class="t">Audio</span>::reverb(<span class="t">BusEffects</span>, <span class="n">0.45f</span>, <span class="n">0.35f</span>);
+        <span class="k">if</span> (where == <span class="n">2</span>) <span class="t">Audio</span>::reverb(<span class="t">BusEffects</span>, <span class="n">0.8f</span>, <span class="n">0.92f</span>);
+        <span class="k">if</span> (where == <span class="n">3</span>) <span class="t">Audio</span>::echo(<span class="t">BusEffects</span>, <span class="n">0.55f</span>, <span class="n">0.42f</span>, <span class="n">0.35f</span>);
+        <span class="k">if</span> (where == <span class="n">4</span>) { <span class="t">Audio</span>::lowPass(<span class="t">BusEffects</span>, <span class="n">550</span>, <span class="n">0.3f</span>); <span class="t">Audio</span>::reverb(<span class="t">BusEffects</span>, <span class="n">0.3f</span>, <span class="n">0.5f</span>); }
+        <span class="k">if</span> (where == <span class="n">5</span>) { <span class="t">Audio</span>::highPass(<span class="t">BusEffects</span>, <span class="n">900</span>); <span class="t">Audio</span>::lowPass(<span class="t">BusEffects</span>, <span class="n">3200</span>); }
     }
 
     <span class="k">void</span> draw(<span class="t">Canvas</span>@ c)
@@ -5907,6 +5948,7 @@ summary { cursor: pointer; padding: 10px 16px; } details pre { border-width: 1px
         c.text(font, <span class="t">Input</span>::buttons(<span class="s">&quot;accept&quot;</span>) + <span class="s">&quot; or &quot;</span> + <span class="t">Input</span>::keys(<span class="s">&quot;accept&quot;</span>) + <span class="s">&quot;: play&quot;</span>, <span class="n">790</span>, <span class="n">550</span>, <span class="t">Yellow</span>);
         c.text(font, <span class="s">&quot;Hold &quot;</span> + <span class="t">Input</span>::buttons(<span class="s">&quot;alternate&quot;</span>) + <span class="s">&quot; or &quot;</span> + <span class="t">Input</span>::keys(<span class="s">&quot;alternate&quot;</span>) + <span class="s">&quot;: lower&quot;</span>, <span class="n">790</span>, <span class="n">584</span>, <span class="t">Yellow</span>);
         c.text(font, <span class="t">Input</span>::buttons(<span class="s">&quot;cancel&quot;</span>) + <span class="s">&quot; or &quot;</span> + <span class="t">Input</span>::keys(<span class="s">&quot;cancel&quot;</span>) + <span class="s">&quot;: drum machine &quot;</span> + (beat ? <span class="s">&quot;off&quot;</span> : <span class="s">&quot;on&quot;</span>), <span class="n">790</span>, <span class="n">618</span>, <span class="t">Yellow</span>);
+        c.text(font, <span class="s">&quot;Right trigger or R: &quot;</span> + places[place], <span class="n">790</span>, <span class="n">652</span>, <span class="t">Yellow</span>);
     }
 }
 </code></pre></details></div>
@@ -6467,7 +6509,7 @@ summary { cursor: pointer; padding: 10px 16px; } details pre { border-width: 1px
 <section id="3d" data-title="3d"><h2>3D</h2>
 <div data-find="island a world to walk about in, from day to night explore"><h3 id="demo-explore">Island</h3><p>A world to walk about in, from day to night</p>
 <div class="shots"><img loading="lazy" src="screenshots/explore.png" alt="Island"></div>
-<details><summary><code>explore/main.as</code> <span class="tag">429 lines</span></summary><pre><code><span class="c">// A world to walk about in: land, water, trees, houses, a day that passes, and someone to be.</span>
+<details><summary><code>explore/main.as</code> <span class="tag">444 lines</span></summary><pre><code><span class="c">// A world to walk about in: land, water, trees, houses, a day that passes, and someone to be.</span>
 
 <span class="t">Sound</span>@ chime = <span class="t">Assets</span>::sound(<span class="s">&quot;global:sound/coin.wav&quot;</span>);
 <span class="k">int</span> found = <span class="n">0</span>;
@@ -6547,7 +6589,9 @@ summary { cursor: pointer; padding: 10px 16px; } details pre { border-width: 1px
     <span class="t">Entity</span>@ camp;
     <span class="k">float</span> strode = <span class="n">0</span>;           <span class="c">// since the last step</span>
     <span class="k">bool</span> wet = <span class="k">false</span>;
+    <span class="k">bool</span> under = <span class="k">false</span>;         <span class="c">// in the sea, where everything is heard muffled</span>
     <span class="k">array</span>&lt;<span class="t">Entity</span>@&gt; lamps;
+    <span class="t">Entity</span>@ carried;            <span class="c">// a light the robot holds up in its right hand, by night</span>
     <span class="k">float</span> yaw = <span class="n">0.5f</span>;           <span class="c">// of the camera, round the robot</span>
     <span class="k">float</span> lean = <span class="n">0.28f</span>;
     <span class="k">float</span> away = <span class="n">7</span>;
@@ -6688,6 +6732,12 @@ summary { cursor: pointer; padding: 10px 16px; } details pre { border-width: 1px
         hero.shine = <span class="n">0.5f</span>;
         safe = hero.place;
         look = hero.place + <span class="t">Vec3</span>(<span class="n">0</span>, <span class="n">1.4f</span>, <span class="n">0</span>);
+
+        <span class="c">// Held in the hand: it goes wherever the hand does, through every walk, jump and wave.</span>
+        @carried = <span class="t">Space</span>::spawn(<span class="t">Vec3</span>());
+        carried.attach(hero, <span class="s">&quot;hand.r&quot;</span>);
+        carried.place = <span class="t">Vec3</span>(<span class="n">0</span>, -<span class="n">0.12f</span>, <span class="n">0</span>);
+        carried.glow(<span class="n">0.6f</span>, <span class="t">Color</span>(<span class="n">0.6f</span>, <span class="n">0.9f</span>, <span class="n">1</span>, <span class="n">0</span>));
     }
 
     <span class="t">Entity</span>@ place(<span class="t">Model</span>@ model, <span class="k">const</span> <span class="t">Vec3</span> &amp;<span class="k">in</span> at, <span class="k">float</span> turn, <span class="k">float</span> size)
@@ -6752,6 +6802,11 @@ summary { cursor: pointer; padding: 10px 16px; } details pre { border-width: 1px
             <span class="t">Space</span>::burst(<span class="s">&quot;drops&quot;</span>, <span class="t">Vec3</span>(hero.place.x, <span class="n">0.05f</span>, hero.place.z), <span class="n">50</span>);
         }
         wet = paddling;
+        <span class="k">if</span> (swimming != under)
+        {
+            under = swimming;
+            <span class="t">Audio</span>::lowPass(<span class="t">BusEffects</span>, under ? <span class="n">700</span> : <span class="n">20000</span>, <span class="n">0.4f</span>);
+        }
         sea.fade(clamp(<span class="n">0.5f</span> - look.y * <span class="n">0.035f</span>, <span class="n">0</span>, <span class="n">0.5f</span>), <span class="n">0.1f</span>);
         <span class="k">if</span> (swimming)
         {
@@ -6857,6 +6912,8 @@ summary { cursor: pointer; padding: 10px 16px; } details pre { border-width: 1px
         <span class="t">Space</span>::ambient(lerp(<span class="t">Color</span>(<span class="n">0.1f</span>, <span class="n">0.13f</span>, <span class="n">0.22f</span>), <span class="t">Color</span>(<span class="n">0.42f</span>, <span class="n">0.48f</span>, <span class="n">0.56f</span>), day), lerp(<span class="t">Color</span>(<span class="n">0.05f</span>, <span class="n">0.05f</span>, <span class="n">0.08f</span>), <span class="t">Color</span>(<span class="n">0.26f</span>, <span class="n">0.24f</span>, <span class="n">0.2f</span>), day));
         <span class="k">float</span> t = <span class="t">App</span>::time;
         camp.light(<span class="t">Color</span>(<span class="n">1.8f</span>, <span class="n">0.9f</span>, <span class="n">0.35f</span>), (<span class="n">4</span> + darkness * <span class="n">5</span>) * (<span class="n">1</span> + sin(t * <span class="n">11</span>) * <span class="n">0.05f</span> + sin(t * <span class="n">17.3f</span>) * <span class="n">0.04f</span>));
+        carried.color = <span class="t">Color</span>(<span class="n">0.6f</span>, <span class="n">0.9f</span>, <span class="n">1</span>, darkness * <span class="n">0.8f</span>);
+        carried.light(<span class="t">Color</span>(<span class="n">0.5f</span> * darkness, <span class="n">0.8f</span> * darkness, <span class="n">1.0f</span> * darkness), <span class="n">7</span>);
         <span class="k">for</span> (<span class="k">uint</span> i = <span class="n">0</span>; i &lt; lamps.length(); i++)
         {
             <span class="k">float</span> glow = darkness * (<span class="n">0.93f</span> + sin(<span class="t">App</span>::time * <span class="n">9</span> + <span class="k">float</span>(i) * <span class="n">2</span>) * <span class="n">0.07f</span>);
@@ -7012,9 +7069,10 @@ summary { cursor: pointer; padding: 10px 16px; } details pre { border-width: 1px
     }
 }
 </code></pre></details></div>
-<div data-find="tumble rigid bodies in space: throw balls at things tumble"><h3 id="demo-tumble">Tumble</h3><p>Rigid bodies in space: throw balls at things</p>
+<div data-find="tumble rigid bodies in space: throw balls at things, and at what hangs on chains, ropes, springs and hinges tumble"><h3 id="demo-tumble">Tumble</h3><p>Rigid bodies in space: throw balls at things, and at what hangs on chains, ropes, springs and hinges</p>
 <div class="shots"><img loading="lazy" src="screenshots/tumble.png" alt="Tumble"></div>
-<details><summary><code>tumble/main.as</code> <span class="tag">175 lines</span></summary><pre><code><span class="c">// Rigid bodies: give a collider some mass, and the engine does the rest.</span>
+<details><summary><code>tumble/main.as</code> <span class="tag">254 lines</span></summary><pre><code><span class="c">// Rigid bodies: give a collider some mass, and the engine does the rest. Joints hold them to each other, or to the</span>
+<span class="c">// world: pinned, hinged, on a rope or on a spring.</span>
 
 <span class="k">class</span> <span class="t">TumbleScreen</span> : <span class="t">Screen</span>
 {
@@ -7024,8 +7082,13 @@ summary { cursor: pointer; padding: 10px 16px; } details pre { border-width: 1px
     <span class="t">Vec2</span> aim(<span class="n">0</span>, <span class="n">0.12f</span>);
     <span class="k">float</span> around = <span class="n">0</span>;
     <span class="k">int</span> kind = <span class="n">0</span>;
-    <span class="k">array</span>&lt;<span class="k">string</span>&gt; kinds = { <span class="s">&quot;Wall&quot;</span>, <span class="s">&quot;Tower&quot;</span>, <span class="s">&quot;Dominoes&quot;</span>, <span class="s">&quot;Rain&quot;</span> };
+    <span class="k">array</span>&lt;<span class="k">string</span>&gt; kinds = { <span class="s">&quot;Wall&quot;</span>, <span class="s">&quot;Tower&quot;</span>, <span class="s">&quot;Dominoes&quot;</span>, <span class="s">&quot;Rain&quot;</span>, <span class="s">&quot;Swings&quot;</span> };
     <span class="k">array</span>&lt;<span class="t">Entity</span>@&gt; things;
+    <span class="c">// Ropes and springs, drawn as lines: what holds each, where on it, and where in the world the other end is.</span>
+    <span class="k">array</span>&lt;<span class="t">Entity</span>@&gt; tied;
+    <span class="k">array</span>&lt;<span class="t">Vec3</span>&gt; tiedAt;
+    <span class="k">array</span>&lt;<span class="t">Vec3</span>&gt; tiedTo;
+    <span class="k">array</span>&lt;<span class="k">bool</span>&gt; coiled;
     <span class="k">float</span> rain = <span class="n">0</span>;
     <span class="k">uint</span> dropped = <span class="n">0</span>;
     <span class="t">Vec2</span> mouseWas;
@@ -7063,11 +7126,24 @@ summary { cursor: pointer; padding: 10px 16px; } details pre { border-width: 1px
         <span class="k">return</span> e;
     }
 
+    <span class="c">// `at` is in the thing&#x27;s own space, where its size is 1.</span>
+    <span class="k">void</span> tie(<span class="t">Entity</span>@ e, <span class="k">const</span> <span class="t">Vec3</span> &amp;<span class="k">in</span> at, <span class="k">const</span> <span class="t">Vec3</span> &amp;<span class="k">in</span> to, <span class="k">bool</span> spring)
+    {
+        tied.insertLast(e);
+        tiedAt.insertLast(at);
+        tiedTo.insertLast(to);
+        coiled.insertLast(spring);
+    }
+
     <span class="k">void</span> build()
     {
         <span class="k">for</span> (<span class="k">uint</span> i = <span class="n">0</span>; i &lt; things.length(); i++)
             things[i].destroy();
         things.resize(<span class="n">0</span>);
+        tied.resize(<span class="n">0</span>);
+        tiedAt.resize(<span class="n">0</span>);
+        tiedTo.resize(<span class="n">0</span>);
+        coiled.resize(<span class="n">0</span>);
         rain = <span class="n">0</span>;
         dropped = <span class="n">0</span>;
         <span class="k">if</span> (kind == <span class="n">0</span>)
@@ -7098,6 +7174,40 @@ summary { cursor: pointer; padding: 10px 16px; } details pre { border-width: 1px
                     e.push(<span class="t">Vec3</span>(-cos(a) * <span class="n">1.5f</span>, <span class="n">0</span>, sin(a) * <span class="n">1.5f</span>), e.place + <span class="t">Vec3</span>(<span class="n">0</span>, <span class="n">0.6f</span>, <span class="n">0</span>));
             }
         }
+        <span class="k">else</span> <span class="k">if</span> (kind == <span class="n">4</span>)
+        {
+            <span class="c">// Chains, each link pinned to the one above, the top one to the sky.</span>
+            <span class="k">for</span> (<span class="k">int</span> c = <span class="n">0</span>; c &lt; <span class="n">3</span>; c++)
+            {
+                <span class="k">float</span> x = -<span class="n">4.5f</span> + <span class="k">float</span>(c) * <span class="n">1.2f</span>;
+                <span class="t">Entity</span>@ above = <span class="k">null</span>;
+                <span class="k">for</span> (<span class="k">int</span> i = <span class="n">0</span>; i &lt; <span class="n">7</span>; i++)
+                {
+                    <span class="t">Vec3</span> top(x, <span class="n">6.5f</span> - <span class="k">float</span>(i) * <span class="n">0.5f</span>, -<span class="n">1</span>);
+                    <span class="t">Entity</span>@ link = block(top - <span class="t">Vec3</span>(<span class="n">0</span>, <span class="n">0.25f</span>, <span class="n">0</span>), <span class="t">Vec3</span>(<span class="n">0.12f</span>, <span class="n">0.46f</span>, <span class="n">0.12f</span>), hsv(<span class="n">0.55f</span> + <span class="k">float</span>(c) * <span class="n">0.08f</span>, <span class="n">0.5f</span>, <span class="n">0.85f</span>), <span class="n">0.3f</span>);
+                    link.drag = <span class="n">0.3f</span>;
+                    <span class="t">Space</span>::join(link, above, top);
+                    @above = link;
+                }
+            }
+            <span class="c">// A door, hinged at its left edge.</span>
+            <span class="t">Entity</span>@ door = block(<span class="t">Vec3</span>(<span class="n">0.6f</span>, <span class="n">1.1f</span>, <span class="n">0</span>), <span class="t">Vec3</span>(<span class="n">1.2f</span>, <span class="n">2.2f</span>, <span class="n">0.1f</span>), <span class="t">Color</span>(<span class="n">0.55f</span>, <span class="n">0.36f</span>, <span class="n">0.22f</span>), <span class="n">2</span>);
+            door.drag = <span class="n">0.8f</span>;
+            <span class="t">Space</span>::hinge(door, <span class="k">null</span>, <span class="t">Vec3</span>(<span class="n">0</span>, <span class="n">1.1f</span>, <span class="n">0</span>), <span class="t">Vec3</span>(<span class="n">0</span>, <span class="n">1</span>, <span class="n">0</span>));
+            block(<span class="t">Vec3</span>(-<span class="n">0.1f</span>, <span class="n">1.15f</span>, <span class="n">0</span>), <span class="t">Vec3</span>(<span class="n">0.2f</span>, <span class="n">2.3f</span>, <span class="n">0.2f</span>), <span class="t">Color</span>(<span class="n">0.35f</span>, <span class="n">0.3f</span>, <span class="n">0.28f</span>), <span class="n">0</span>);
+            <span class="c">// A weight bobbing on a spring.</span>
+            <span class="t">Entity</span>@ weight = block(<span class="t">Vec3</span>(<span class="n">3</span>, <span class="n">3</span>, -<span class="n">1</span>), <span class="t">Vec3</span>(<span class="n">0.6f</span>, <span class="n">0.6f</span>, <span class="n">0.6f</span>), <span class="t">Color</span>(<span class="n">0.85f</span>, <span class="n">0.75f</span>, <span class="n">0.2f</span>), <span class="n">1</span>);
+            weight.drag = <span class="n">0.1f</span>;
+            <span class="t">Space</span>::spring(weight, <span class="k">null</span>, <span class="t">Vec3</span>(<span class="n">3</span>, <span class="n">3.3f</span>, -<span class="n">1</span>), <span class="t">Vec3</span>(<span class="n">3</span>, <span class="n">6</span>, -<span class="n">1</span>), <span class="n">40</span>, <span class="n">0.6f</span>, <span class="n">2</span>);
+            tie(weight, <span class="t">Vec3</span>(<span class="n">0</span>, <span class="n">0.5f</span>, <span class="n">0</span>), <span class="t">Vec3</span>(<span class="n">3</span>, <span class="n">6</span>, -<span class="n">1</span>), <span class="k">true</span>);
+            <span class="c">// A swing: a plank on two ropes.</span>
+            <span class="t">Entity</span>@ seat = block(<span class="t">Vec3</span>(<span class="n">5.5f</span>, <span class="n">1.2f</span>, -<span class="n">1</span>), <span class="t">Vec3</span>(<span class="n">1.2f</span>, <span class="n">0.12f</span>, <span class="n">0.5f</span>), <span class="t">Color</span>(<span class="n">0.6f</span>, <span class="n">0.45f</span>, <span class="n">0.3f</span>), <span class="n">0.8f</span>);
+            seat.drag = <span class="n">0.15f</span>;
+            <span class="t">Space</span>::rope(seat, <span class="k">null</span>, <span class="t">Vec3</span>(<span class="n">5.0f</span>, <span class="n">1.26f</span>, -<span class="n">1</span>), <span class="t">Vec3</span>(<span class="n">5.0f</span>, <span class="n">6</span>, -<span class="n">1</span>));
+            <span class="t">Space</span>::rope(seat, <span class="k">null</span>, <span class="t">Vec3</span>(<span class="n">6.0f</span>, <span class="n">1.26f</span>, -<span class="n">1</span>), <span class="t">Vec3</span>(<span class="n">6.0f</span>, <span class="n">6</span>, -<span class="n">1</span>));
+            tie(seat, <span class="t">Vec3</span>(-<span class="n">0.42f</span>, <span class="n">0.5f</span>, <span class="n">0</span>), <span class="t">Vec3</span>(<span class="n">5.0f</span>, <span class="n">6</span>, -<span class="n">1</span>), <span class="k">false</span>);
+            tie(seat, <span class="t">Vec3</span>(<span class="n">0.42f</span>, <span class="n">0.5f</span>, <span class="n">0</span>), <span class="t">Vec3</span>(<span class="n">6.0f</span>, <span class="n">6</span>, -<span class="n">1</span>), <span class="k">false</span>);
+        }
     }
 
     <span class="k">void</span> update(<span class="k">float</span> dt)
@@ -7110,7 +7220,7 @@ summary { cursor: pointer; padding: 10px 16px; } details pre { border-width: 1px
         aim = <span class="t">Vec2</span>(clamp(aim.x, -<span class="n">0.6f</span>, <span class="n">0.6f</span>), clamp(aim.y, -<span class="n">0.1f</span>, <span class="n">0.5f</span>));
         <span class="k">if</span> (<span class="t">Input</span>::pressed(<span class="s">&quot;alternate&quot;</span>))
         {
-            kind = (kind + <span class="n">1</span>) % <span class="n">4</span>;
+            kind = (kind + <span class="n">1</span>) % <span class="k">int</span>(kinds.length());
             build();
         }
         <span class="k">else</span> <span class="k">if</span> (<span class="t">Input</span>::pressed(<span class="s">&quot;cancel&quot;</span>))
@@ -7178,6 +7288,32 @@ summary { cursor: pointer; padding: 10px 16px; } details pre { border-width: 1px
     {
         c.designHeight(<span class="n">720</span>);
         <span class="t">Space</span>::draw(c);
+        <span class="k">for</span> (<span class="k">uint</span> i = <span class="n">0</span>; i &lt; tied.length(); i++)
+        {
+            <span class="t">Vec3</span> from = tied[i].toSpace(tiedAt[i]);
+            <span class="k">if</span> (!coiled[i])
+            {
+                <span class="t">Vec2</span> a, b;
+                <span class="k">if</span> (<span class="t">Space</span>::toScreen(from, a) &amp;&amp; <span class="t">Space</span>::toScreen(tiedTo[i], b))
+                    c.line(a.x, a.y, b.x, b.y, <span class="n">2.5f</span>, <span class="t">Color</span>(<span class="n">0.75f</span>, <span class="n">0.65f</span>, <span class="n">0.45f</span>));
+                <span class="k">continue</span>;
+            }
+            <span class="c">// A coil: round and round between its ends.</span>
+            <span class="t">Vec2</span> was;
+            <span class="k">bool</span> had = <span class="k">false</span>;
+            <span class="k">for</span> (<span class="k">int</span> k = <span class="n">0</span>; k &lt;= <span class="n">48</span>; k++)
+            {
+                <span class="k">float</span> t = <span class="k">float</span>(k) / <span class="n">48</span>;
+                <span class="k">float</span> turn = t * <span class="n">6.2832f</span> * <span class="n">9</span>;
+                <span class="t">Vec3</span> p = from + (tiedTo[i] - from) * t + <span class="t">Vec3</span>(cos(turn) * <span class="n">0.18f</span>, <span class="n">0</span>, sin(turn) * <span class="n">0.18f</span>);
+                <span class="t">Vec2</span> at;
+                <span class="k">bool</span> has = <span class="t">Space</span>::toScreen(p, at);
+                <span class="k">if</span> (has &amp;&amp; had)
+                    c.line(was.x, was.y, at.x, at.y, <span class="n">2</span>, <span class="t">Color</span>(<span class="n">0.8f</span>, <span class="n">0.82f</span>, <span class="n">0.86f</span>));
+                was = at;
+                had = has;
+            }
+        }
         <span class="t">Vec2</span> at;
         <span class="k">if</span> (<span class="t">Space</span>::toScreen(eye() + direction() * <span class="n">10</span>, at))
         {
@@ -12287,15 +12423,15 @@ summary { cursor: pointer; padding: 10px 16px; } details pre { border-width: 1px
         <span class="t">Vec2</span> triggers = <span class="t">Input</span>::padTriggers(<span class="n">0</span>);
         <span class="k">bool</span> left = <span class="t">Input</span>::mouseDown(<span class="n">0</span>), right = <span class="t">Input</span>::mouseDown(<span class="n">1</span>);
         <span class="k">bool</span> digging = (left &amp;&amp; !wasLeft) || (triggers.y &gt; <span class="n">0.5f</span> &amp;&amp; wasTriggers.y &lt;= <span class="n">0.5f</span>) || <span class="t">Input</span>::pressed(<span class="s">&quot;alternate&quot;</span>);
-        <span class="k">bool</span> building = (right &amp;&amp; !wasRight) || (triggers.x &gt; <span class="n">0.5f</span> &amp;&amp; wasTriggers.x &lt;= <span class="n">0.5f</span>);
+        <span class="k">bool</span> building = (right &amp;&amp; !wasRight) || (triggers.x &gt; <span class="n">0.5f</span> &amp;&amp; wasTriggers.x &lt;= <span class="n">0.5f</span>) || <span class="t">Input</span>::pressed(<span class="s">&quot;fire&quot;</span>);
         <span class="c">// Held, again and again.</span>
-        <span class="k">bool</span> holding = left || right || triggers.x &gt; <span class="n">0.5f</span> || triggers.y &gt; <span class="n">0.5f</span> || <span class="t">Input</span>::held(<span class="s">&quot;alternate&quot;</span>);
+        <span class="k">bool</span> holding = left || right || triggers.x &gt; <span class="n">0.5f</span> || triggers.y &gt; <span class="n">0.5f</span> || <span class="t">Input</span>::held(<span class="s">&quot;alternate&quot;</span>) || <span class="t">Input</span>::held(<span class="s">&quot;fire&quot;</span>);
         again = holding ? again - dt : <span class="n">0.35f</span>;
         <span class="k">if</span> (again &lt; <span class="n">0</span>)
         {
             again = <span class="n">0.2f</span>;
             digging = left || triggers.y &gt; <span class="n">0.5f</span> || <span class="t">Input</span>::held(<span class="s">&quot;alternate&quot;</span>);
-            building = right || triggers.x &gt; <span class="n">0.5f</span>;
+            building = right || triggers.x &gt; <span class="n">0.5f</span> || <span class="t">Input</span>::held(<span class="s">&quot;fire&quot;</span>);
         }
         wasLeft = left;
         wasRight = right;
