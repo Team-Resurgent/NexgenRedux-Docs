@@ -269,6 +269,16 @@ hero.walker = <span class="k">true</span>;</code></pre>
 <p><code>cave-tunnel</code>, <code>cave-bend</code>, <code>cave-slope</code>, <code>cave-room</code> and <code>cave-end</code>) meet on a grid of 4 metres. A model of your own whose name begins with one of those joins them in the editor, so an entrance can look</p>
 <p>like anything. Road pieces (<code>road-straight</code>, <code>road-bend</code>, <code>road-t</code>, <code>road-cross</code> and <code>road-end</code>) meet on a grid of 8 metres. The sun doesn&#x27;t reach what has a material whose name begins with <code>indoors</code>. <code>Space::edges = true</code> puts walls that can&#x27;t be seen at the sides of the land.</p>
 <p><code>Space::lines = true</code> draws only the edges of triangles, to see how things are made.</p>
+<h3 id="those-who-move-by-themselves">Those who move by themselves</h3>
+<p><code>#include &quot;global:ai.as&quot;</code> brings in <code>Agent</code> and <code>Crowd</code>. An agent is a walker with a role: a <b>guard</b> stands where it was</p>
+<p>put and chases what it sees, a <b>patrol</b> walks a route of places, a <b>wanderer</b> walks about near home, and there are <b>chase</b>, <b>flee</b>, <b>follow</b> and <b>still</b>. It sees with a range and a field of view, and only what no wall is in front of; it hears noises the game makes; it searches where it last saw you, and goes back to what it was doing. Its <code>state</code> (&quot;walking&quot;, &quot;chasing&quot;, &quot;searching&quot; and so on) is there for animations and sounds, and <code>onEvent</code> tells the game when it spots, loses, catches or hears something.</p>
+<pre><code><span class="t">Crowd</span> crowd;
+<span class="t">Agent</span>@ guard = crowd.add(robot, <span class="s">&quot;patrol&quot;</span>);
+guard.route = { <span class="t">Vec3</span>(-<span class="n">10</span>, <span class="n">0</span>, <span class="n">0</span>), <span class="t">Vec3</span>(<span class="n">10</span>, <span class="n">0</span>, <span class="n">0</span>), <span class="t">Vec3</span>(<span class="n">10</span>, <span class="n">0</span>, <span class="n">12</span>) };
+@guard.target = player;
+...each update: crowd.update(dt);         <span class="c">// crowd.noise(place) when the player runs; crowd.draw(c) shows what they see</span></code></pre>
+<p>Ways round what is in the way come from the engine: <code>Space::navigate(middle, size)</code> works out where things can walk, in squares over a part of the world, and <code>Space::path(from, to, way)</code> gives the shortest way between two places, made as straight as it can be. In a scene file, a thing with a <code>&quot;role&quot;</code> moves by itself as the level&#x27;s crowd, and a patrol&#x27;s</p>
+<p><code>&quot;route&quot;</code> is the waypoints of that name; the editor has both. The <b>Guards</b> showcase is a game of getting past them.</p>
 <h3 id="wind">Wind</h3>
 <p>Plants lean with the wind: give a thing a <code>sway</code>, how far its top moves for each metre of height (about 0.02 for a tree, 0.15 for</p>
 <p><code>global:model/grass.glb</code>), or <code>&quot;sway&quot;</code> in a scene file. <code>Space::wind = Vec3(1, 0, 0.4f)</code> says which way it blows and how hard, and</p>
@@ -283,7 +293,8 @@ hero.walker = <span class="k">true</span>;</code></pre>
 wisp.sprite(<span class="t">Assets</span>::texture(<span class="s">&quot;global:picture/sprite-wisp.png&quot;</span>), <span class="n">4</span>, <span class="n">2</span>);  <span class="c">// four sides across, two frames down</span>
 wisp.size = <span class="t">Vec3</span>(<span class="n">1.3f</span>, <span class="n">1.3f</span>, <span class="n">1.3f</span>);
 wisp.spriteFrame = <span class="k">uint</span>(<span class="t">App</span>::time * <span class="n">5</span>) % <span class="n">2</span>;</code></pre>
-<p>Across the sheet is how it looks from each side, the first from in front and then going round to its left; which one is shown follows from where the camera is and which way it faces. The <b>Wisps</b> showcase is a maze of them.</p>
+<p>Across the sheet is how it looks from each side, the first from in front and then going round to its left; which one is shown follows from where the camera is and which way it faces. In a scene file it is <code>&quot;sprite&quot;</code>, with <code>&quot;views&quot;</code> and</p>
+<p><code>&quot;frames&quot;</code>. The <b>Wisps</b> showcase is a maze of them, and the wisps in <b>Guards</b> run from you.</p>
 <h3 id="files-that-players-bring">Files that players bring</h3>
 <p><code>Assets::list(&quot;own:&quot;)</code> has the names of the player&#x27;s own files, and <code>Assets::dropped()</code> those that were just dropped on the window. They</p>
 <p>are loaded like any others: <code>Assets::model(&quot;own:chair.obj&quot;)</code>.</p>

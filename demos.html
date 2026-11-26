@@ -7923,7 +7923,7 @@ summary { cursor: pointer; padding: 10px 16px; } details pre { border-width: 1px
 </code></pre></details></div>
 <div data-find="scene editor build a place, try it and keep it editor"><h3 id="demo-editor">Scene editor</h3><p>Build a place, try it and keep it</p>
 <div class="shots"><img loading="lazy" src="screenshots/editor.png" alt="Scene editor"></div>
-<details><summary><code>editor/main.as</code> <span class="tag">3178 lines</span></summary><pre><code>#include <span class="s">&quot;global:scene.as&quot;</span>
+<details><summary><code>editor/main.as</code> <span class="tag">3226 lines</span></summary><pre><code>#include <span class="s">&quot;global:scene.as&quot;</span>
 
 <span class="c">// A scene editor, written as any screen is. What it makes is a file that Space::load reads.</span>
 
@@ -8015,6 +8015,7 @@ summary { cursor: pointer; padding: 10px 16px; } details pre { border-width: 1px
         <span class="t">Kind</span>(<span class="s">&quot;Logic&quot;</span>, <span class="s">&quot;Way out&quot;</span>, <span class="s">&quot;way&quot;</span>, <span class="s">&quot;&quot;</span>, <span class="t">Vec3</span>(-<span class="n">0.5f</span>, <span class="n">0</span>, -<span class="n">0.5f</span>), <span class="t">Vec3</span>(<span class="n">0.5f</span>, <span class="n">1</span>, <span class="n">0.5f</span>)),
         <span class="t">Kind</span>(<span class="s">&quot;Logic&quot;</span>, <span class="s">&quot;Arrival&quot;</span>, <span class="s">&quot;arrival&quot;</span>, <span class="s">&quot;&quot;</span>, <span class="t">Vec3</span>(-<span class="n">0.4f</span>, <span class="n">0</span>, -<span class="n">0.4f</span>), <span class="t">Vec3</span>(<span class="n">0.4f</span>, <span class="n">1.6f</span>, <span class="n">0.4f</span>)),
         <span class="t">Kind</span>(<span class="s">&quot;Logic&quot;</span>, <span class="s">&quot;Trigger&quot;</span>, <span class="s">&quot;trigger&quot;</span>, <span class="s">&quot;&quot;</span>, <span class="t">Vec3</span>(-<span class="n">0.5f</span>, <span class="n">0</span>, -<span class="n">0.5f</span>), <span class="t">Vec3</span>(<span class="n">0.5f</span>, <span class="n">1</span>, <span class="n">0.5f</span>)),
+        <span class="t">Kind</span>(<span class="s">&quot;Logic&quot;</span>, <span class="s">&quot;Waypoint&quot;</span>, <span class="s">&quot;waypoint&quot;</span>, <span class="s">&quot;&quot;</span>, <span class="t">Vec3</span>(-<span class="n">0.3f</span>, <span class="n">0</span>, -<span class="n">0.3f</span>), <span class="t">Vec3</span>(<span class="n">0.3f</span>, <span class="n">0.6f</span>, <span class="n">0.3f</span>)),
         <span class="t">Kind</span>(<span class="s">&quot;Others&quot;</span>, <span class="s">&quot;Light&quot;</span>, <span class="s">&quot;glow&quot;</span>, <span class="s">&quot;&quot;</span>, <span class="t">Vec3</span>(-<span class="n">0.4f</span>, -<span class="n">0.4f</span>, -<span class="n">0.4f</span>), <span class="t">Vec3</span>(<span class="n">0.4f</span>, <span class="n">0.4f</span>, <span class="n">0.4f</span>))
     };
     <span class="k">array</span>&lt;<span class="k">string</span>&gt; groups = { <span class="s">&quot;Everything&quot;</span>, <span class="s">&quot;Platforms&quot;</span>, <span class="s">&quot;Roads&quot;</span>, <span class="s">&quot;Nature&quot;</span>, <span class="s">&quot;Buildings&quot;</span>, <span class="s">&quot;Caves&quot;</span>, <span class="s">&quot;Shapes&quot;</span>, <span class="s">&quot;Logic&quot;</span>, <span class="s">&quot;Others&quot;</span>, <span class="s">&quot;Mine&quot;</span> };
@@ -8379,6 +8380,11 @@ summary { cursor: pointer; padding: 10px 16px; } details pre { border-width: 1px
         @animationRow = lookRow.column(<span class="n">6</span>);
         animationRow.label(<span class="s">&quot;Animation&quot;</span>, <span class="s">&quot;small&quot;</span>);
         @animationChoice = animationRow.choice(<span class="k">array</span>&lt;<span class="k">string</span>&gt; = { <span class="s">&quot;None&quot;</span> }, <span class="n">0</span>, <span class="t">WidgetEvent</span>(<span class="k">this</span>.onAnimation));
+        @roleRow = lookRow.column(<span class="n">6</span>);
+        roleRow.label(<span class="s">&quot;Moves by itself&quot;</span>, <span class="s">&quot;small&quot;</span>);
+        @roleChoice = roleRow.choice(roleNames, <span class="n">0</span>, <span class="t">WidgetEvent</span>(<span class="k">this</span>.onRole));
+        @routeField = roleRow.field(<span class="s">&quot;&quot;</span>, <span class="s">&quot;Its route: its waypoints&#x27; name&quot;</span>, <span class="t">WidgetEvent</span>(<span class="k">this</span>.onRole));
+        routeField.onDone(<span class="t">WidgetEvent</span>(<span class="k">this</span>.onRole));
         @startsHidden = lookRow.toggle(<span class="s">&quot;Hidden until shown&quot;</span>, <span class="k">false</span>, <span class="t">WidgetEvent</span>(<span class="k">this</span>.onToggle));
         @appearChoice = lookRow.choice(appears, <span class="n">0</span>, <span class="t">WidgetEvent</span>(<span class="k">this</span>.onToggle));
         @onLand = inspector.toggle(<span class="s">&quot;On the land&quot;</span>, <span class="k">true</span>, <span class="t">WidgetEvent</span>(<span class="k">this</span>.onToggle));
@@ -8594,7 +8600,7 @@ summary { cursor: pointer; padding: 10px 16px; } details pre { border-width: 1px
         onLand.checked = j[<span class="s">&quot;onLand&quot;</span>].flag();
         falls.checked = j[<span class="s">&quot;mass&quot;</span>].number() &gt; <span class="n">0</span>;
         glows.checked = j[<span class="s">&quot;glowing&quot;</span>].number() &gt; <span class="n">0</span>;
-        <span class="k">bool</span> logic = j.has(<span class="s">&quot;trigger&quot;</span>) || j.has(<span class="s">&quot;to&quot;</span>) || j.has(<span class="s">&quot;arrival&quot;</span>);
+        <span class="k">bool</span> logic = j.has(<span class="s">&quot;trigger&quot;</span>) || j.has(<span class="s">&quot;to&quot;</span>) || j.has(<span class="s">&quot;arrival&quot;</span>) || j.has(<span class="s">&quot;waypoint&quot;</span>);
         <span class="k">bool</span> thing = !j.has(<span class="s">&quot;glow&quot;</span>) &amp;&amp; !sound &amp;&amp; !logic, water = j[<span class="s">&quot;pool&quot;</span>].flag();
         lookRow.visible = thing &amp;&amp; !water;
         falls.visible = thing &amp;&amp; !water;
@@ -8610,7 +8616,12 @@ summary { cursor: pointer; padding: 10px 16px; } details pre { border-width: 1px
         colliderChoice.chosen = colliderOf(j);
         <span class="k">int</span> picture = pictures.find(j[<span class="s">&quot;skin&quot;</span>].text());
         skinChoice.chosen = picture &lt; <span class="n">0</span> ? <span class="n">0</span> : picture;
-        nameField.text = j.has(<span class="s">&quot;arrival&quot;</span>) ? j[<span class="s">&quot;arrival&quot;</span>].text() : j[<span class="s">&quot;name&quot;</span>].text();
+        nameField.text = j.has(<span class="s">&quot;arrival&quot;</span>) ? j[<span class="s">&quot;arrival&quot;</span>].text() : j.has(<span class="s">&quot;waypoint&quot;</span>) ? j[<span class="s">&quot;waypoint&quot;</span>].text() : j[<span class="s">&quot;name&quot;</span>].text();
+        roleRow.visible = thing &amp;&amp; !water &amp;&amp; j.has(<span class="s">&quot;model&quot;</span>);
+        <span class="k">int</span> role = roleKeys.find(j[<span class="s">&quot;role&quot;</span>].text());
+        roleChoice.chosen = role &lt; <span class="n">0</span> ? <span class="n">0</span> : role;
+        routeField.visible = roleChoice.chosen == <span class="n">2</span>;
+        routeField.text = j[<span class="s">&quot;route&quot;</span>].text();
         <span class="k">bool</span> trigger = j.has(<span class="s">&quot;trigger&quot;</span>), goes = j.has(<span class="s">&quot;to&quot;</span>);
         logicRow.visible = trigger;
         wayRow.visible = goes;
@@ -8663,6 +8674,27 @@ summary { cursor: pointer; padding: 10px 16px; } details pre { border-width: 1px
         animationChoice.chosen = playing_ &lt; <span class="n">0</span> ? <span class="n">0</span> : playing_;
     }
 
+    <span class="c">// Someone who moves by themselves in a game, as global:ai.as has it; in Play, they look for whoever plays.</span>
+    <span class="t">Widget</span>@ roleRow, roleChoice, routeField;
+    <span class="k">array</span>&lt;<span class="k">string</span>&gt; roleNames = { <span class="s">&quot;No&quot;</span>, <span class="s">&quot;Guard&quot;</span>, <span class="s">&quot;Patrol&quot;</span>, <span class="s">&quot;Wander&quot;</span>, <span class="s">&quot;Chase&quot;</span>, <span class="s">&quot;Flee&quot;</span>, <span class="s">&quot;Follow&quot;</span> };
+    <span class="k">array</span>&lt;<span class="k">string</span>&gt; roleKeys = { <span class="s">&quot;&quot;</span>, <span class="s">&quot;guard&quot;</span>, <span class="s">&quot;patrol&quot;</span>, <span class="s">&quot;wander&quot;</span>, <span class="s">&quot;chase&quot;</span>, <span class="s">&quot;flee&quot;</span>, <span class="s">&quot;follow&quot;</span> };
+    <span class="k">void</span> onRole(<span class="t">Widget</span>@ w)
+    {
+        <span class="k">if</span> (chosen &lt; <span class="n">0</span>)
+            <span class="k">return</span>;
+        <span class="t">Json</span>@ j = things[<span class="k">uint</span>(chosen)].json;
+        <span class="k">if</span> (roleChoice.chosen == <span class="n">0</span>)
+            j.remove(<span class="s">&quot;role&quot;</span>);
+        <span class="k">else</span>
+            j.<span class="k">set</span>(<span class="s">&quot;role&quot;</span>, roleKeys[<span class="k">uint</span>(roleChoice.chosen)]);
+        routeField.visible = roleChoice.chosen == <span class="n">2</span>;
+        <span class="k">if</span> (roleChoice.chosen == <span class="n">2</span> &amp;&amp; routeField.text != <span class="s">&quot;&quot;</span>)
+            j.<span class="k">set</span>(<span class="s">&quot;route&quot;</span>, routeField.text);
+        <span class="k">else</span>
+            j.remove(<span class="s">&quot;route&quot;</span>);
+        changed(<span class="s">&quot;role&quot;</span>, <span class="k">false</span>);
+    }
+
     <span class="k">void</span> onName(<span class="t">Widget</span>@ w)
     {
         <span class="k">if</span> (chosen &lt; <span class="n">0</span>)
@@ -8670,6 +8702,8 @@ summary { cursor: pointer; padding: 10px 16px; } details pre { border-width: 1px
         <span class="t">Json</span>@ j = things[<span class="k">uint</span>(chosen)].json;
         <span class="k">if</span> (j.has(<span class="s">&quot;arrival&quot;</span>))
             j.<span class="k">set</span>(<span class="s">&quot;arrival&quot;</span>, w.text);
+        <span class="k">else</span> <span class="k">if</span> (j.has(<span class="s">&quot;waypoint&quot;</span>))
+            j.<span class="k">set</span>(<span class="s">&quot;waypoint&quot;</span>, w.text);
         <span class="k">else</span> <span class="k">if</span> (w.text == <span class="s">&quot;&quot;</span>)
             j.remove(<span class="s">&quot;name&quot;</span>);
         <span class="k">else</span>
@@ -9013,7 +9047,7 @@ summary { cursor: pointer; padding: 10px 16px; } details pre { border-width: 1px
         {
             <span class="t">Kind</span>@ k = kinds[i];
             <span class="k">bool</span> same = k.key == <span class="s">&quot;own&quot;</span> ? model == k.name : k.key == <span class="s">&quot;model&quot;</span> ? model == <span class="s">&quot;global:model/&quot;</span> + k.name + <span class="s">&quot;.glb&quot;</span> : k.key == <span class="s">&quot;sound&quot;</span> ? sound == k.name &amp;&amp; sound != <span class="s">&quot;&quot;</span>
-                : k.key == <span class="s">&quot;shape&quot;</span> ? shape == k.name : k.key == <span class="s">&quot;water&quot;</span> ? j[<span class="s">&quot;pool&quot;</span>].flag() : k.key == <span class="s">&quot;way&quot;</span> ? j.has(<span class="s">&quot;to&quot;</span>) : k.key == <span class="s">&quot;arrival&quot;</span> ? j.has(<span class="s">&quot;arrival&quot;</span>) : k.key == <span class="s">&quot;trigger&quot;</span> &amp;&amp; j.has(<span class="s">&quot;trigger&quot;</span>);
+                : k.key == <span class="s">&quot;shape&quot;</span> ? shape == k.name : k.key == <span class="s">&quot;water&quot;</span> ? j[<span class="s">&quot;pool&quot;</span>].flag() : k.key == <span class="s">&quot;way&quot;</span> ? j.has(<span class="s">&quot;to&quot;</span>) : k.key == <span class="s">&quot;arrival&quot;</span> ? j.has(<span class="s">&quot;arrival&quot;</span>) : k.key == <span class="s">&quot;waypoint&quot;</span> ? j.has(<span class="s">&quot;waypoint&quot;</span>) : k.key == <span class="s">&quot;trigger&quot;</span> &amp;&amp; j.has(<span class="s">&quot;trigger&quot;</span>);
             <span class="k">if</span> (same)
                 <span class="k">return</span> k;
         }
@@ -9130,7 +9164,7 @@ summary { cursor: pointer; padding: 10px 16px; } details pre { border-width: 1px
             {
                 <span class="t">Kind</span>@ k = kindOf(j);
                 <span class="k">int</span> which = k.collider &gt; <span class="n">0</span> ? k.collider : j[<span class="s">&quot;wall&quot;</span>].flag() || j[<span class="s">&quot;mass&quot;</span>].number() &gt; <span class="n">0</span> ? (j[<span class="s">&quot;shape&quot;</span>].text() == <span class="s">&quot;sphere&quot;</span> ? <span class="n">2</span> : <span class="n">1</span>) : <span class="n">0</span>;
-                <span class="k">if</span> (which &gt; <span class="n">0</span> &amp;&amp; !j.has(<span class="s">&quot;glow&quot;</span>) &amp;&amp; !j.has(<span class="s">&quot;sound&quot;</span>) &amp;&amp; !j[<span class="s">&quot;pool&quot;</span>].flag() &amp;&amp; !j.has(<span class="s">&quot;trigger&quot;</span>) &amp;&amp; !j.has(<span class="s">&quot;to&quot;</span>) &amp;&amp; !j.has(<span class="s">&quot;arrival&quot;</span>))
+                <span class="k">if</span> (which &gt; <span class="n">0</span> &amp;&amp; !j.has(<span class="s">&quot;glow&quot;</span>) &amp;&amp; !j.has(<span class="s">&quot;sound&quot;</span>) &amp;&amp; !j[<span class="s">&quot;pool&quot;</span>].flag() &amp;&amp; !j.has(<span class="s">&quot;trigger&quot;</span>) &amp;&amp; !j.has(<span class="s">&quot;to&quot;</span>) &amp;&amp; !j.has(<span class="s">&quot;arrival&quot;</span>) &amp;&amp; !j.has(<span class="s">&quot;waypoint&quot;</span>))
                     setCollider(j, which);
             }
             make(i);
@@ -9176,6 +9210,12 @@ summary { cursor: pointer; padding: 10px 16px; } details pre { border-width: 1px
             j.<span class="k">set</span>(<span class="s">&quot;size&quot;</span>, <span class="t">Vec3</span>(<span class="n">0.7f</span>, <span class="n">1.4f</span>, <span class="n">0.7f</span>));
             j.<span class="k">set</span>(<span class="s">&quot;color&quot;</span>, <span class="t">Color</span>(<span class="n">0.4f</span>, <span class="n">1</span>, <span class="n">0.5f</span>));
         }
+        <span class="k">if</span> (t.json.has(<span class="s">&quot;waypoint&quot;</span>))
+        {
+            j.<span class="k">set</span>(<span class="s">&quot;shape&quot;</span>, <span class="s">&quot;sphere&quot;</span>);
+            j.<span class="k">set</span>(<span class="s">&quot;size&quot;</span>, <span class="t">Vec3</span>(<span class="n">0.5f</span>, <span class="n">0.5f</span>, <span class="n">0.5f</span>));
+            j.<span class="k">set</span>(<span class="s">&quot;color&quot;</span>, <span class="t">Color</span>(<span class="n">1</span>, <span class="n">0.55f</span>, <span class="n">0.2f</span>));
+        }
         <span class="k">for</span> (<span class="k">uint</span> n = <span class="n">0</span>; n &lt; level.own.length(); n++)
             j.remove(level.own[n]);
         <span class="k">if</span> (logic)
@@ -9187,8 +9227,9 @@ summary { cursor: pointer; padding: 10px 16px; } details pre { border-width: 1px
             t.entity.glowing = <span class="n">0.3f</span>;
         }
         <span class="k">bool</span> soft = t.json.has(<span class="s">&quot;glow&quot;</span>) || t.json.has(<span class="s">&quot;sound&quot;</span>);
-        t.entity.cube(soft ? <span class="t">Vec3</span>(<span class="n">1</span>, <span class="n">1</span>, <span class="n">1</span>) : logic || t.json.has(<span class="s">&quot;arrival&quot;</span>) ? <span class="t">Vec3</span>(<span class="n">1</span>, <span class="n">1</span>, <span class="n">1</span>) : k.high - k.low, <span class="n">1</span>, <span class="n">0</span>);
-        t.entity.colliderAt = soft || logic ? <span class="t">Vec3</span>() : t.json.has(<span class="s">&quot;arrival&quot;</span>) ? <span class="t">Vec3</span>(<span class="n">0</span>, <span class="n">0</span>, <span class="n">0</span>) : (k.high + k.low) * <span class="n">0.5f</span>;
+        <span class="k">bool</span> marker = t.json.has(<span class="s">&quot;arrival&quot;</span>) || t.json.has(<span class="s">&quot;waypoint&quot;</span>);
+        t.entity.cube(soft ? <span class="t">Vec3</span>(<span class="n">1</span>, <span class="n">1</span>, <span class="n">1</span>) : logic || marker ? <span class="t">Vec3</span>(<span class="n">1</span>, <span class="n">1</span>, <span class="n">1</span>) : k.high - k.low, <span class="n">1</span>, <span class="n">0</span>);
+        t.entity.colliderAt = soft || logic ? <span class="t">Vec3</span>() : marker ? <span class="t">Vec3</span>(<span class="n">0</span>, <span class="n">0</span>, <span class="n">0</span>) : (k.high + k.low) * <span class="n">0.5f</span>;
     }
 
     <span class="c">// Puts its entity where it is.</span>
@@ -9825,6 +9866,12 @@ summary { cursor: pointer; padding: 10px 16px; } details pre { border-width: 1px
                 j.<span class="k">set</span>(<span class="s">&quot;does&quot;</span>, <span class="s">&quot;&quot;</span>);
                 j.<span class="k">set</span>(<span class="s">&quot;when&quot;</span>, <span class="s">&quot;enter&quot;</span>);
             }
+            y = <span class="n">0</span>;
+        }
+        <span class="k">else</span> <span class="k">if</span> (k.key == <span class="s">&quot;waypoint&quot;</span>)
+        {
+            <span class="c">// Those of one route share its name, and are walked in the order they were added.</span>
+            j.<span class="k">set</span>(<span class="s">&quot;waypoint&quot;</span>, <span class="s">&quot;route&quot;</span>);
             y = <span class="n">0</span>;
         }
         <span class="k">else</span> <span class="k">if</span> (k.key == <span class="s">&quot;arrival&quot;</span>)
@@ -11074,6 +11121,7 @@ summary { cursor: pointer; padding: 10px 16px; } details pre { border-width: 1px
                 <span class="k">if</span> (<span class="t">Space</span>::toScreen(shotFrom, m_))
                     c.circle(m_.x, m_.y, <span class="n">10</span>, <span class="t">Color</span>(<span class="n">1</span>, <span class="n">0.85f</span>, <span class="n">0.4f</span>, <span class="n">0.8f</span>));
             }
+            level.crowd.draw(c, <span class="n">0.25f</span>);
             level.drawHud(c);
             c.designHeight(<span class="n">720</span>);
         }
@@ -11102,9 +11150,9 @@ summary { cursor: pointer; padding: 10px 16px; } details pre { border-width: 1px
     }
 }
 </code></pre></details></div>
-<div data-find="lost key a small game made in the scene editor: find the key, go through the ring, gather the crystals quest"><h3 id="demo-quest">Lost key</h3><p>A small game made in the scene editor: find the key, go through the ring, gather the crystals</p>
+<div data-find="lost key a game made in the scene editor: find the key, gather the crystals quest"><h3 id="demo-quest">Lost key</h3><p>A game made in the scene editor: find the key, gather the crystals</p>
 <div class="shots"><img loading="lazy" src="screenshots/quest.png" alt="Lost key"></div>
-<details><summary><code>quest/main.as</code> <span class="tag">248 lines</span></summary><pre><code><span class="c">// A small game made from two scenes, as the scene editor saves them: the village, where a key opens the ring,</span>
+<details><summary><code>quest/main.as</code> <span class="tag">256 lines</span></summary><pre><code><span class="c">// A small game made from two scenes, as the scene editor saves them: the village, where a key opens the ring,</span>
 <span class="c">// and the island beyond it, with crystals to gather. The scenes say what is where, which triggers do what,</span>
 <span class="c">// and what the HUD shows; this script only walks, follows, and keeps the score.</span>
 #include <span class="s">&quot;global:scene.as&quot;</span>
@@ -11321,9 +11369,17 @@ summary { cursor: pointer; padding: 10px 16px; } details pre { border-width: 1px
         <span class="k">float</span> away = <span class="n">6.5f</span>;
         <span class="t">Vec3</span> back(sin(yaw) * cos(lean), sin(lean), cos(yaw) * cos(lean));
         <span class="t">Vec3</span> from = look + back * away;
-        <span class="t">Vec3</span> hit, normal;
-        <span class="k">if</span> (<span class="t">Space</span>::raycast(look, look + back * (away + <span class="n">0.4f</span>), hit, normal, (<span class="n">1</span> &lt;&lt; <span class="n">0</span>) | (<span class="n">1</span> &lt;&lt; <span class="n">2</span>), hero))
-            from = look + back * clamp((hit - look).length() - <span class="n">0.4f</span>, <span class="n">1</span>, away);
+        <span class="c">// Kept clear of walls and eaves: along its line, and along lines a little to each side of it and above.</span>
+        <span class="k">float</span> reach = away;
+        <span class="k">for</span> (<span class="k">int</span> i = <span class="n">0</span>; i &lt; <span class="n">6</span>; i++)
+        {
+            <span class="t">Vec3</span> up(<span class="n">0</span>, <span class="n">0.8f</span>, <span class="n">0</span>);
+            <span class="t">Vec3</span> offset = i == <span class="n">0</span> ? <span class="t">Vec3</span>() : i == <span class="n">1</span> ? side * <span class="n">0.8f</span> : i == <span class="n">2</span> ? side * -<span class="n">0.8f</span> : i == <span class="n">3</span> ? up : i == <span class="n">4</span> ? side * <span class="n">0.8f</span> + up : side * -<span class="n">0.8f</span> + up;
+            <span class="t">Vec3</span> hit, normal;
+            <span class="k">if</span> (<span class="t">Space</span>::raycast(look + offset, look + offset + back * (away + <span class="n">0.4f</span>), hit, normal, 0xFFFD, hero))
+                reach = min(reach, (hit - look - offset).length() - <span class="n">0.4f</span>);
+        }
+        from = look + back * clamp(reach, <span class="n">1</span>, away);
         <span class="k">float</span> least = <span class="t">Space</span>::height(from.x, from.z) + <span class="n">0.5f</span>;
         from.y = from.y &lt; least ? least : from.y;
         <span class="t">Space</span>::camera(from, look + <span class="t">Vec3</span>(<span class="n">0</span>, <span class="n">0.3f</span>, <span class="n">0</span>), <span class="n">62</span>);
@@ -11530,6 +11586,224 @@ summary { cursor: pointer; padding: 10px 16px; } details pre { border-width: 1px
             c.text(font, <span class="t">Input</span>::usingPad ? <span class="s">&quot;Left stick: walk    Right stick: look&quot;</span> : <span class="s">&quot;Arrows: walk    Mouse: look&quot;</span>, c.width * <span class="n">0.5f</span>, <span class="n">650</span>, <span class="t">White</span>, <span class="t">AlignCenter</span>);
             c.alpha = <span class="n">1</span>;
         }
+    }
+}
+</code></pre></details></div>
+<div data-find="guards take the gem unseen: guards patrol, look, listen, chase and find a way round guards"><h3 id="demo-guards">Guards</h3><p>Take the gem unseen: guards patrol, look, listen, chase and find a way round</p>
+<div class="shots"><img loading="lazy" src="screenshots/guards.png" alt="Guards"></div>
+<details><summary><code>guards/main.as</code> <span class="tag">215 lines</span></summary><pre><code><span class="c">// Take the gem without being caught. The scene file says who guards, who patrols which route, who runs away and who</span>
+<span class="c">// follows; global:ai.as moves them, as the level&#x27;s crowd: they see what is in front of them and not behind a wall, hear running, chase,</span>
+<span class="c">// search where you were last seen, and go back to what they were doing. Ways round the houses come from</span>
+<span class="c">// Space::navigate, which the level works out when it is made.</span>
+#include <span class="s">&quot;global:scene.as&quot;</span>
+
+<span class="k">class</span> <span class="t">GuardsScreen</span> : <span class="t">Screen</span>
+{
+    <span class="t">Font</span>@ font = <span class="t">Assets</span>::font(<span class="s">&quot;global:freesans.sfn&quot;</span>, <span class="n">24</span>);
+    <span class="t">Font</span>@ big = <span class="t">Assets</span>::font(<span class="s">&quot;global:freesans.sfn&quot;</span>, <span class="n">48</span>);
+    <span class="t">Sound</span>@ chime = <span class="t">Assets</span>::sound(<span class="s">&quot;global:sound/coin.wav&quot;</span>);
+    <span class="t">Sound</span>@ alarm = <span class="t">Assets</span>::sound(<span class="s">&quot;global:sound/gate.wav&quot;</span>);
+    <span class="t">Sound</span>@ step = <span class="t">Assets</span>::sound(<span class="s">&quot;global:sound/step.wav&quot;</span>);
+    <span class="t">Model</span>@ robot = <span class="t">Assets</span>::model(<span class="s">&quot;global:model/robot.glb&quot;</span>);
+
+    <span class="t">Level</span> level;
+    <span class="t">Entity</span>@ hero;
+    <span class="k">bool</span> hasGem = <span class="k">false</span>, won = <span class="k">false</span>;
+    <span class="k">int</span> caught = <span class="n">0</span>;
+    <span class="k">float</span> time = <span class="n">0</span>, shown = <span class="n">0</span>, strode = <span class="n">0</span>, fade = <span class="n">1</span>, shout = <span class="n">0</span>;
+    <span class="k">float</span> yaw = <span class="n">0</span>, lean = <span class="n">0.45f</span>;
+    <span class="t">Vec3</span> look;
+    <span class="t">Vec2</span> mouseWas;
+    <span class="k">bool</span> wasDown = <span class="k">false</span>;
+
+    <span class="k">void</span> onEnter()
+    {
+        <span class="t">Scene</span>::load(<span class="s">&quot;asset:effects.json&quot;</span>);
+        @level.onTouch = <span class="t">LevelTouch</span>(<span class="k">this</span>.touched);
+        @level.onAgent = <span class="t">LevelAgent</span>(<span class="k">this</span>.agentDid);
+        level.load(<span class="s">&quot;asset:yard.json&quot;</span>);
+        start();
+    }
+
+    <span class="k">void</span> onExit()
+    {
+        level.clear();
+    }
+
+    <span class="k">void</span> start()
+    {
+        <span class="k">if</span> (hero !<span class="k">is</span> <span class="k">null</span>)
+            hero.destroy();
+        <span class="t">Vec3</span> at;
+        <span class="k">float</span> turned = <span class="n">0</span>;
+        level.arrival(<span class="s">&quot;start&quot;</span>, at, turned);
+        @hero = <span class="t">Space</span>::spawn(at + <span class="t">Vec3</span>(<span class="n">0</span>, <span class="n">0.3f</span>, <span class="n">0</span>));
+        hero.model(robot);
+        hero.color = <span class="t">Color</span>(<span class="n">0.7f</span>, <span class="n">0.85f</span>, <span class="n">1</span>);
+        hero.capsule(<span class="n">0.35f</span>, <span class="n">1.6f</span>, <span class="n">1</span>);
+        hero.colliderAt = <span class="t">Vec3</span>(<span class="n">0</span>, <span class="n">0.8f</span>, <span class="n">0</span>);
+        hero.walker = <span class="k">true</span>;
+        hero.mass = <span class="n">60</span>;
+        hero.angles = <span class="t">Vec3</span>(<span class="n">0</span>, turned + <span class="n">180</span>, <span class="n">0</span>);
+        yaw = turned * <span class="n">0.0174533f</span>;
+        look = hero.place + <span class="t">Vec3</span>(<span class="n">0</span>, <span class="n">1.4f</span>, <span class="n">0</span>);
+        fade = <span class="n">1</span>;
+        <span class="c">// The little one follows you.</span>
+        <span class="k">for</span> (<span class="k">uint</span> i = <span class="n">0</span>; i &lt; level.agents.length(); i++)
+            <span class="k">if</span> (level.agents[i] !<span class="k">is</span> <span class="k">null</span> &amp;&amp; level.agents[i].role == <span class="s">&quot;follow&quot;</span>)
+            {
+                @level.agents[i].leader = hero;
+                level.agents[i].entity.place = hero.place + <span class="t">Vec3</span>(<span class="n">1.5f</span>, <span class="n">0.2f</span>, <span class="n">1.5f</span>);
+            }
+        level.<span class="k">set</span>(<span class="s">&quot;gem&quot;</span>, hasGem ? <span class="s">&quot;yours&quot;</span> : <span class="s">&quot;there&quot;</span>);
+        level.<span class="k">set</span>(<span class="s">&quot;caught&quot;</span>, <span class="s">&quot;&quot;</span> + caught);
+    }
+
+    <span class="k">void</span> touched(<span class="k">const</span> <span class="k">string</span> &amp;<span class="k">in</span> name, <span class="t">Entity</span>@ who)
+    {
+        <span class="k">if</span> (name == <span class="s">&quot;get gem&quot;</span>)
+        {
+            hasGem = <span class="k">true</span>;
+            chime.play(<span class="n">0.7f</span>);
+            <span class="t">Space</span>::burst(<span class="s">&quot;gold&quot;</span>, who.place + <span class="t">Vec3</span>(<span class="n">0</span>, <span class="n">1</span>, <span class="n">0</span>), <span class="n">40</span>);
+            level.<span class="k">set</span>(<span class="s">&quot;gem&quot;</span>, <span class="s">&quot;yours&quot;</span>);
+        }
+        <span class="k">else</span> <span class="k">if</span> (name == <span class="s">&quot;home&quot;</span> &amp;&amp; hasGem &amp;&amp; !won)
+        {
+            won = <span class="k">true</span>;
+            level.say(<span class="s">&quot;You made it, in &quot;</span> + clock(time), <span class="n">8</span>);
+        }
+    }
+
+    <span class="k">void</span> agentDid(<span class="k">const</span> <span class="k">string</span> &amp;<span class="k">in</span> name, <span class="k">const</span> <span class="k">string</span> &amp;<span class="k">in</span> what)
+    {
+        <span class="k">if</span> (what == <span class="s">&quot;spotted&quot;</span> &amp;&amp; !won)
+        {
+            alarm.play(<span class="n">0.5f</span>);
+            shout = <span class="n">1.5f</span>;
+        }
+        <span class="k">else</span> <span class="k">if</span> (what == <span class="s">&quot;caught&quot;</span> &amp;&amp; !won)
+        {
+            caught++;
+            level.say(<span class="s">&quot;Caught by the &quot;</span> + name + <span class="s">&quot;!&quot;</span>, <span class="n">2.5f</span>);
+            <span class="c">// The gem goes back, and so do you.</span>
+            <span class="k">if</span> (hasGem)
+            {
+                hasGem = <span class="k">false</span>;
+                level.show(<span class="s">&quot;gem&quot;</span>, <span class="n">0.6f</span>, <span class="s">&quot;rise&quot;</span>);
+                level.switchOn(<span class="s">&quot;get gem&quot;</span>, <span class="k">true</span>);
+            }
+            start();
+        }
+    }
+
+    <span class="k">string</span> clock(<span class="k">float</span> t)
+    {
+        <span class="k">int</span> s = <span class="k">int</span>(t);
+        <span class="k">return</span> (s / <span class="n">60</span>) + <span class="s">&quot;:&quot;</span> + (s % <span class="n">60</span> &lt; <span class="n">10</span> ? <span class="s">&quot;0&quot;</span> : <span class="s">&quot;&quot;</span>) + (s % <span class="n">60</span>);
+    }
+
+    <span class="k">void</span> update(<span class="k">float</span> dt)
+    {
+        shown += dt;
+        fade = clamp(fade - dt * <span class="n">2</span>, <span class="n">0</span>, <span class="n">1</span>);
+        shout -= dt;
+        <span class="k">if</span> (!won)
+            time += dt;
+        level.<span class="k">set</span>(<span class="s">&quot;time&quot;</span>, clock(time));
+        walk(dt);
+        follow(dt);
+        level.update(dt, hero);
+    }
+
+    <span class="k">void</span> walk(<span class="k">float</span> dt)
+    {
+        <span class="t">Vec2</span> stick = <span class="t">Input</span>::move;
+        <span class="t">Vec3</span> ahead(-sin(yaw), <span class="n">0</span>, -cos(yaw));
+        <span class="t">Vec3</span> side(cos(yaw), <span class="n">0</span>, -sin(yaw));
+        <span class="t">Vec3</span> way = side * stick.x - ahead * stick.y;
+        <span class="c">// Held: creep, and make no sound.</span>
+        <span class="k">bool</span> sneaking = <span class="t">Input</span>::held(<span class="s">&quot;alternate&quot;</span>);
+        <span class="t">Vec3</span> wanted = way * (sneaking ? <span class="n">2.2f</span> : <span class="n">5.5f</span>);
+        <span class="t">Vec3</span> motion = hero.motion;
+        <span class="k">float</span> grip = clamp((hero.onGround ? <span class="n">12</span> : <span class="n">3</span>) * dt, <span class="n">0</span>, <span class="n">1</span>);
+        motion.x += (wanted.x - motion.x) * grip;
+        motion.z += (wanted.z - motion.z) * grip;
+        hero.motion = motion;
+        <span class="k">float</span> going = <span class="t">Vec3</span>(motion.x, <span class="n">0</span>, motion.z).length();
+        strode += going * dt;
+        <span class="k">if</span> (strode &gt; (going &gt; <span class="n">3</span> ? <span class="n">1.5f</span> : <span class="n">0.9f</span>) &amp;&amp; hero.onGround)
+        {
+            strode = <span class="n">0</span>;
+            step.play(going &gt; <span class="n">3</span> ? <span class="n">0.3f</span> : <span class="n">0.08f</span>, <span class="n">0</span>, random(<span class="n">0.85f</span>, <span class="n">1.15f</span>));
+            <span class="c">// Running is heard.</span>
+            <span class="k">if</span> (going &gt; <span class="n">3</span>)
+                level.crowd.noise(hero.place, <span class="n">0.7f</span>);
+        }
+        <span class="k">if</span> (way.length() &gt; <span class="n">0.1f</span>)
+            hero.face(way, clamp(<span class="n">12</span> * dt, <span class="n">0</span>, <span class="n">1</span>));
+        hero.animate(going &gt; <span class="n">3.2f</span> ? <span class="s">&quot;run&quot;</span> : going &gt; <span class="n">0.4f</span> ? <span class="s">&quot;walk&quot;</span> : <span class="s">&quot;idle&quot;</span>);
+        hero.animationSpeed = going &gt; <span class="n">3.2f</span> ? going / <span class="n">6</span> : going &gt; <span class="n">0.4f</span> ? going / <span class="n">2.4f</span> : <span class="n">1</span>;
+    }
+
+    <span class="k">void</span> follow(<span class="k">float</span> dt)
+    {
+        <span class="t">Vec2</span> turn = <span class="t">Input</span>::padRight(<span class="n">0</span>);
+        yaw -= turn.x * <span class="n">2.4f</span> * dt;
+        lean = clamp(lean - turn.y * <span class="n">1.4f</span> * dt, <span class="n">0</span>, <span class="n">1.2f</span>);
+        <span class="t">Vec2</span> mouse = <span class="t">Input</span>::mouse;
+        <span class="k">if</span> (<span class="t">Input</span>::mouseDown(<span class="n">1</span>) &amp;&amp; wasDown)
+        {
+            yaw -= (mouse.x - mouseWas.x) * <span class="n">0.006f</span>;
+            lean = clamp(lean + (mouse.y - mouseWas.y) * <span class="n">0.004f</span>, <span class="n">0</span>, <span class="n">1.2f</span>);
+        }
+        wasDown = <span class="t">Input</span>::mouseDown(<span class="n">1</span>);
+        mouseWas = mouse;
+        <span class="t">Vec3</span> side(cos(yaw), <span class="n">0</span>, -sin(yaw));
+        yaw -= clamp(hero.motion.dot(side) * <span class="n">0.1f</span>, -<span class="n">1</span>, <span class="n">1</span>) * dt * <span class="n">1.5f</span>;
+        look = lerp(look, hero.place + <span class="t">Vec3</span>(<span class="n">0</span>, <span class="n">1.4f</span>, <span class="n">0</span>), clamp(<span class="n">9</span> * dt, <span class="n">0</span>, <span class="n">1</span>));
+        <span class="k">float</span> away = <span class="n">8</span>;
+        <span class="t">Vec3</span> back(sin(yaw) * cos(lean), sin(lean), cos(yaw) * cos(lean));
+        <span class="t">Vec3</span> from = look + back * away;
+        <span class="c">// Kept clear of walls and eaves: along its line, and along lines a little to each side of it and above.</span>
+        <span class="k">float</span> reach = away;
+        <span class="k">for</span> (<span class="k">int</span> i = <span class="n">0</span>; i &lt; <span class="n">6</span>; i++)
+        {
+            <span class="t">Vec3</span> up(<span class="n">0</span>, <span class="n">0.8f</span>, <span class="n">0</span>);
+            <span class="t">Vec3</span> offset = i == <span class="n">0</span> ? <span class="t">Vec3</span>() : i == <span class="n">1</span> ? side * <span class="n">0.8f</span> : i == <span class="n">2</span> ? side * -<span class="n">0.8f</span> : i == <span class="n">3</span> ? up : i == <span class="n">4</span> ? side * <span class="n">0.8f</span> + up : side * -<span class="n">0.8f</span> + up;
+            <span class="t">Vec3</span> hit, normal;
+            <span class="k">if</span> (<span class="t">Space</span>::raycast(look + offset, look + offset + back * (away + <span class="n">0.4f</span>), hit, normal, 0xFFFD, hero))
+                reach = min(reach, (hit - look - offset).length() - <span class="n">0.4f</span>);
+        }
+        from = look + back * clamp(reach, <span class="n">1</span>, away);
+        <span class="k">float</span> least = <span class="t">Space</span>::height(from.x, from.z) + <span class="n">0.5f</span>;
+        from.y = from.y &lt; least ? least : from.y;
+        <span class="t">Space</span>::camera(from, look + <span class="t">Vec3</span>(<span class="n">0</span>, <span class="n">0.3f</span>, <span class="n">0</span>), <span class="n">62</span>);
+    }
+
+    <span class="k">void</span> draw(<span class="t">Canvas</span>@ c)
+    {
+        c.designHeight(<span class="n">720</span>);
+        <span class="t">Space</span>::draw(c);
+        c.bloom(<span class="n">0.4f</span>, <span class="n">0.75f</span>);
+        level.crowd.draw(c);
+        level.drawHud(c);
+        c.designHeight(<span class="n">720</span>);
+        <span class="k">if</span> (shout &gt; <span class="n">0</span>)
+            c.text(big, <span class="s">&quot;!&quot;</span>, c.width * <span class="n">0.5f</span>, <span class="n">90</span>, <span class="t">Color</span>(<span class="n">1</span>, <span class="n">0.3f</span>, <span class="n">0.2f</span>, clamp(shout, <span class="n">0</span>, <span class="n">1</span>)), <span class="t">AlignCenter</span>);
+        <span class="k">if</span> (won)
+            c.text(big, <span class="s">&quot;Well done!&quot;</span>, c.width * <span class="n">0.5f</span>, <span class="n">220</span>, <span class="t">Color</span>(<span class="n">1</span>, <span class="n">0.9f</span>, <span class="n">0.4f</span>), <span class="t">AlignCenter</span>);
+        <span class="k">float</span> help = clamp(<span class="n">8</span> - shown, <span class="n">0</span>, <span class="n">1</span>);
+        <span class="k">if</span> (help &gt; <span class="n">0</span>)
+        {
+            c.alpha = help;
+            c.roundRect(c.width * <span class="n">0.5f</span> - <span class="n">460</span>, <span class="n">600</span>, <span class="n">920</span>, <span class="n">88</span>, <span class="n">14</span>, <span class="t">Color</span>(<span class="n">0</span>, <span class="n">0</span>, <span class="n">0</span>, <span class="n">0.5f</span>));
+            c.text(font, <span class="s">&quot;Take the gem from behind the walls, and bring it back here&quot;</span>, c.width * <span class="n">0.5f</span>, <span class="n">610</span>, <span class="t">Color</span>(<span class="n">1</span>, <span class="n">0.9f</span>, <span class="n">0.6f</span>), <span class="t">AlignCenter</span>);
+            c.text(font, <span class="t">Input</span>::usingPad ? <span class="s">&quot;Left stick: walk    Hold B: creep quietly    Right stick: look&quot;</span> : <span class="s">&quot;Arrows: walk    Hold Shift: creep quietly    Right button: look&quot;</span>, c.width * <span class="n">0.5f</span>, <span class="n">648</span>, <span class="t">White</span>, <span class="t">AlignCenter</span>);
+            c.alpha = <span class="n">1</span>;
+        }
+        <span class="k">if</span> (fade &gt; <span class="n">0</span>)
+            c.rect(<span class="n">0</span>, <span class="n">0</span>, c.width, <span class="n">720</span>, <span class="t">Color</span>(<span class="n">0</span>, <span class="n">0</span>, <span class="n">0</span>, fade));
     }
 }
 </code></pre></details></div>
