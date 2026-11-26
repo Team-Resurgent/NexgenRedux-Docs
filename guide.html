@@ -452,7 +452,7 @@ music.stop(<span class="n">1.5f</span>);                <span class="c">// fadin
 <h2 id="networking">Networking</h2>
 <p>Nothing here waits: ask, and look each update at what has come. Who sends what is up to you, so never trust what arrives.</p>
 <h3 id="playing-together">Playing together</h3>
-<p>A <code>Room</code> is a game on the local network. One player hosts; others find it by the game&#x27;s name and join.</p>
+<p>A <code>Room</code> is a game on the local network, or on the internet with a meeting place. One player hosts; others find it by the game&#x27;s name and join.</p>
 <pre><code><span class="t">Room</span>@ room = <span class="t">Room</span>();
 
 room.host(<span class="s">&quot;my game&quot;</span>, <span class="s">&quot;Sam&quot;</span>);                  <span class="c">// or</span>
@@ -469,6 +469,13 @@ room.send(m, <span class="k">false</span>);                          <span class
         where[m.from] = m.readVec2();         <span class="c">// m.whole says whether it was all there</span></code></pre>
 <p><code>room.state</code> is <code>RoomIn</code> once you are in, and <code>RoomLost</code> if the host goes. <code>arrived()</code> and <code>departed()</code> say who has come and gone. Use</p>
 <p>quick messages for what is out of date in a moment, such as where things are, and sure ones for what happened.</p>
+<h3 id="playing-over-the-internet">Playing over the internet</h3>
+<p>Players on different networks meet at a <b>meeting place</b>: a machine every one of them can reach, such as a small server somewhere, running the engine with <code>--meeting 27300</code> (no window, nothing else; it says now and then how many rooms and players it has). Give it to a room before hosting, finding or joining:</p>
+<pre><code>room.meet(<span class="s">&quot;games.example.com&quot;</span>);               <span class="c">// or &quot;1.2.3.4:27300&quot;</span>
+room.host(<span class="s">&quot;my game&quot;</span>, <span class="s">&quot;Sam&quot;</span>);                  <span class="c">// listed there, as well as on this network</span></code></pre>
+<p>A room that is hosted is listed there; <code>find</code> asks it as well as the local network, and <code>foundFar(i)</code> says which were found there. Joining one of those, the meeting place introduces the two players, so that each one&#x27;s router lets the other&#x27;s packets in, and they play directly; if a router won&#x27;t have it, the meeting place passes their packets on, between those two only and only so much a second, and <code>relayed(player)</code> says so. The player can choose a meeting place once, in the settings, as</p>
+<p><code>Net::meetingPlace</code>, kept between runs; every room meets there unless it is told otherwise. A room whose host has let its port</p>
+<p>(27310) through the router can also be joined by address, as <code>room.join(&quot;my game&quot;, &quot;games.example.com:27310&quot;, &quot;Alex&quot;)</code>, with no meeting place at all.</p>
 <h3 id="the-web">The web</h3>
 <pre><code><span class="t">Request</span>@ request = <span class="t">Net</span>::<span class="k">get</span>(<span class="s">&quot;https://example.com/scores&quot;</span>);
 

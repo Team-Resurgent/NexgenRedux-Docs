@@ -1965,7 +1965,8 @@ summary { cursor: pointer; padding: 10px 16px; } details pre { border-width: 1px
 </code></pre></details></div>
 <div data-find="settings volumes and controls, remembered next time settings"><h3 id="demo-settings">Settings</h3><p>Volumes and controls, remembered next time</p>
 <div class="shots"><img loading="lazy" src="screenshots/settings.png" alt="Settings"></div>
-<details><summary><code>settings/main.as</code> <span class="tag">108 lines</span></summary><pre><code><span class="c">// Volumes, bindings, and whether the stick can move a pointer. The engine keeps them between runs.</span>
+<details><summary><code>settings/main.as</code> <span class="tag">143 lines</span></summary><pre><code><span class="c">// Volumes, bindings, whether the stick can move a pointer, and where rooms meet on the internet. The engine keeps</span>
+<span class="c">// them between runs.</span>
 
 <span class="k">class</span> <span class="t">SettingsScreen</span> : <span class="t">Screen</span>
 {
@@ -1979,8 +1980,29 @@ summary { cursor: pointer; padding: 10px 16px; } details pre { border-width: 1px
     <span class="k">uint</span> chosen = <span class="n">0</span>;
     <span class="k">bool</span> waiting = <span class="k">false</span>;
 
-    <span class="k">uint</span> rows() { <span class="k">return</span> <span class="n">3</span> + actions.length() + <span class="n">2</span>; }
-    <span class="k">uint</span> pointerRow() { <span class="k">return</span> rows() - <span class="n">2</span>; }
+    <span class="t">Widget</span>@ placeField;
+
+    <span class="k">uint</span> rows() { <span class="k">return</span> <span class="n">3</span> + actions.length() + <span class="n">3</span>; }
+    <span class="k">uint</span> pointerRow() { <span class="k">return</span> rows() - <span class="n">3</span>; }
+    <span class="k">uint</span> meetingRow() { <span class="k">return</span> rows() - <span class="n">2</span>; }
+
+    <span class="c">// Typed in front of everything, with a keyboard or the one on the screen.</span>
+    <span class="k">void</span> editMeeting()
+    {
+        <span class="t">Widget</span>@ popup = <span class="t">Ui</span>::popup();
+        popup.label(<span class="s">&quot;Meeting place&quot;</span>, <span class="s">&quot;heading&quot;</span>);
+        popup.label(<span class="s">&quot;Where rooms meet on the internet: a name or address, and :port if it isn&#x27;t 27300. Empty for this network only.&quot;</span>);
+        @placeField = popup.field(<span class="t">Net</span>::meetingPlace, <span class="s">&quot;games.example.com&quot;</span>);
+        popup.button(<span class="s">&quot;Done&quot;</span>, <span class="t">WidgetEvent</span>(<span class="k">this</span>.onMeetingDone));
+        placeField.focus();
+    }
+
+    <span class="k">void</span> onMeetingDone(<span class="t">Widget</span>@ w)
+    {
+        <span class="t">Net</span>::meetingPlace = placeField.text;
+        w.parent.close();
+        accept.play(<span class="n">0.7f</span>);
+    }
 
     <span class="k">float</span> volume(<span class="k">uint</span> i)
     {
@@ -1998,6 +2020,8 @@ summary { cursor: pointer; padding: 10px 16px; } details pre { border-width: 1px
 
     <span class="k">void</span> update(<span class="k">float</span> dt)
     {
+        <span class="k">if</span> (<span class="t">Ui</span>::busy)
+            <span class="k">return</span>;
         <span class="k">if</span> (waiting)
         {
             <span class="k">if</span> (!<span class="t">Input</span>::listening)
@@ -2012,6 +2036,11 @@ summary { cursor: pointer; padding: 10px 16px; } details pre { border-width: 1px
         <span class="k">if</span> (chosen == pointerRow() &amp;&amp; (<span class="t">Input</span>::pressed(<span class="s">&quot;accept&quot;</span>) || <span class="t">Input</span>::pressed(<span class="s">&quot;left&quot;</span>) || <span class="t">Input</span>::pressed(<span class="s">&quot;right&quot;</span>)))
         {
             <span class="t">Input</span>::stickPointer = !<span class="t">Input</span>::stickPointer;
+            accept.play(<span class="n">0.7f</span>);
+        }
+        <span class="k">else</span> <span class="k">if</span> (chosen == meetingRow() &amp;&amp; <span class="t">Input</span>::pressed(<span class="s">&quot;accept&quot;</span>))
+        {
+            editMeeting();
             accept.play(<span class="n">0.7f</span>);
         }
         <span class="k">else</span> <span class="k">if</span> (chosen &lt; <span class="n">3</span>)
@@ -2039,8 +2068,8 @@ summary { cursor: pointer; padding: 10px 16px; } details pre { border-width: 1px
         c.text(big, <span class="s">&quot;Settings&quot;</span>, <span class="n">80</span>, <span class="n">26</span>);
         <span class="k">for</span> (<span class="k">uint</span> i = <span class="n">0</span>; i &lt; rows(); i++)
         {
-            <span class="k">float</span> y = <span class="n">92</span> + <span class="k">float</span>(i) * <span class="n">44</span> + (i &gt;= <span class="n">3</span> ? <span class="n">14.0f</span> : <span class="n">0.0f</span>);
-            <span class="k">if</span> (i == chosen) c.roundRect(<span class="n">60</span>, y - <span class="n">4</span>, <span class="n">1160</span>, <span class="n">40</span>, <span class="n">10</span>, <span class="t">Color</span>(<span class="n">0.2f</span>, <span class="n">0.28f</span>, <span class="n">0.44f</span>));
+            <span class="k">float</span> y = <span class="n">90</span> + <span class="k">float</span>(i) * <span class="n">40</span> + (i &gt;= <span class="n">3</span> ? <span class="n">12.0f</span> : <span class="n">0.0f</span>);
+            <span class="k">if</span> (i == chosen) c.roundRect(<span class="n">60</span>, y - <span class="n">3</span>, <span class="n">1160</span>, <span class="n">37</span>, <span class="n">10</span>, <span class="t">Color</span>(<span class="n">0.2f</span>, <span class="n">0.28f</span>, <span class="n">0.44f</span>));
             <span class="k">if</span> (i &lt; <span class="n">3</span>)
             {
                 c.text(font, volumes[i], <span class="n">80</span>, y);
@@ -2052,6 +2081,11 @@ summary { cursor: pointer; padding: 10px 16px; } details pre { border-width: 1px
             }
             <span class="k">else</span> <span class="k">if</span> (i == rows() - <span class="n">1</span>)
                 c.text(font, <span class="s">&quot;Put the controls back&quot;</span>, <span class="n">80</span>, y, <span class="t">Yellow</span>);
+            <span class="k">else</span> <span class="k">if</span> (i == meetingRow())
+            {
+                c.text(font, <span class="s">&quot;Meeting place&quot;</span>, <span class="n">80</span>, y);
+                c.text(font, <span class="t">Net</span>::meetingPlace == <span class="s">&quot;&quot;</span> ? <span class="s">&quot;None: this network only&quot;</span> : <span class="t">Net</span>::meetingPlace, <span class="n">420</span>, y, <span class="t">Color</span>(<span class="n">0.75f</span>, <span class="n">0.85f</span>, <span class="n">1</span>));
+            }
             <span class="k">else</span> <span class="k">if</span> (i == pointerRow())
             {
                 c.text(font, <span class="s">&quot;Pointer&quot;</span>, <span class="n">80</span>, y);
@@ -2071,6 +2105,7 @@ summary { cursor: pointer; padding: 10px 16px; } details pre { border-width: 1px
             }
         }
         c.text(small, <span class="s">&quot;Escape, Start, or holding Back always open the menu, whatever is set here.&quot;</span>, <span class="n">640</span>, <span class="n">686</span>, <span class="t">Gray</span>, <span class="t">AlignCenter</span>);
+        <span class="t">Ui</span>::draw(c);
     }
 }
 </code></pre></details></div>
@@ -12338,8 +12373,9 @@ summary { cursor: pointer; padding: 10px 16px; } details pre { border-width: 1px
 <section id="network" data-title="network"><h2>Network</h2>
 <div data-find="together draw with others on the same network together"><h3 id="demo-together">Together</h3><p>Draw with others on the same network</p>
 <div class="shots"><img loading="lazy" src="screenshots/together.png" alt="Together"></div>
-<details><summary><code>together/main.as</code> <span class="tag">190 lines</span></summary><pre><code><span class="c">// A wall to draw on. One player hosts it, and any on the same network who look for it can join. What is</span>
-<span class="c">// drawn is sent for sure; where everyone&#x27;s pen is, is only sent quickly.</span>
+<details><summary><code>together/main.as</code> <span class="tag">191 lines</span></summary><pre><code><span class="c">// A wall to draw on. One player hosts it, and any on the same network who look for it can join; with a meeting</span>
+<span class="c">// place in the settings, anyone on the internet can too. What is drawn is sent for sure; where everyone&#x27;s pen is,</span>
+<span class="c">// is only sent quickly.</span>
 
 <span class="k">const</span> <span class="k">string</span> <span class="t">Game</span> = <span class="s">&quot;nexgen together&quot;</span>;
 
@@ -12507,7 +12543,7 @@ summary { cursor: pointer; padding: 10px 16px; } details pre { border-width: 1px
         c.text(big, <span class="s">&quot;Together&quot;</span>, <span class="n">30</span>, <span class="n">18</span>);
         <span class="k">string</span> state;
         <span class="k">if</span> (room.state == <span class="t">RoomIn</span>)
-            state = formatInt(<span class="k">int</span>(room.players)) + <span class="s">&quot; here&quot;</span> + (room.hosting ? <span class="s">&quot;, on your wall at &quot;</span> + <span class="t">Net</span>::address : <span class="s">&quot;, &quot;</span> + formatInt(room.ping(<span class="n">0</span>)) + <span class="s">&quot; ms away&quot;</span>);
+            state = formatInt(<span class="k">int</span>(room.players)) + <span class="s">&quot; here&quot;</span> + (room.hosting ? <span class="s">&quot;, on your wall at &quot;</span> + <span class="t">Net</span>::address + (room.met ? <span class="s">&quot; and at &quot;</span> + <span class="t">Net</span>::meetingPlace : <span class="s">&quot;&quot;</span>) : <span class="s">&quot;, &quot;</span> + formatInt(room.ping(<span class="n">0</span>)) + <span class="s">&quot; ms away&quot;</span> + (room.relayed(<span class="n">0</span>) ? <span class="s">&quot; by the meeting place&quot;</span> : <span class="s">&quot;&quot;</span>));
         <span class="k">else</span>
             state = room.state == <span class="t">RoomFinding</span> ? <span class="s">&quot;Looking&quot;</span> : room.state == <span class="t">RoomJoining</span> ? <span class="s">&quot;Joining&quot;</span> : room.state == <span class="t">RoomLost</span> ? <span class="s">&quot;That didn&#x27;t work&quot;</span> : <span class="s">&quot;By yourself&quot;</span>;
         c.text(font, state, <span class="n">1250</span>, <span class="n">30</span>, <span class="t">Color</span>(<span class="n">0.7f</span>, <span class="n">0.8f</span>, <span class="n">0.9f</span>), <span class="t">AlignRight</span>);
@@ -12520,7 +12556,7 @@ summary { cursor: pointer; padding: 10px 16px; } details pre { border-width: 1px
             <span class="k">for</span> (<span class="k">uint</span> i = <span class="n">0</span>; i &lt; room.found &amp;&amp; i &lt; <span class="n">6</span>; i++)
             {
                 c.roundRect(<span class="n">410</span>, <span class="n">250</span> + <span class="k">float</span>(i) * <span class="n">38</span>, <span class="n">460</span>, <span class="n">34</span>, <span class="n">8</span>, i == chosen ? <span class="t">Blue</span> : <span class="t">Color</span>(<span class="n">1</span>, <span class="n">1</span>, <span class="n">1</span>, <span class="n">0.08f</span>));
-                c.text(font, room.foundName(i), <span class="n">424</span>, <span class="n">253</span> + <span class="k">float</span>(i) * <span class="n">38</span>);
+                c.text(font, room.foundName(i) + (room.foundFar(i) ? <span class="s">&quot;  (internet)&quot;</span> : <span class="s">&quot;&quot;</span>), <span class="n">424</span>, <span class="n">253</span> + <span class="k">float</span>(i) * <span class="n">38</span>);
                 c.text(font, formatInt(<span class="k">int</span>(room.foundPlayers(i))) + <span class="s">&quot; of &quot;</span> + formatInt(<span class="k">int</span>(room.foundMost(i))), <span class="n">856</span>, <span class="n">253</span> + <span class="k">float</span>(i) * <span class="n">38</span>, <span class="t">Color</span>(<span class="n">0.8f</span>, <span class="n">0.85f</span>, <span class="n">0.95f</span>), <span class="t">AlignRight</span>);
             }
         }
