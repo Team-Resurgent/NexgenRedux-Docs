@@ -273,6 +273,17 @@ hero.walker = <span class="k">true</span>;</code></pre>
 <p>Plants lean with the wind: give a thing a <code>sway</code>, how far its top moves for each metre of height (about 0.02 for a tree, 0.15 for</p>
 <p><code>global:model/grass.glb</code>), or <code>&quot;sway&quot;</code> in a scene file. <code>Space::wind = Vec3(1, 0, 0.4f)</code> says which way it blows and how hard, and</p>
 <p>gusts roll across a wood as a wave. The base stays where it is, it is only how things are drawn, and it costs the same on every platform. The editor gives trees, bushes and grass their sway when they are added.</p>
+<h3 id="grass-impostors-and-sprites">Grass, impostors and sprites</h3>
+<p><code>Space::grass(Assets::model(&quot;global:model/grass.glb&quot;), 3, 30)</code> grows tufts over the land near the camera, so many to a</p>
+<p>square metre and out to a distance: only where the land is green, flat enough and dry, coloured as the land is there, and bending in the wind. It is made a few squares at a time as you move, and again where the land is changed. A scene file says</p>
+<p><code>&quot;grass&quot;: 2.5</code>, and the editor has it on the Land tab. On the original Xbox, where vertices can&#x27;t be moved, it stands still.</p>
+<p>Things with <code>impostor = true</code> are drawn, further away than <code>Space::impostors</code> metres, as a picture of themselves: made from the model when it is first needed, from four sides, and drawn with all the others that share it at once. A wood of two thousand trees costs about half as many triangles, and looks the same.</p>
+<p>A sprite is a picture that stands upright and turns to face the camera, as the characters of old maze games did:</p>
+<pre><code><span class="t">Entity</span>@ wisp = <span class="t">Space</span>::spawn(place);
+wisp.sprite(<span class="t">Assets</span>::texture(<span class="s">&quot;global:picture/sprite-wisp.png&quot;</span>), <span class="n">4</span>, <span class="n">2</span>);  <span class="c">// four sides across, two frames down</span>
+wisp.size = <span class="t">Vec3</span>(<span class="n">1.3f</span>, <span class="n">1.3f</span>, <span class="n">1.3f</span>);
+wisp.spriteFrame = <span class="k">uint</span>(<span class="t">App</span>::time * <span class="n">5</span>) % <span class="n">2</span>;</code></pre>
+<p>Across the sheet is how it looks from each side, the first from in front and then going round to its left; which one is shown follows from where the camera is and which way it faces. The <b>Wisps</b> showcase is a maze of them.</p>
 <h3 id="files-that-players-bring">Files that players bring</h3>
 <p><code>Assets::list(&quot;own:&quot;)</code> has the names of the player&#x27;s own files, and <code>Assets::dropped()</code> those that were just dropped on the window. They</p>
 <p>are loaded like any others: <code>Assets::model(&quot;own:chair.obj&quot;)</code>.</p>
