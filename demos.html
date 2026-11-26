@@ -11957,6 +11957,87 @@ summary { cursor: pointer; padding: 10px 16px; } details pre { border-width: 1px
     }
 }
 </code></pre></details></div>
+<div data-find="mist fog that can be walked into, smoke and fire, from 3d noise mist"><h3 id="demo-mist">Mist</h3><p>Fog that can be walked into, smoke and fire, from 3D noise</p>
+<div class="shots"><img loading="lazy" src="screenshots/mist.png" alt="Mist"></div>
+<details><summary><code>mist/main.as</code> <span class="tag">78 lines</span></summary><pre><code><span class="c">// Mist that can be walked into: a bank of it lying in the valley, a column of smoke and the glow of a fire. Each is a</span>
+<span class="c">// box of billowing 3D noise, drifting with the wind and soft at its edges; the camera goes down into the bank and out.</span>
+
+<span class="k">class</span> <span class="t">MistScreen</span> : <span class="t">Screen</span>
+{
+    <span class="t">Font</span>@ font = <span class="t">Assets</span>::font(<span class="s">&quot;global:freesans.sfn&quot;</span>, <span class="n">26</span>);
+    <span class="t">Model</span>@ pine = <span class="t">Assets</span>::model(<span class="s">&quot;global:model/pine.glb&quot;</span>);
+    <span class="t">Model</span>@ oak = <span class="t">Assets</span>::model(<span class="s">&quot;global:model/oak.glb&quot;</span>);
+    <span class="t">Model</span>@ campfire = <span class="t">Assets</span>::model(<span class="s">&quot;global:model/campfire.glb&quot;</span>);
+    <span class="k">float</span> t = <span class="n">0</span>;
+    <span class="t">Vec3</span> fire;
+
+    <span class="k">void</span> onEnter()
+    {
+        <span class="t">Space</span>::land(<span class="n">4</span>, <span class="n">128</span>, <span class="n">2</span>, <span class="n">26</span>, <span class="n">0.45f</span>);
+        <span class="t">Space</span>::water(-<span class="n">1</span>, <span class="t">Color</span>(<span class="n">0.12f</span>, <span class="n">0.3f</span>, <span class="n">0.38f</span>, <span class="n">0.85f</span>));
+        <span class="t">Space</span>::waterStyle(<span class="s">&quot;calm&quot;</span>);
+        <span class="t">Space</span>::landColors(<span class="t">Color</span>(<span class="n">0.42f</span>, <span class="n">0.4f</span>, <span class="n">0.3f</span>), <span class="t">Color</span>(<span class="n">0.3f</span>, <span class="n">0.42f</span>, <span class="n">0.24f</span>), <span class="t">Color</span>(<span class="n">0.5f</span>, <span class="n">0.52f</span>, <span class="n">0.48f</span>), <span class="t">Color</span>(<span class="n">0.4f</span>, <span class="n">0.38f</span>, <span class="n">0.34f</span>), <span class="n">2</span>, <span class="n">16</span>);
+        <span class="c">// Dawn: low sun, a cool sky, and the haze it makes.</span>
+        <span class="t">Space</span>::sky(<span class="t">Color</span>(<span class="n">0.32f</span>, <span class="n">0.42f</span>, <span class="n">0.62f</span>), <span class="t">Color</span>(<span class="n">0.94f</span>, <span class="n">0.78f</span>, <span class="n">0.62f</span>));
+        <span class="t">Space</span>::fog(<span class="t">Color</span>(<span class="n">0.86f</span>, <span class="n">0.78f</span>, <span class="n">0.7f</span>), <span class="n">60</span>, <span class="n">230</span>);
+        <span class="t">Space</span>::sun(<span class="t">Vec3</span>(<span class="n">0.8f</span>, <span class="n">0.22f</span>, <span class="n">0.3f</span>), <span class="t">Color</span>(<span class="n">1</span>, <span class="n">0.78f</span>, <span class="n">0.55f</span>));
+        <span class="t">Space</span>::ambient(<span class="t">Color</span>(<span class="n">0.42f</span>, <span class="n">0.46f</span>, <span class="n">0.56f</span>), <span class="t">Color</span>(<span class="n">0.22f</span>, <span class="n">0.2f</span>, <span class="n">0.18f</span>));
+        <span class="t">Space</span>::farthest(<span class="n">240</span>);
+        <span class="t">Space</span>::shadows(<span class="n">0.55f</span>, <span class="n">40</span>);
+        <span class="t">Space</span>::impostors = <span class="n">70</span>;
+        <span class="k">bool</span> small = <span class="t">App</span>::platform == <span class="s">&quot;Original Xbox&quot;</span>;
+        <span class="k">for</span> (<span class="k">int</span> i = <span class="n">0</span>; i &lt; (small ? <span class="n">260</span> : <span class="n">700</span>); i++)
+        {
+            <span class="k">float</span> x = random(-<span class="n">120</span>, <span class="n">120</span>), z = random(-<span class="n">120</span>, <span class="n">120</span>), y = <span class="t">Space</span>::height(x, z);
+            <span class="k">if</span> (y &lt; <span class="n">0.5f</span> || <span class="t">Space</span>::normal(x, z).y &lt; <span class="n">0.8f</span>)
+                <span class="k">continue</span>;
+            <span class="t">Entity</span>@ e = <span class="t">Space</span>::spawn(<span class="t">Vec3</span>(x, y, z));
+            e.model(random() &lt; <span class="n">0.6f</span> ? pine : oak);
+            <span class="k">float</span> s = random(<span class="n">0.8f</span>, <span class="n">1.5f</span>);
+            e.size = <span class="t">Vec3</span>(s, s, s);
+            e.angles = <span class="t">Vec3</span>(<span class="n">0</span>, random(<span class="n">0</span>, <span class="n">360</span>), <span class="n">0</span>);
+            e.sway = <span class="n">0.02f</span>;
+            e.impostor = <span class="k">true</span>;
+        }
+        <span class="c">// A bank lying along the valley floor and over the water.</span>
+        <span class="t">Space</span>::mist(<span class="t">Vec3</span>(<span class="n">0</span>, <span class="n">3</span>, <span class="n">0</span>), <span class="t">Vec3</span>(<span class="n">240</span>, <span class="n">9</span>, <span class="n">240</span>), <span class="t">Color</span>(<span class="n">0.94f</span>, <span class="n">0.9f</span>, <span class="n">0.86f</span>, <span class="n">0.75f</span>), <span class="n">1.2f</span>, <span class="n">1</span>, <span class="n">9</span>);
+        <span class="c">// A fire on the shore, its glow and its smoke.</span>
+        fire = <span class="t">Vec3</span>(<span class="n">18</span>, <span class="n">0</span>, <span class="n">30</span>);
+        fire.y = <span class="t">Space</span>::height(fire.x, fire.z);
+        <span class="t">Entity</span>@ camp = <span class="t">Space</span>::spawn(fire);
+        camp.model(campfire);
+        camp.light(<span class="t">Color</span>(<span class="n">1.6f</span>, <span class="n">0.8f</span>, <span class="n">0.3f</span>), <span class="n">10</span>);
+        <span class="t">Space</span>::mist(fire + <span class="t">Vec3</span>(<span class="n">0</span>, <span class="n">0.9f</span>, <span class="n">0</span>), <span class="t">Vec3</span>(<span class="n">1.6f</span>, <span class="n">1.8f</span>, <span class="n">1.6f</span>), <span class="t">Color</span>(<span class="n">1</span>, <span class="n">0.55f</span>, <span class="n">0.15f</span>, <span class="n">0.9f</span>), <span class="n">1.5f</span>, <span class="n">6</span>, <span class="n">0.9f</span>);
+        <span class="t">Space</span>::mist(fire + <span class="t">Vec3</span>(<span class="n">0</span>, <span class="n">7</span>, <span class="n">0</span>), <span class="t">Vec3</span>(<span class="n">4</span>, <span class="n">12</span>, <span class="n">4</span>), <span class="t">Color</span>(<span class="n">0.45f</span>, <span class="n">0.45f</span>, <span class="n">0.47f</span>, <span class="n">0.7f</span>), <span class="n">1</span>, <span class="n">3</span>, <span class="n">2.5f</span>);
+    }
+
+    <span class="k">void</span> update(<span class="k">float</span> dt)
+    {
+        t += dt;
+        <span class="c">// Down from above the bank, into it, along the shore past the fire, and out over the water.</span>
+        <span class="k">float</span> a = t * <span class="n">0.06f</span> + <span class="n">0.4f</span>;
+        <span class="k">float</span> high = <span class="n">22</span> - <span class="n">18</span> * clamp(sin(t * <span class="n">0.22f</span>) * <span class="n">0.5f</span> + <span class="n">0.5f</span>, <span class="n">0</span>, <span class="n">1</span>);
+        <span class="t">Vec3</span> eye(sin(a) * <span class="n">48</span>, <span class="n">0</span>, cos(a) * <span class="n">48</span>);
+        eye.y = max(<span class="t">Space</span>::height(eye.x, eye.z), -<span class="n">1</span>) + high;
+        <span class="t">Vec3</span> look = fire + <span class="t">Vec3</span>(<span class="n">0</span>, <span class="n">3</span>, <span class="n">0</span>);
+        <span class="t">Space</span>::camera(eye, look, <span class="n">62</span>);
+    }
+
+    <span class="k">void</span> draw(<span class="t">Canvas</span>@ c)
+    {
+        c.designHeight(<span class="n">720</span>);
+        <span class="t">Space</span>::draw(c);
+        c.bloom(<span class="n">0.35f</span>, <span class="n">0.8f</span>);
+        <span class="k">float</span> a = clamp(<span class="n">5</span> - t, <span class="n">0</span>, <span class="n">1</span>);
+        <span class="k">if</span> (a &gt; <span class="n">0</span>)
+        {
+            c.alpha = a;
+            c.text(font, <span class="s">&quot;Mist, smoke and fire: boxes of drifting 3D noise&quot;</span>, <span class="n">60</span>, <span class="n">650</span>, <span class="t">White</span>);
+            c.alpha = <span class="n">1</span>;
+        }
+    }
+}
+</code></pre></details></div>
 </section>
 <section id="network" data-title="network"><h2>Network</h2>
 <div data-find="together draw with others on the same network together"><h3 id="demo-together">Together</h3><p>Draw with others on the same network</p>
