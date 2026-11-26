@@ -54,7 +54,7 @@ summary { cursor: pointer; padding: 10px 16px; } details pre { border-width: 1px
 </head>
 <body>
 <header><a class="name" href="index.html">Nexgen Redux</a> <a href="index.html">Home</a> <a href="guide.html">Guide</a> <a class="here" href="reference.html">Script reference</a> <a href="demos.html">Demos</a> <a href="https://github.com/Team-Resurgent/NexgenRedux">GitHub</a> <input id="search" type="search" placeholder="Search (F4)" aria-label="Search"></header>
-<div class="page"><nav><b>Screens</b><a href="#screen">Screen</a><a href="#ns-screens">Screens <i>Screens::</i></a><a href="#ns-app">App <i>App::</i></a><b>Drawing</b><a href="#canvas">Canvas</a><a href="#color">Color</a><a href="#texture">Texture</a><a href="#font">Font</a><a href="#blend">Blend</a><a href="#filter">Filter</a><a href="#align">Align</a><b>Scene</b><a href="#ns-scene">Scene <i>Scene::</i></a><a href="#entity">Entity</a><a href="#behaviour">Behaviour</a><a href="#ibehaviour">IBehaviour</a><b>Three dimensions</b><a href="#ns-space">Space <i>Space::</i></a><a href="#model">Model</a><a href="#mesh">Mesh</a><a href="#solid">Solid</a><a href="#fieldshape">FieldShape</a><a href="#fieldjoin">FieldJoin</a><a href="#vec3">Vec3</a><b>Interfaces</b><a href="#ns-ui">Ui <i>Ui::</i></a><a href="#widget">Widget</a><a href="#place">Place</a><a href="#widgetevents">WidgetEvents</a><a href="#widgetrows">WidgetRows</a><a href="#widgetdraws">WidgetDraws</a><a href="#widgetanswers">WidgetAnswers</a><b>Assets</b><a href="#ns-assets">Assets <i>Assets::</i></a><a href="#effect">Effect</a><b>Sound</b><a href="#sound">Sound</a><a href="#voice">Voice</a><a href="#bus">Bus</a><a href="#ns-audio">Audio <i>Audio::</i></a><b>Input</b><a href="#ns-input">Input <i>Input::</i></a><b>Movement</b><a href="#tween">Tween</a><a href="#ease">Ease</a><a href="#coroutines">Coroutines</a><a href="#vec2">Vec2</a><a href="#maths">Maths</a><b>Saving</b><a href="#ns-save">Save <i>Save::</i></a><b>Networking</b><a href="#ns-net">Net <i>Net::</i></a><a href="#room">Room</a><a href="#roomstate">RoomState</a><a href="#message">Message</a><a href="#request">Request</a><a href="#connection">Connection</a><a href="#datagrams">Datagrams</a><b>Original Xbox</b><a href="#ns-xbox">Xbox <i>Xbox::</i></a><a href="#xboxtext">XboxText</a><a href="#tray">Tray</a><b>More</b><a href="#look">Look</a><a href="#json">Json</a></nav><main><h1>Script reference</h1><p class="lead">Everything that scripts can call, written by the engine itself. Types, namespaces and constants begin with a capital; functions and properties don't. A tag like <code>Assets::</code> is a namespace: its calls are written <code>Assets::texture(...)</code>.</p><section id="screen" data-title="screens screen type"><h2>Screen <span class="kind">type</span></h2>
+<div class="page"><nav><b>Screens</b><a href="#screen">Screen</a><a href="#ns-screens">Screens::</a><a href="#ns-app">App::</a><b>Drawing</b><a href="#canvas">Canvas</a><a href="#color">Color</a><a href="#texture">Texture</a><a href="#font">Font</a><a href="#blend">Blend</a><a href="#filter">Filter</a><a href="#align">Align</a><b>Scene</b><a href="#ns-scene">Scene::</a><a href="#entity">Entity</a><a href="#behaviour">Behaviour</a><a href="#ibehaviour">IBehaviour</a><b>Three dimensions</b><a href="#ns-space">Space::</a><a href="#model">Model</a><a href="#mesh">Mesh</a><a href="#solid">Solid</a><a href="#fieldshape">FieldShape</a><a href="#fieldjoin">FieldJoin</a><a href="#vec3">Vec3</a><b>Interfaces</b><a href="#ns-ui">Ui::</a><a href="#widget">Widget</a><a href="#place">Place</a><a href="#widgetevents">WidgetEvents</a><a href="#widgetrows">WidgetRows</a><a href="#widgetdraws">WidgetDraws</a><a href="#widgetanswers">WidgetAnswers</a><b>Assets</b><a href="#ns-assets">Assets::</a><a href="#effect">Effect</a><b>Sound</b><a href="#sound">Sound</a><a href="#voice">Voice</a><a href="#bus">Bus</a><a href="#ns-audio">Audio::</a><b>Input</b><a href="#ns-input">Input::</a><b>Movement</b><a href="#tween">Tween</a><a href="#ease">Ease</a><a href="#coroutines">Coroutines</a><a href="#vec2">Vec2</a><a href="#maths">Maths</a><b>Saving</b><a href="#ns-save">Save::</a><b>Networking</b><a href="#ns-net">Net::</a><a href="#room">Room</a><a href="#roomstate">RoomState</a><a href="#message">Message</a><a href="#request">Request</a><a href="#connection">Connection</a><a href="#datagrams">Datagrams</a><b>Original Xbox</b><a href="#ns-xbox">Xbox::</a><a href="#xboxtext">XboxText</a><a href="#tray">Tray</a><b>More</b><a href="#look">Look</a><a href="#json">Json</a></nav><main><h1>Script reference</h1><p class="lead">Everything that scripts can call, written by the engine itself. Types, namespaces and constants begin with a capital; functions and properties don't. A tag like <code>Assets::</code> is a namespace: its calls are written <code>Assets::texture(...)</code>.</p><section id="screen" data-title="screens screen type"><h2>Screen <span class="kind">type</span></h2>
 <p>One place in the app. A screen&#x27;s main.as has a class that implements this; it may have any of these methods.</p>
 <table class="api">
 <tr data-find="void onenter() called once, when it opens and everything it asked for has loaded."><td><code><span class="k">void</span> onEnter()</code></td><td>Called once, when it opens and everything it asked for has loaded.</td></tr>
@@ -65,7 +65,7 @@ summary { cursor: pointer; padding: 10px 16px; } details pre { border-width: 1px
 <tr data-find="void onexit() called once, before it closes."><td><code><span class="k">void</span> onExit()</code></td><td>Called once, before it closes.</td></tr>
 </table>
 </section>
-<section id="ns-screens" data-title="screens screens screens::"><h2>Screens <span class="kind">Screens::</span></h2>
+<section id="ns-screens" data-title="screens screens:: namespace"><h2>Screens:: <span class="kind">namespace</span></h2>
 <p>Moving between screens. Changes happen after the current update.</p>
 <table class="api">
 <tr data-find="void screens::push(const string &amp;in id) opens a screen on top of this one."><td><code><span class="k">void</span> <span class="t">Screens</span>::push(<span class="k">const</span> <span class="k">string</span> &amp;<span class="k">in</span> id)</code></td><td>Opens a screen on top of this one.</td></tr>
@@ -79,7 +79,7 @@ summary { cursor: pointer; padding: 10px 16px; } details pre { border-width: 1px
 <tr data-find="string screens::category(uint index) from its screen.json."><td><code><span class="k">string</span> <span class="t">Screens</span>::category(<span class="k">uint</span> index)</code></td><td>From its screen.json.</td></tr>
 </table>
 </section>
-<section id="ns-app" data-title="screens app app::"><h2>App <span class="kind">App::</span></h2>
+<section id="ns-app" data-title="screens app:: namespace"><h2>App:: <span class="kind">namespace</span></h2>
 <p>The machine and how it is doing.</p>
 <table class="api">
 <tr data-find="float app::time seconds since the app started."><td><code><span class="k">float</span> <span class="t">App</span>::time</code></td><td>Seconds since the app started.</td></tr>
@@ -197,7 +197,7 @@ summary { cursor: pointer; padding: 10px 16px; } details pre { border-width: 1px
 <tr data-find="alignright its right edge."><td><code><span class="t">AlignRight</span></code></td><td>Its right edge.</td></tr>
 </table>
 </section>
-<section id="ns-scene" data-title="scene scene scene::"><h2>Scene <span class="kind">Scene::</span></h2>
+<section id="ns-scene" data-title="scene scene:: namespace"><h2>Scene:: <span class="kind">namespace</span></h2>
 <p>Entities that move, collide and are drawn by the engine. Each screen has its own scene, and it is stepped after the screen&#x27;s update().</p>
 <table class="api">
 <tr data-find="entity@ scene::spawn(const vec2 &amp;in position) a new, empty entity."><td><code><span class="t">Entity</span>@ <span class="t">Scene</span>::spawn(<span class="k">const</span> <span class="t">Vec2</span> &amp;<span class="k">in</span> position)</code></td><td>A new, empty entity.</td></tr>
@@ -335,7 +335,7 @@ summary { cursor: pointer; padding: 10px 16px; } details pre { border-width: 1px
 <section id="ibehaviour" data-title="scene ibehaviour enum"><h2>IBehaviour <span class="kind">enum</span></h2>
 <p>What Behaviour comes from. Use Behaviour.</p>
 </section>
-<section id="ns-space" data-title="three dimensions space space::"><h2>Space <span class="kind">Space::</span></h2>
+<section id="ns-space" data-title="three dimensions space:: namespace"><h2>Space:: <span class="kind">namespace</span></h2>
 <p>The scene in three dimensions: x right, y up, z towards you, in metres. Entities are spawned into it, and it is stepped with the rest of the scene.</p>
 <table class="api">
 <tr data-find="entity@ space::spawn(const vec3 &amp;in place) a new, empty entity in space."><td><code><span class="t">Entity</span>@ <span class="t">Space</span>::spawn(<span class="k">const</span> <span class="t">Vec3</span> &amp;<span class="k">in</span> place)</code></td><td>A new, empty entity in space.</td></tr>
@@ -497,7 +497,7 @@ summary { cursor: pointer; padding: 10px 16px; } details pre { border-width: 1px
 <tr data-find="vec3 normalized() const the same direction, 1 long."><td><code><span class="t">Vec3</span> normalized() <span class="k">const</span></code></td><td>The same direction, 1 long.</td></tr>
 </table>
 </section>
-<section id="ns-ui" data-title="interfaces ui ui::"><h2>Ui <span class="kind">Ui::</span></h2>
+<section id="ns-ui" data-title="interfaces ui:: namespace"><h2>Ui:: <span class="kind">namespace</span></h2>
 <p>Pages of widgets, for gamepad, keyboard and mouse alike. Add to <code>Ui::root</code>, and draw it.</p>
 <table class="api">
 <tr data-find="widget@ ui::root the whole page: a column."><td><code><span class="t">Widget</span>@ <span class="t">Ui</span>::root</code></td><td>The whole page: a column.</td></tr>
@@ -630,7 +630,7 @@ summary { cursor: pointer; padding: 10px 16px; } details pre { border-width: 1px
 <tr data-find="funcdef void widgetanswer(int) is told which of a dialog&#x27;s buttons was pressed, or -1."><td><code><span class="k">funcdef</span> <span class="k">void</span> <span class="t">WidgetAnswer</span>(<span class="k">int</span>)</code></td><td>Is told which of a dialog&#x27;s buttons was pressed, or -1.</td></tr>
 </table>
 </section>
-<section id="ns-assets" data-title="assets assets assets::"><h2>Assets <span class="kind">Assets::</span></h2>
+<section id="ns-assets" data-title="assets assets:: namespace"><h2>Assets:: <span class="kind">namespace</span></h2>
 <p>Loading. Names start with <code>asset:</code> for the screen&#x27;s own files, <code>global:</code> for shared ones or <code>own:</code> for those that the player brought.</p>
 <table class="api">
 <tr data-find="texture@ assets::texture(const string &amp;in name) an image: png, jpeg, tga, bmp or gif, up to 2048 pixels a side; from the web too, by its https:// address. what a screen asks for as it is made is ready by onenter(); later ones arrive in the background."><td><code><span class="t">Texture</span>@ <span class="t">Assets</span>::texture(<span class="k">const</span> <span class="k">string</span> &amp;<span class="k">in</span> name)</code></td><td>An image: PNG, JPEG, TGA, BMP or GIF, up to 2048 pixels a side; from the web too, by its https:// address. What a screen asks for as it is made is ready by onEnter(); later ones arrive in the background.</td></tr>
@@ -693,7 +693,7 @@ summary { cursor: pointer; padding: 10px 16px; } details pre { border-width: 1px
 <tr data-find="businterface menus."><td><code><span class="t">BusInterface</span></code></td><td>Menus.</td></tr>
 </table>
 </section>
-<section id="ns-audio" data-title="sound audio audio::"><h2>Audio <span class="kind">Audio::</span></h2>
+<section id="ns-audio" data-title="sound audio:: namespace"><h2>Audio:: <span class="kind">namespace</span></h2>
 <p>Volumes, and what is being heard. A screen&#x27;s sounds pause while it is covered and stop when it closes.</p>
 <table class="api">
 <tr data-find="void audio::setvolume(bus bus, float volume) 0 to 1."><td><code><span class="k">void</span> <span class="t">Audio</span>::setVolume(<span class="t">Bus</span> bus, <span class="k">float</span> volume)</code></td><td>0 to 1.</td></tr>
@@ -707,7 +707,7 @@ summary { cursor: pointer; padding: 10px 16px; } details pre { border-width: 1px
 <tr data-find="string audio::output what is playing it."><td><code><span class="k">string</span> <span class="t">Audio</span>::output</code></td><td>What is playing it.</td></tr>
 </table>
 </section>
-<section id="ns-input" data-title="input input input::"><h2>Input <span class="kind">Input::</span></h2>
+<section id="ns-input" data-title="input input:: namespace"><h2>Input:: <span class="kind">namespace</span></h2>
 <p>Actions are <code>up</code>, <code>down</code>, <code>left</code>, <code>right</code>, <code>accept</code>, <code>cancel</code>, <code>fire</code>, <code>alternate</code> and <code>menu</code>, from a keyboard, mouse or gamepad.</p>
 <table class="api">
 <tr data-find="bool input::held(const string &amp;in action) whether it is down now."><td><code><span class="k">bool</span> <span class="t">Input</span>::held(<span class="k">const</span> <span class="k">string</span> &amp;<span class="k">in</span> action)</code></td><td>Whether it is down now.</td></tr>
@@ -797,7 +797,7 @@ summary { cursor: pointer; padding: 10px 16px; } details pre { border-width: 1px
 <tr data-find="float bounce(float t) 0 to 1, bouncing as it lands."><td><code><span class="k">float</span> bounce(<span class="k">float</span> t)</code></td><td>0 to 1, bouncing as it lands.</td></tr>
 </table>
 </section>
-<section id="ns-save" data-title="saving save save::"><h2>Save <span class="kind">Save::</span></h2>
+<section id="ns-save" data-title="saving save:: namespace"><h2>Save:: <span class="kind">namespace</span></h2>
 <p>Text that is kept between runs, by name.</p>
 <table class="api">
 <tr data-find="void save::set(const string &amp;in key, const string &amp;in value) keeps something."><td><code><span class="k">void</span> <span class="t">Save</span>::<span class="k">set</span>(<span class="k">const</span> <span class="k">string</span> &amp;<span class="k">in</span> key, <span class="k">const</span> <span class="k">string</span> &amp;<span class="k">in</span> value)</code></td><td>Keeps something.</td></tr>
@@ -805,7 +805,7 @@ summary { cursor: pointer; padding: 10px 16px; } details pre { border-width: 1px
 <tr data-find="void save::remove(const string &amp;in key) forgets it."><td><code><span class="k">void</span> <span class="t">Save</span>::remove(<span class="k">const</span> <span class="k">string</span> &amp;<span class="k">in</span> key)</code></td><td>Forgets it.</td></tr>
 </table>
 </section>
-<section id="ns-net" data-title="networking net net::"><h2>Net <span class="kind">Net::</span></h2>
+<section id="ns-net" data-title="networking net:: namespace"><h2>Net:: <span class="kind">namespace</span></h2>
 <p>The network: rooms for games on the same one or met on the internet, the web, and connections of your own.</p>
 <table class="api">
 <tr data-find="bool net::available whether there is one."><td><code><span class="k">bool</span> <span class="t">Net</span>::available</code></td><td>Whether there is one.</td></tr>
@@ -915,7 +915,7 @@ summary { cursor: pointer; padding: 10px 16px; } details pre { border-width: 1px
 <tr data-find="bool receive(string &amp;out address, string &amp;out text) the next to have come, and from whom."><td><code><span class="k">bool</span> receive(<span class="k">string</span> &amp;<span class="k">out</span> address, <span class="k">string</span> &amp;<span class="k">out</span> text)</code></td><td>The next to have come, and from whom.</td></tr>
 </table>
 </section>
-<section id="ns-xbox" data-title="original xbox xbox xbox::"><h2>Xbox <span class="kind">Xbox::</span></h2>
+<section id="ns-xbox" data-title="original xbox xbox:: namespace"><h2>Xbox:: <span class="kind">namespace</span></h2>
 <p>What only the original Xbox has. Elsewhere <code>available</code> is false, readings are -1 or empty, and the rest do nothing.</p>
 <table class="api">
 <tr data-find="bool xbox::available whether this is one."><td><code><span class="k">bool</span> <span class="t">Xbox</span>::available</code></td><td>Whether this is one.</td></tr>
