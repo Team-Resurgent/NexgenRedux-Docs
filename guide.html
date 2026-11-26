@@ -54,7 +54,7 @@ summary { cursor: pointer; padding: 10px 16px; } details pre { border-width: 1px
 </head>
 <body>
 <header><a class="name" href="index.html">Nexgen Redux</a> <a href="index.html">Home</a> <a class="here" href="guide.html">Guide</a> <a href="reference.html">Script reference</a> <a href="demos.html">Demos</a> <a href="https://github.com/Team-Resurgent/NexgenRedux">GitHub</a> </header>
-<div class="page"><nav><a href="#your-first-screen">Your first screen</a><a href="#screens">Screens</a><a href="#drawing">Drawing</a><a href="#scenes">Scenes</a><a href="#three-dimensions">Three dimensions</a><a href="#interfaces">Interfaces</a><a href="#shaders-and-bloom">Shaders and bloom</a><a href="#assets">Assets</a><a href="#sound">Sound</a><a href="#input">Input</a><a href="#coroutines-and-tweens">Coroutines and tweens</a><a href="#networking">Networking</a><a href="#what-only-an-xbox-can-do">What only an Xbox can do</a><a href="#saving">Saving</a><a href="#files-and-json">Files and JSON</a><a href="#on-the-original-xbox">On the original Xbox</a></nav><main><h1 id="guide">Guide</h1>
+<div class="page"><nav><a href="#your-first-screen">Your first screen</a><a href="#screens">Screens</a><a href="#drawing">Drawing</a><a href="#scenes">Scenes</a><a href="#three-dimensions">Three dimensions</a><a href="#interfaces">Interfaces</a><a href="#shaders-bloom-and-grading">Shaders, bloom and grading</a><a href="#assets">Assets</a><a href="#sound">Sound</a><a href="#input">Input</a><a href="#coroutines-and-tweens">Coroutines and tweens</a><a href="#networking">Networking</a><a href="#what-only-an-xbox-can-do">What only an Xbox can do</a><a href="#saving">Saving</a><a href="#files-and-json">Files and JSON</a><a href="#on-the-original-xbox">On the original Xbox</a></nav><main><h1 id="guide">Guide</h1>
 <h2 id="your-first-screen">Your first screen</h2>
 <p>Download the showcase for your machine, or build it, and look in its <code>media/showcase</code> folder. Each folder there is a screen. Make a new one called <code>hello</code> with two files.</p>
 <p><code>screen.json</code> says how it appears in the menu:</p>
@@ -373,7 +373,7 @@ boom.playAt(place, <span class="n">1</span>, <span class="n">60</span>);        
 <p>A style has <code>back</code>, <code>text</code>, <code>line</code>, <code>track</code>, <code>lineWidth</code>, <code>radius</code>, <code>scale</code> and <code>shadow</code>, all of which move smoothly between</p>
 <p><code>hovered</code>, <code>checked</code>, <code>focused</code>, <code>pressed</code> and <code>disabled</code>; and <code>font</code>, <code>size</code>, <code>image</code> and <code>slice</code>, <code>padding</code>, <code>gap</code>, <code>minWidth</code>,</p>
 <p><code>minHeight</code>, <code>align</code> and <code>seconds</code>.</p>
-<h2 id="shaders-and-bloom">Shaders and bloom</h2>
+<h2 id="shaders-bloom-and-grading">Shaders, bloom and grading</h2>
 <pre><code><span class="t">Effect</span>@ tube = <span class="t">Assets</span>::effect(<span class="s">&quot;global:effect/tube.fx&quot;</span>);
 <span class="t">Effect</span>@ flag = <span class="t">Assets</span>::effect(<span class="s">&quot;asset:flag.fx&quot;</span>);
 
@@ -414,6 +414,23 @@ float4 paint(float4 color, float2 uv, float3 place, float3 normal, inout <span c
 <tr><td><code>values[0]</code> to <code>values[3]</code></td><td>Sixteen numbers, set with <code>Effect::set</code></td></tr>
 </table></div>
 <p>It is written as HLSL is, and every number with a point in it. <code>float2</code> to <code>float4</code>, <code>lerp</code>, <code>frac</code>, <code>saturate</code> and <code>fmod</code> have their OpenGL names put in for you; keep to what both have. Don&#x27;t name anything <code>out</code>, <code>in</code>, <code>sample</code> or <code>texture</code>.</p>
+<h3 id="grading">Grading</h3>
+<pre><code><span class="t">Look</span>@ look = <span class="t">Look</span>(<span class="s">&quot;dusk&quot;</span>);         <span class="c">// or Look(), and settings of your own</span>
+look.saturation = <span class="n">0.8f</span>;
+look.shadows = <span class="t">Color</span>(<span class="n">0.3f</span>, <span class="n">0.4f</span>, <span class="n">1</span>, <span class="n">0.4f</span>);   <span class="c">// bluer where it is dark; alpha is how much</span>
+look.load(<span class="s">&quot;asset:film.cube&quot;</span>);      <span class="c">// a table from a grading program, first, if you like</span>
+
+<span class="k">void</span> draw(<span class="t">Canvas</span>@ c)
+{
+    <span class="t">Space</span>::draw(c);
+    c.bloom(<span class="n">0.3f</span>, <span class="n">0.8f</span>);
+    c.grade(look);                 <span class="c">// strength 0 to 1 is a second number</span>
+    c.text(font, <span class="s">&quot;Not graded&quot;</span>, <span class="n">40</span>, <span class="n">40</span>);
+}</code></pre>
+<p>A <code>Look</code> is what each colour of the picture becomes. It has settings: <code>exposure</code> in stops, <code>warmth</code> and <code>tint</code>, <code>contrast</code>,</p>
+<p><code>saturation</code>, <code>fade</code> (blacks lifted, as old film), <code>gamma</code>, and colours for the <code>shadows</code> and the <code>highlights</code>. <code>preset</code> sets them all</p>
+<p>to one ready-made: <code>none</code>, <code>warm</code>, <code>cold</code>, <code>faded</code>, <code>noir</code>, <code>sepia</code>, <code>dusk</code>, <code>vivid</code>, <code>bleach</code> or <code>night</code>. <code>load</code> reads a .cube 3D table, as Resolve, Photoshop and other grading programs write them, and colours go through it before the settings; <code>apply</code> gives what it makes of one colour, without the GPU.</p>
+<p>Whatever it is, it is worked out once into a table of 32 by 32 by 32 colours, a texture with three dimensions, and again only when something about it changes. <code>grade</code> then looks each pixel up in it, in one pass over the screen: with a shader on Direct3D 11 and OpenGL, and on the original Xbox with its own texture stages, which can look a colour up in a table, so it costs little there too. Within a clip, only that part is graded. The <b>Looks</b> showcase shows them all, before and after, at 60 frames a second on the original Xbox.</p>
 <h2 id="assets">Assets</h2>
 <pre><code><span class="t">Texture</span>@ ship = <span class="t">Assets</span>::texture(<span class="s">&quot;asset:ship.png&quot;</span>);   <span class="c">// this screen&#x27;s asset folder</span>
 <span class="t">Sound</span>@ hit = <span class="t">Assets</span>::sound(<span class="s">&quot;global:sound/hit.wav&quot;</span>);  <span class="c">// shared by all screens</span></code></pre>

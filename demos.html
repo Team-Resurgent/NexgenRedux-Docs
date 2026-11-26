@@ -5377,7 +5377,7 @@ summary { cursor: pointer; padding: 10px 16px; } details pre { border-width: 1px
 </code></pre></details></div>
 <div data-find="skimmer a race through gates over land without end skim"><h3 id="demo-skim">Skimmer</h3><p>A race through gates over land without end</p>
 <div class="shots"><img loading="lazy" src="screenshots/skim.png" alt="Skimmer"></div>
-<details><summary><code>skim/main.as</code> <span class="tag">412 lines</span></summary><pre><code><span class="c">// A race. The land streams in ahead and goes behind; the way through it is worked out from a number, so it</span>
+<details><summary><code>skim/main.as</code> <span class="tag">426 lines</span></summary><pre><code><span class="c">// A race. The land streams in ahead and goes behind; the way through it is worked out from a number, so it</span>
 <span class="c">// is the same for everyone. Three others race, and a second player may, with a gamepad of their own.</span>
 
 <span class="k">const</span> <span class="k">int</span> <span class="t">Gates</span> = <span class="n">30</span>;
@@ -5497,6 +5497,18 @@ summary { cursor: pointer; padding: 10px 16px; } details pre { border-width: 1px
     {
         <span class="k">float</span> y = <span class="t">Space</span>::height(p.x, p.z);
         <span class="k">return</span> y &gt; <span class="t">Sea</span> + <span class="n">0.2f</span> ? y : <span class="t">Sea</span> + <span class="n">0.2f</span>;      <span class="c">// over water too</span>
+    }
+
+    <span class="c">// The highest ground under a skimmer pointing one way: its middle, nose, tail and wingtips.</span>
+    <span class="k">float</span> hull(<span class="k">const</span> <span class="t">Vec3</span> &amp;<span class="k">in</span> p, <span class="k">const</span> <span class="t">Vec3</span> &amp;<span class="k">in</span> ahead)
+    {
+        <span class="t">Vec3</span> side(-ahead.z, <span class="n">0</span>, ahead.x);
+        <span class="k">float</span> y = level(p);
+        y = max(y, level(p + ahead * <span class="n">2.2f</span>));
+        y = max(y, level(p - ahead * <span class="n">1.8f</span>));
+        y = max(y, level(p + side * <span class="n">1.9f</span>));
+        y = max(y, level(p - side * <span class="n">1.9f</span>));
+        <span class="k">return</span> y;
     }
 
     <span class="k">float</span> chance(<span class="k">int</span> x, <span class="k">int</span> z, <span class="k">int</span> n)
@@ -5626,15 +5638,17 @@ summary { cursor: pointer; padding: 10px 16px; } details pre { border-width: 1px
         <span class="t">Vec3</span> flat(r.speed.x, <span class="n">0</span>, r.speed.z);
         <span class="c">// It slides a little before it goes where it points.</span>
         flat = lerp(flat, ahead * top, clamp(dt * (clock &gt; <span class="n">0</span> ? <span class="n">1.9f</span> : <span class="n">4.0f</span>), <span class="n">0</span>, <span class="n">1</span>));
-        <span class="c">// On a cushion of air.</span>
-        <span class="k">float</span> under = level(r.at), aheadLevel = level(r.at + flat * <span class="n">0.22f</span>);
+        <span class="c">// On a cushion of air, over the highest ground under any part of it: nose, tail and both wings, so that</span>
+        <span class="c">// neither sinks into a slope; and over what is coming.</span>
+        <span class="k">float</span> under = hull(r.at, ahead), aheadLevel = hull(r.at + flat * <span class="n">0.25f</span>, ahead);
         <span class="k">float</span> wantedY = (under &gt; aheadLevel ? under : aheadLevel) + <span class="n">1.5f</span> + sin(<span class="t">App</span>::time * <span class="n">2</span> + <span class="k">float</span>(r.pad)) * <span class="n">0.12f</span>;
         r.climb += ((wantedY - r.at.y) * <span class="n">26</span> - r.climb * <span class="n">7</span>) * dt;
         r.speed = <span class="t">Vec3</span>(flat.x, r.climb, flat.z);
         r.at += r.speed * dt;
-        <span class="k">if</span> (r.at.y &lt; under + <span class="n">0.5f</span>)
+        under = hull(r.at, ahead);
+        <span class="k">if</span> (r.at.y &lt; under + <span class="n">0.9f</span>)
         {
-            r.at.y = under + <span class="n">0.5f</span>;
+            r.at.y = under + <span class="n">0.9f</span>;
             r.climb = r.climb &lt; <span class="n">0</span> ? <span class="n">0.0f</span> : r.climb;
         }
         <span class="c">// They keep apart.</span>
@@ -12366,6 +12380,129 @@ summary { cursor: pointer; padding: 10px 16px; } details pre { border-width: 1px
         <span class="k">if</span> (kind == <span class="n">7</span>) <span class="k">return</span> <span class="t">Color</span>(<span class="n">0.66f</span>, <span class="n">0.33f</span>, <span class="n">0.26f</span>);
         <span class="k">if</span> (kind == <span class="n">9</span>) <span class="k">return</span> <span class="t">Color</span>(<span class="n">0.76f</span>, <span class="n">0.62f</span>, <span class="n">0.42f</span>);
         <span class="k">return</span> <span class="t">Color</span>(<span class="n">0.95f</span>, <span class="n">0.78f</span>, <span class="n">0.3f</span>);
+    }
+}
+</code></pre></details></div>
+<div data-find="looks colour grading: warm, cold, faded, noir and more, before and after looks"><h3 id="demo-looks">Looks</h3><p>Colour grading: warm, cold, faded, noir and more, before and after</p>
+<div class="shots"><img loading="lazy" src="screenshots/looks.png" alt="Looks"></div>
+<details><summary><code>looks/main.as</code> <span class="tag">120 lines</span></summary><pre><code><span class="c">// Colour grading. The same island in ten looks, each a table of what every colour becomes, worked out once and</span>
+<span class="c">// looked up on the GPU in one pass. Left of the line is the picture as it was drawn; right of it, graded.</span>
+
+<span class="k">class</span> <span class="t">LooksScreen</span> : <span class="t">Screen</span>
+{
+    <span class="t">Font</span>@ font = <span class="t">Assets</span>::font(<span class="s">&quot;global:freesans.sfn&quot;</span>, <span class="n">24</span>);
+    <span class="t">Font</span>@ big = <span class="t">Assets</span>::font(<span class="s">&quot;global:freesans.sfn&quot;</span>, <span class="n">54</span>);
+    <span class="k">array</span>&lt;<span class="k">string</span>&gt; presets = { <span class="s">&quot;warm&quot;</span>, <span class="s">&quot;cold&quot;</span>, <span class="s">&quot;faded&quot;</span>, <span class="s">&quot;noir&quot;</span>, <span class="s">&quot;sepia&quot;</span>, <span class="s">&quot;dusk&quot;</span>, <span class="s">&quot;vivid&quot;</span>, <span class="s">&quot;bleach&quot;</span>, <span class="s">&quot;night&quot;</span> };
+    <span class="k">array</span>&lt;<span class="k">string</span>&gt; names = { <span class="s">&quot;Warm&quot;</span>, <span class="s">&quot;Cold&quot;</span>, <span class="s">&quot;Faded&quot;</span>, <span class="s">&quot;Noir&quot;</span>, <span class="s">&quot;Sepia&quot;</span>, <span class="s">&quot;Dusk&quot;</span>, <span class="s">&quot;Vivid&quot;</span>, <span class="s">&quot;Bleach bypass&quot;</span>, <span class="s">&quot;Night&quot;</span> };
+    <span class="t">Look</span>@ look = <span class="t">Look</span>();
+    <span class="k">uint</span> chosen = <span class="n">0</span>;
+    <span class="k">float</span> shownFor = <span class="n">0</span>, turn = <span class="n">0</span>, strength = <span class="n">1</span>;
+    <span class="c">// Until the player chooses, one look after another.</span>
+    <span class="k">bool</span> chosenByHand = <span class="k">false</span>;
+    <span class="k">bool</span> split = <span class="k">true</span>;
+    <span class="t">Vec3</span> middle;
+
+    <span class="k">void</span> onEnter()
+    {
+        <span class="t">Space</span>::land(<span class="n">9</span>, <span class="n">128</span>, <span class="n">2</span>, <span class="n">22</span>, <span class="n">0.5f</span>, <span class="k">true</span>);
+        <span class="t">Space</span>::water(<span class="n">0</span>, <span class="t">Color</span>(<span class="n">0.12f</span>, <span class="n">0.36f</span>, <span class="n">0.5f</span>, <span class="n">0.8f</span>));
+        <span class="t">Space</span>::waterStyle(<span class="s">&quot;sea&quot;</span>);
+        <span class="t">Space</span>::farthest(<span class="n">220</span>);
+        <span class="t">Space</span>::shadows(<span class="n">0.6f</span>, <span class="n">30</span>);
+        <span class="t">Space</span>::sky(<span class="t">Color</span>(<span class="n">0.25f</span>, <span class="n">0.5f</span>, <span class="n">0.85f</span>), <span class="t">Color</span>(<span class="n">0.75f</span>, <span class="n">0.86f</span>, <span class="n">0.94f</span>));
+        <span class="t">Space</span>::fog(<span class="t">Color</span>(<span class="n">0.75f</span>, <span class="n">0.86f</span>, <span class="n">0.94f</span>), <span class="n">90</span>, <span class="n">220</span>);
+        <span class="t">Space</span>::sun(<span class="t">Vec3</span>(<span class="n">0.5f</span>, <span class="n">0.6f</span>, <span class="n">0.3f</span>), <span class="t">Color</span>(<span class="n">1</span>, <span class="n">0.94f</span>, <span class="n">0.82f</span>));
+        <span class="k">if</span> (<span class="t">App</span>::platform != <span class="s">&quot;Original Xbox&quot;</span>)
+            <span class="t">Space</span>::grass(<span class="t">Assets</span>::model(<span class="s">&quot;global:model/grass.glb&quot;</span>), <span class="n">1.5f</span>, <span class="n">24</span>);
+
+        <span class="c">// Somewhere on the shore, a little above the sea.</span>
+        middle = <span class="t">Vec3</span>(<span class="n">0</span>, <span class="n">3</span>, <span class="n">0</span>);
+        <span class="k">for</span> (<span class="k">float</span> r = <span class="n">20</span>; r &lt; <span class="n">128</span>; r += <span class="n">2</span>)
+        {
+            <span class="k">float</span> h = <span class="t">Space</span>::height(r, <span class="n">0</span>);
+            <span class="k">if</span> (h &gt; <span class="n">1.5f</span> &amp;&amp; h &lt; <span class="n">5</span>)
+            {
+                middle = <span class="t">Vec3</span>(r, h, <span class="n">0</span>);
+                <span class="k">break</span>;
+            }
+        }
+        <span class="c">// Colours to see the looks by: round the wheel, and from white to black.</span>
+        <span class="k">for</span> (<span class="k">int</span> i = <span class="n">0</span>; i &lt; <span class="n">8</span>; i++)
+        {
+            <span class="k">float</span> a = <span class="k">float</span>(i) / <span class="n">8.0f</span> * <span class="n">6.283f</span>;
+            <span class="t">Entity</span>@ e = <span class="t">Space</span>::spawn(<span class="t">Vec3</span>(middle.x + sin(a) * <span class="n">4</span>, <span class="n">0</span>, middle.z + cos(a) * <span class="n">4</span>));
+            <span class="t">Vec3</span> p = e.place;
+            p.y = <span class="t">Space</span>::height(p.x, p.z) + <span class="n">0.8f</span>;
+            e.place = p;
+            e.shape(i % <span class="n">2</span> == <span class="n">0</span> ? <span class="t">SolidSphere</span> : <span class="t">SolidBox</span>, hsv(<span class="k">float</span>(i) / <span class="n">8.0f</span>, <span class="n">0.75f</span>, <span class="n">0.95f</span>));
+            e.size = <span class="t">Vec3</span>(<span class="n">1.2f</span>, <span class="n">1.2f</span>, <span class="n">1.2f</span>);
+            e.shine = <span class="n">0.5f</span>;
+        }
+        <span class="k">for</span> (<span class="k">int</span> i = <span class="n">0</span>; i &lt; <span class="n">5</span>; i++)
+        {
+            <span class="t">Entity</span>@ e = <span class="t">Space</span>::spawn(<span class="t">Vec3</span>(middle.x - <span class="n">1.6f</span> + <span class="k">float</span>(i) * <span class="n">0.8f</span>, <span class="n">0</span>, middle.z));
+            <span class="t">Vec3</span> p = e.place;
+            p.y = <span class="t">Space</span>::height(p.x, p.z) + <span class="n">0.4f</span> + <span class="k">float</span>(i) * <span class="n">0.25f</span>;
+            e.place = p;
+            <span class="k">float</span> v = <span class="n">1</span> - <span class="k">float</span>(i) / <span class="n">4.0f</span>;
+            e.shape(<span class="t">SolidBox</span>, <span class="t">Color</span>(v, v, v));
+            e.size = <span class="t">Vec3</span>(<span class="n">0.6f</span>, <span class="n">0.8f</span> + <span class="k">float</span>(i) * <span class="n">0.5f</span>, <span class="n">0.6f</span>);
+        }
+        use(<span class="n">0</span>);
+    }
+
+    <span class="k">void</span> use(<span class="k">uint</span> n)
+    {
+        chosen = n;
+        shownFor = <span class="n">0</span>;
+        look.preset(presets[n]);
+    }
+
+    <span class="k">void</span> update(<span class="k">float</span> dt)
+    {
+        shownFor += dt;
+        <span class="k">if</span> (<span class="t">Input</span>::pressed(<span class="s">&quot;left&quot;</span>) || <span class="t">Input</span>::pressed(<span class="s">&quot;right&quot;</span>) || <span class="t">Input</span>::held(<span class="s">&quot;up&quot;</span>) || <span class="t">Input</span>::held(<span class="s">&quot;down&quot;</span>) || <span class="t">Input</span>::pressed(<span class="s">&quot;accept&quot;</span>))
+            chosenByHand = <span class="k">true</span>;
+        <span class="k">if</span> (<span class="t">Input</span>::pressed(<span class="s">&quot;right&quot;</span>) || (shownFor &gt; <span class="n">4.5f</span> &amp;&amp; !chosenByHand))
+            use((chosen + <span class="n">1</span>) % presets.length());
+        <span class="k">else</span> <span class="k">if</span> (<span class="t">Input</span>::pressed(<span class="s">&quot;left&quot;</span>))
+            use((chosen + presets.length() - <span class="n">1</span>) % presets.length());
+        <span class="k">if</span> (<span class="t">Input</span>::pressed(<span class="s">&quot;accept&quot;</span>))
+            split = !split;
+        <span class="k">if</span> (<span class="t">Input</span>::held(<span class="s">&quot;up&quot;</span>))
+            strength = min(strength + dt, <span class="n">1</span>);
+        <span class="k">if</span> (<span class="t">Input</span>::held(<span class="s">&quot;down&quot;</span>))
+            strength = max(strength - dt, <span class="n">0</span>);
+        turn += dt * <span class="n">0.12f</span>;
+        <span class="t">Vec3</span> at(middle.x + sin(turn) * <span class="n">11</span>, <span class="n">0</span>, middle.z + cos(turn) * <span class="n">11</span>);
+        at.y = max(<span class="t">Space</span>::height(at.x, at.z), <span class="n">0</span>) + <span class="n">3.5f</span>;
+        <span class="t">Space</span>::camera(at, middle + <span class="t">Vec3</span>(<span class="n">0</span>, <span class="n">0.8f</span>, <span class="n">0</span>), <span class="n">60</span>);
+    }
+
+    <span class="k">void</span> draw(<span class="t">Canvas</span>@ c)
+    {
+        c.designHeight(<span class="n">720</span>);
+        <span class="t">Space</span>::draw(c);
+        c.bloom(<span class="n">0.2f</span>, <span class="n">0.85f</span>);
+        <span class="c">// Where the line is: swaying across the middle, so that both sides are seen.</span>
+        <span class="k">float</span> w = c.width;
+        <span class="k">float</span> line = split ? w * (<span class="n">0.5f</span> + sin(<span class="t">App</span>::time * <span class="n">0.6f</span>) * <span class="n">0.18f</span>) : <span class="n">0</span>;
+        c.push();
+        c.clip(line, <span class="n">0</span>, w - line, <span class="n">720</span>);
+        c.grade(look, strength);
+        c.pop();
+        <span class="k">if</span> (split)
+            c.rect(line - <span class="n">1</span>, <span class="n">0</span>, <span class="n">2</span>, <span class="n">720</span>, <span class="t">Color</span>(<span class="n">1</span>, <span class="n">1</span>, <span class="n">1</span>, <span class="n">0.8f</span>));
+
+        <span class="k">float</span> a = clamp(shownFor * <span class="n">3</span>, <span class="n">0</span>, <span class="n">1</span>) * clamp((<span class="n">4.3f</span> - shownFor) * <span class="n">2</span> + <span class="n">1</span>, <span class="n">0.4f</span>, <span class="n">1</span>);
+        <span class="k">if</span> (split)
+        {
+            c.text(font, <span class="s">&quot;As drawn&quot;</span>, line - <span class="n">16</span>, <span class="n">150</span>, <span class="t">Color</span>(<span class="n">1</span>, <span class="n">1</span>, <span class="n">1</span>, <span class="n">0.85f</span>), <span class="t">AlignRight</span>);
+            c.text(font, names[chosen], line + <span class="n">16</span>, <span class="n">150</span>, <span class="t">Color</span>(<span class="n">1</span>, <span class="n">1</span>, <span class="n">1</span>, <span class="n">0.85f</span>));
+        }
+        c.text(big, names[chosen], w - <span class="n">40</span>, <span class="n">40</span>, <span class="t">Color</span>(<span class="n">1</span>, <span class="n">1</span>, <span class="n">1</span>, a), <span class="t">AlignRight</span>);
+        c.text(font, <span class="s">&quot;Strength &quot;</span> + formatInt(<span class="k">int</span>(strength * <span class="n">100</span> + <span class="n">0.5f</span>)) + <span class="s">&quot;%&quot;</span>, w - <span class="n">40</span>, <span class="n">104</span>, <span class="t">Color</span>(<span class="n">0.9f</span>, <span class="n">0.93f</span>, <span class="n">1</span>, <span class="n">0.8f</span> * a), <span class="t">AlignRight</span>);
+        c.text(font, <span class="s">&quot;Left, right: look   Up, down: strength   Accept: &quot;</span> + (split ? <span class="s">&quot;all of it&quot;</span> : <span class="s">&quot;before and after&quot;</span>), <span class="n">40</span>, <span class="n">40</span>, <span class="t">Color</span>(<span class="n">0.9f</span>, <span class="n">0.93f</span>, <span class="n">1</span>, <span class="n">0.7f</span> * a));
     }
 }
 </code></pre></details></div>
