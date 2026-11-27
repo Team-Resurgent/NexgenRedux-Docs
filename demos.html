@@ -13107,8 +13107,8 @@ summary { cursor: pointer; padding: 10px 16px; } details pre { border-width: 1px
     }
 }
 </code></pre></details></div>
-<div data-find="topple ragdolls: knocked over, falling off ledges, and getting up again topple"><h3 id="demo-topple">Topple</h3><p>Ragdolls: knocked over, falling off ledges, and getting up again</p>
-<details><summary><code>topple/main.as</code> <span class="tag">118 lines</span></summary><pre><code><span class="c">// Ragdolls: robots knocked over go limp, a body for each limb pinned where they meet, and fall off what they stand</span>
+<div data-find="topple ragdolls: knocked over, thrown about, and getting up again topple"><h3 id="demo-topple">Topple</h3><p>Ragdolls: knocked over, thrown about, and getting up again</p>
+<details><summary><code>topple/main.as</code> <span class="tag">135 lines</span></summary><pre><code><span class="c">// Ragdolls: robots knocked over go limp, a body for each limb pinned where they meet, and fall off what they stand</span>
 <span class="c">// on; a few seconds later they get up again from wherever they lie.</span>
 
 <span class="k">class</span> <span class="t">ToppleScreen</span> : <span class="t">Screen</span>
@@ -13119,6 +13119,7 @@ summary { cursor: pointer; padding: 10px 16px; } details pre { border-width: 1px
     <span class="k">array</span>&lt;<span class="k">float</span>&gt; down;
     <span class="k">array</span>&lt;<span class="k">string</span>&gt; doing = { <span class="s">&quot;idle&quot;</span>, <span class="s">&quot;wave&quot;</span>, <span class="s">&quot;dance&quot;</span>, <span class="s">&quot;idle&quot;</span>, <span class="s">&quot;run&quot;</span> };
     <span class="k">uint</span> next = <span class="n">0</span>;
+    <span class="k">uint</span> thrown = <span class="n">3</span>;
     <span class="t">Vec3</span> eye(<span class="n">0</span>, <span class="n">7</span>, <span class="n">11</span>);
 
     <span class="k">void</span> onEnter()
@@ -13164,6 +13165,7 @@ summary { cursor: pointer; padding: 10px 16px; } details pre { border-width: 1px
         e.cube(<span class="t">Vec3</span>(<span class="n">1</span>, <span class="n">1</span>, <span class="n">1</span>));
         e.mass = mass;
         e.gravity = mass &gt; <span class="n">0</span> ? <span class="n">1</span> : <span class="n">0</span>;
+        e.wall = mass &lt;= <span class="n">0</span>;   <span class="c">// what walkers stand on</span>
         e.friction = <span class="n">0.6f</span>;
         e.shine = <span class="n">0.15f</span>;
         <span class="k">return</span> e;
@@ -13181,8 +13183,23 @@ summary { cursor: pointer; padding: 10px 16px; } details pre { border-width: 1px
         down[i] = <span class="n">3.5f</span>;
     }
 
+    <span class="c">// High into the air, turning over; again while it is still limp, and it goes up again from wherever it is.</span>
+    <span class="k">void</span> toss(<span class="k">uint</span> i)
+    {
+        <span class="t">Entity</span>@ e = robots[i];
+        <span class="t">Vec3</span> back = <span class="t">Vec3</span>(<span class="n">0</span>, <span class="n">0</span>, -<span class="n">1</span>) - e.place * <span class="n">0.15f</span>;
+        e.ragdoll(<span class="k">true</span>, <span class="t">Vec3</span>(random(-<span class="n">2.5f</span>, <span class="n">2.5f</span>) + back.x, random(<span class="n">7</span>, <span class="n">9</span>), random(-<span class="n">1</span>, <span class="n">1.5f</span>) + back.z));
+        <span class="c">// A kick to one end as well, so it spins.</span>
+        e.push(<span class="t">Vec3</span>(random(-<span class="n">40</span>, <span class="n">40</span>), <span class="n">0</span>, random(-<span class="n">40</span>, <span class="n">40</span>)), e.place + <span class="t">Vec3</span>(<span class="n">0</span>, <span class="n">0.3f</span>, <span class="n">0</span>));
+        down[i] = <span class="n">3.5f</span>;
+    }
+
     <span class="k">void</span> update(<span class="k">float</span> dt)
     {
+        <span class="k">if</span> (<span class="t">Input</span>::pressed(<span class="s">&quot;fire&quot;</span>))
+            toss(thrown);
+        <span class="k">if</span> (<span class="t">Input</span>::pressed(<span class="s">&quot;right&quot;</span>))
+            thrown = (thrown + <span class="n">1</span>) % robots.length();
         <span class="k">if</span> (<span class="t">Input</span>::pressed(<span class="s">&quot;accept&quot;</span>))
         {
             knock(next);
@@ -13223,7 +13240,7 @@ summary { cursor: pointer; padding: 10px 16px; } details pre { border-width: 1px
         c.roundRect(<span class="n">24</span>, <span class="n">22</span>, <span class="n">300</span>, <span class="n">44</span>, <span class="n">14</span>, <span class="t">Color</span>(<span class="n">0</span>, <span class="n">0</span>, <span class="n">0</span>, <span class="n">0.45f</span>));
         c.text(font, formatInt(<span class="k">int</span>(lying)) + <span class="s">&quot; of &quot;</span> + formatInt(<span class="k">int</span>(robots.length())) + <span class="s">&quot; lying down&quot;</span>, <span class="n">44</span>, <span class="n">31</span>);
         c.roundRect(<span class="n">20</span>, <span class="n">660</span>, c.width - <span class="n">40</span>, <span class="n">42</span>, <span class="n">12</span>, <span class="t">Color</span>(<span class="n">0</span>, <span class="n">0</span>, <span class="n">0</span>, <span class="n">0.45f</span>));
-        c.text(font, <span class="s">&quot;Accept: knock one over     Alternate: knock them all over&quot;</span>, <span class="n">40</span>, <span class="n">668</span>);
+        c.text(font, <span class="s">&quot;Accept: knock one over     Alternate: all of them     Fire: throw one about     Right: another to throw&quot;</span>, <span class="n">40</span>, <span class="n">668</span>);
     }
 }
 </code></pre></details></div>
