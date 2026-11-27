@@ -262,6 +262,157 @@ summary { cursor: pointer; padding: 10px 16px; } details pre { border-width: 1px
     }
 }
 </code></pre></details></div>
+<div data-find="paths and masks polygons, paths, ellipses, meshes and masks sketch"><h3 id="demo-sketch">Paths and Masks</h3><p>Polygons, paths, ellipses, meshes and masks</p>
+<div class="shots"><img loading="lazy" src="screenshots/sketch.png" alt="Paths and Masks"></div>
+<details><summary><code>sketch/main.as</code> <span class="tag">148 lines</span></summary><pre><code><span class="c">// Polygons, lines through many points, ellipses, meshes and masks.</span>
+
+<span class="k">class</span> <span class="t">SketchScreen</span> : <span class="t">Screen</span>
+{
+    <span class="t">Font</span>@ font = <span class="t">Assets</span>::font(<span class="s">&quot;global:freesans.sfn&quot;</span>, <span class="n">22</span>);
+    <span class="t">Font</span>@ big = <span class="t">Assets</span>::font(<span class="s">&quot;global:freesans.sfn&quot;</span>, <span class="n">64</span>);
+    <span class="t">Texture</span>@ bricks = <span class="t">Assets</span>::texture(<span class="s">&quot;global:picture/bricks.png&quot;</span>);
+    <span class="t">Texture</span>@ planks = <span class="t">Assets</span>::texture(<span class="s">&quot;global:picture/planks.png&quot;</span>);
+    <span class="t">Texture</span>@ clouds = <span class="t">Assets</span>::texture(<span class="s">&quot;global:picture/sky-clouds.png&quot;</span>);
+    <span class="k">float</span> t = <span class="n">0</span>;
+
+    <span class="k">void</span> update(<span class="k">float</span> dt) { t += dt; }
+
+    <span class="k">void</span> cell(<span class="t">Canvas</span>@ c, <span class="k">uint</span> index, <span class="k">const</span> <span class="k">string</span> &amp;<span class="k">in</span> label)
+    {
+        <span class="k">float</span> x = <span class="k">float</span>(index % <span class="n">4</span>) * <span class="n">310</span> + <span class="n">30</span>;
+        <span class="k">float</span> y = <span class="k">float</span>(index / <span class="n">4</span>) * <span class="n">340</span> + <span class="n">30</span>;
+        c.roundRect(x, y, <span class="n">290</span>, <span class="n">320</span>, <span class="n">14</span>, <span class="t">Color</span>(<span class="n">0.11f</span>, <span class="n">0.13f</span>, <span class="n">0.2f</span>));
+        c.text(font, label, x + <span class="n">145</span>, y + <span class="n">284</span>, <span class="t">Color</span>(<span class="n">0.7f</span>, <span class="n">0.76f</span>, <span class="n">0.86f</span>), <span class="t">AlignCenter</span>);
+        c.push();
+        c.clip(x, y, <span class="n">290</span>, <span class="n">270</span>);
+        c.translate(x + <span class="n">145</span>, y + <span class="n">140</span>);
+    }
+
+    <span class="k">void</span> draw(<span class="t">Canvas</span>@ c)
+    {
+        c.design(<span class="n">1280</span>, <span class="n">720</span>);
+        c.rect(<span class="n">0</span>, <span class="n">0</span>, <span class="n">1280</span>, <span class="n">720</span>, <span class="t">Color</span>(<span class="n">0.05f</span>, <span class="n">0.06f</span>, <span class="n">0.1f</span>));
+
+        <span class="c">// A concave star, and an arrow, filled.</span>
+        cell(c, <span class="n">0</span>, <span class="s">&quot;polygon&quot;</span>);
+        <span class="k">array</span>&lt;<span class="t">Vec2</span>&gt; star;
+        <span class="k">for</span> (<span class="k">int</span> i = <span class="n">0</span>; i &lt; <span class="n">14</span>; i++)
+        {
+            <span class="k">float</span> a = <span class="k">float</span>(i) * <span class="n">3.14159f</span> / <span class="n">7</span> + t * <span class="n">0.3f</span>;
+            <span class="k">float</span> r = i % <span class="n">2</span> == <span class="n">0</span> ? <span class="n">100</span> : <span class="n">44</span> + <span class="n">10</span> * sin(t * <span class="n">2</span>);
+            star.insertLast(<span class="t">Vec2</span>(cos(a) * r, sin(a) * r));
+        }
+        c.polygon(star, hsv(<span class="n">0.12f</span>, <span class="n">0.75f</span>, <span class="n">1</span>));
+        <span class="k">array</span>&lt;<span class="t">Vec2</span>&gt; arrow = { <span class="t">Vec2</span>(-<span class="n">30</span>, -<span class="n">14</span>), <span class="t">Vec2</span>(<span class="n">4</span>, -<span class="n">14</span>), <span class="t">Vec2</span>(<span class="n">4</span>, -<span class="n">30</span>), <span class="t">Vec2</span>(<span class="n">36</span>, <span class="n">0</span>), <span class="t">Vec2</span>(<span class="n">4</span>, <span class="n">30</span>), <span class="t">Vec2</span>(<span class="n">4</span>, <span class="n">14</span>), <span class="t">Vec2</span>(-<span class="n">30</span>, <span class="n">14</span>) };
+        c.rotate(-t * <span class="n">40</span>);
+        c.polygon(arrow, <span class="t">Color</span>(<span class="n">0.2f</span>, <span class="n">0.25f</span>, <span class="n">0.45f</span>));
+        c.pop();
+
+        <span class="c">// A graph, mitred where it turns, and a polygon&#x27;s outline.</span>
+        cell(c, <span class="n">1</span>, <span class="s">&quot;polyline and polygonLine&quot;</span>);
+        <span class="k">array</span>&lt;<span class="t">Vec2</span>&gt; graph;
+        <span class="k">for</span> (<span class="k">int</span> i = <span class="n">0</span>; i &lt;= <span class="n">12</span>; i++)
+            graph.insertLast(<span class="t">Vec2</span>(-<span class="n">120</span> + <span class="k">float</span>(i) * <span class="n">20</span>, <span class="n">40</span> + sin(<span class="k">float</span>(i) * <span class="n">1.3f</span> + t * <span class="n">2</span>) * <span class="n">30</span> + (i % <span class="n">2</span> == <span class="n">0</span> ? -<span class="n">20</span> : <span class="n">20</span>)));
+        c.polyline(graph, <span class="n">6</span>, <span class="t">Green</span>);
+        <span class="k">array</span>&lt;<span class="t">Vec2</span>&gt; hexagon;
+        <span class="k">for</span> (<span class="k">int</span> i = <span class="n">0</span>; i &lt; <span class="n">6</span>; i++)
+        {
+            <span class="k">float</span> a = <span class="k">float</span>(i) * <span class="n">3.14159f</span> / <span class="n">3</span> + t * <span class="n">0.5f</span>;
+            hexagon.insertLast(<span class="t">Vec2</span>(cos(a) * <span class="n">50</span>, -<span class="n">50</span> + sin(a) * <span class="n">50</span>));
+        }
+        c.polygonLine(hexagon, <span class="n">10</span>, <span class="t">Orange</span>);
+        c.pop();
+
+        <span class="c">// Ellipses, squashing and stretching.</span>
+        cell(c, <span class="n">2</span>, <span class="s">&quot;ellipse and ellipseLine&quot;</span>);
+        <span class="k">for</span> (<span class="k">int</span> i = <span class="n">5</span>; i &gt; <span class="n">0</span>; i--)
+        {
+            <span class="k">float</span> rx = <span class="k">float</span>(i) * <span class="n">22</span> * (<span class="n">1</span> + <span class="n">0.25f</span> * sin(t * <span class="n">2</span>));
+            <span class="k">float</span> ry = <span class="k">float</span>(i) * <span class="n">22</span> * (<span class="n">1</span> - <span class="n">0.25f</span> * sin(t * <span class="n">2</span>));
+            c.ellipse(<span class="n">0</span>, <span class="n">0</span>, rx, ry, hsv(<span class="n">0.55f</span> + <span class="k">float</span>(i) * <span class="n">0.04f</span>, <span class="n">0.6f</span>, <span class="n">0.25f</span> + <span class="n">0.12f</span> * <span class="k">float</span>(<span class="n">6</span> - i)));
+        }
+        c.ellipseLine(<span class="n">0</span>, <span class="n">0</span>, <span class="n">120</span>, <span class="n">30</span>, <span class="n">3</span>, <span class="t">White</span>);
+        c.rotate(<span class="n">90</span>);
+        c.ellipseLine(<span class="n">0</span>, <span class="n">0</span>, <span class="n">120</span>, <span class="n">30</span>, <span class="n">3</span>, fade(<span class="t">White</span>, <span class="n">0.4f</span>));
+        c.pop();
+
+        <span class="c">// A picture as a flag, its points moved and lit by how they wave.</span>
+        cell(c, <span class="n">3</span>, <span class="s">&quot;mesh&quot;</span>);
+        <span class="k">array</span>&lt;<span class="t">Vec2</span>&gt; points, uvs;
+        <span class="k">array</span>&lt;<span class="t">Color</span>&gt; shades;
+        <span class="k">array</span>&lt;<span class="k">uint</span>&gt; triangles;
+        <span class="k">const</span> <span class="k">int</span> across = <span class="n">12</span>, down = <span class="n">8</span>;
+        <span class="k">for</span> (<span class="k">int</span> y = <span class="n">0</span>; y &lt;= down; y++)
+            <span class="k">for</span> (<span class="k">int</span> x = <span class="n">0</span>; x &lt;= across; x++)
+            {
+                <span class="k">float</span> u = <span class="k">float</span>(x) / across, v = <span class="k">float</span>(y) / down;
+                <span class="k">float</span> wave = sin(u * <span class="n">6</span> - t * <span class="n">4</span>) * <span class="n">12</span> * u;
+                points.insertLast(<span class="t">Vec2</span>(-<span class="n">110</span> + u * <span class="n">220</span>, -<span class="n">80</span> + v * <span class="n">160</span> + wave));
+                uvs.insertLast(<span class="t">Vec2</span>(u, v));
+                <span class="k">float</span> light = <span class="n">0.75f</span> + <span class="n">0.25f</span> * cos(u * <span class="n">6</span> - t * <span class="n">4</span>);
+                shades.insertLast(<span class="t">Color</span>(light, light, light));
+            }
+        <span class="k">for</span> (<span class="k">int</span> y = <span class="n">0</span>; y &lt; down; y++)
+            <span class="k">for</span> (<span class="k">int</span> x = <span class="n">0</span>; x &lt; across; x++)
+            {
+                <span class="k">uint</span> a = <span class="k">uint</span>(y * (across + <span class="n">1</span>) + x), b = a + <span class="n">1</span>, d = a + across + <span class="n">1</span>, e = d + <span class="n">1</span>;
+                triangles.insertLast(a); triangles.insertLast(b); triangles.insertLast(e);
+                triangles.insertLast(a); triangles.insertLast(e); triangles.insertLast(d);
+            }
+        c.mesh(planks, points, uvs, <span class="t">White</span>, triangles, shades);
+        c.pop();
+
+        <span class="c">// A spotlight: the mask is a circle, and the picture is seen only inside it.</span>
+        cell(c, <span class="n">4</span>, <span class="s">&quot;mask and masked&quot;</span>);
+        c.image(bricks, -<span class="n">145</span>, -<span class="n">140</span>, <span class="n">290</span>, <span class="n">270</span>, <span class="t">Color</span>(<span class="n">0.18f</span>, <span class="n">0.18f</span>, <span class="n">0.22f</span>));
+        c.mask();
+        c.circle(sin(t) * <span class="n">80</span>, cos(t * <span class="n">1.3f</span>) * <span class="n">50</span>, <span class="n">60</span>, <span class="t">White</span>);
+        c.circle(sin(t * <span class="n">0.7f</span> + <span class="n">2</span>) * <span class="n">70</span>, cos(t * <span class="n">0.9f</span>) * <span class="n">60</span>, <span class="n">36</span>, <span class="t">White</span>);
+        c.masked();
+        c.image(bricks, -<span class="n">145</span>, -<span class="n">140</span>, <span class="n">290</span>, <span class="n">270</span>);
+        c.unmask();
+        c.pop();
+
+        <span class="c">// Outside the mask: text cut out of the clouds.</span>
+        cell(c, <span class="n">5</span>, <span class="s">&quot;masked(false)&quot;</span>);
+        c.mask();
+        c.text(big, <span class="s">&quot;NEXGEN&quot;</span>, <span class="n">0</span>, -<span class="n">60</span>, <span class="t">White</span>, <span class="t">AlignCenter</span>);
+        c.polygon(star, <span class="t">White</span>);
+        c.masked(<span class="k">false</span>);
+        c.image(clouds, -<span class="n">145</span> + sin(t) * <span class="n">20</span>, -<span class="n">140</span>, <span class="n">330</span>, <span class="n">270</span>);
+        c.unmask();
+        c.pop();
+
+        <span class="c">// A fan of colours: a mesh of no picture.</span>
+        cell(c, <span class="n">6</span>, <span class="s">&quot;mesh of colours&quot;</span>);
+        <span class="k">array</span>&lt;<span class="t">Vec2</span>&gt; fanPoints = { <span class="t">Vec2</span>(<span class="n">0</span>, <span class="n">0</span>) };
+        <span class="k">array</span>&lt;<span class="t">Color</span>&gt; fanColors = { <span class="t">White</span> };
+        <span class="k">for</span> (<span class="k">int</span> i = <span class="n">0</span>; i &lt;= <span class="n">24</span>; i++)
+        {
+            <span class="k">float</span> a = <span class="k">float</span>(i) * <span class="n">6.28318f</span> / <span class="n">24</span> + t * <span class="n">0.5f</span>;
+            <span class="k">float</span> r = <span class="n">90</span> + <span class="n">20</span> * sin(<span class="k">float</span>(i) * <span class="n">2</span> + t * <span class="n">3</span>);
+            fanPoints.insertLast(<span class="t">Vec2</span>(cos(a) * r, sin(a) * r));
+            fanColors.insertLast(hsv(<span class="k">float</span>(i) / <span class="n">24</span>, <span class="n">0.9f</span>, <span class="n">1</span>));
+        }
+        c.mesh(<span class="k">null</span>, fanPoints, fanPoints, <span class="t">White</span>, <span class="k">null</span>, fanColors);
+        c.pop();
+
+        <span class="c">// A trail behind something that moves, thinning as it goes.</span>
+        cell(c, <span class="n">7</span>, <span class="s">&quot;trails&quot;</span>);
+        <span class="k">for</span> (<span class="k">int</span> k = <span class="n">0</span>; k &lt; <span class="n">3</span>; k++)
+        {
+            <span class="k">array</span>&lt;<span class="t">Vec2</span>&gt; trail;
+            <span class="k">for</span> (<span class="k">int</span> i = <span class="n">0</span>; i &lt; <span class="n">40</span>; i++)
+            {
+                <span class="k">float</span> s = t - <span class="k">float</span>(i) * <span class="n">0.02f</span> + <span class="k">float</span>(k) * <span class="n">2</span>;
+                trail.insertLast(<span class="t">Vec2</span>(sin(s * <span class="n">1.7f</span>) * <span class="n">100</span>, sin(s * <span class="n">2.3f</span>) * <span class="n">90</span>));
+            }
+            c.polyline(trail, <span class="n">8</span> - <span class="k">float</span>(k) * <span class="n">2</span>, hsv(<span class="k">float</span>(k) * <span class="n">0.3f</span> + <span class="n">0.05f</span>, <span class="n">0.7f</span>, <span class="n">1</span>));
+        }
+        c.pop();
+    }
+}
+</code></pre></details></div>
 <div data-find="text scalable fonts, wrapping, rich text and letter effects text"><h3 id="demo-text">Text</h3><p>Scalable fonts, wrapping, rich text and letter effects</p>
 <div class="shots"><img loading="lazy" src="screenshots/text.png" alt="Text"></div>
 <details><summary><code>text/main.as</code> <span class="tag">100 lines</span></summary><pre><code><span class="c">// Text: one scalable font at several sizes, alignment, wrapping, marked-up text and effects letter by letter.</span>
@@ -563,6 +714,188 @@ summary { cursor: pointer; padding: 10px 16px; } details pre { border-width: 1px
         c.circle(x + w * <span class="n">0.75f</span>, y + h * <span class="n">0.3f</span>, <span class="n">34</span>, <span class="t">Yellow</span>);
         c.triangle(<span class="t">Vec2</span>(x, y + h), <span class="t">Vec2</span>(x + w * <span class="n">0.35f</span>, y + h * <span class="n">0.35f</span>), <span class="t">Vec2</span>(x + w * <span class="n">0.7f</span>, y + h), <span class="t">Green</span>, <span class="t">Color</span>(<span class="n">0.6f</span>, <span class="n">0.9f</span>, <span class="n">0.6f</span>), <span class="t">Green</span>);
         c.triangle(<span class="t">Vec2</span>(x + w * <span class="n">0.4f</span>, y + h), <span class="t">Vec2</span>(x + w * <span class="n">0.72f</span>, y + h * <span class="n">0.5f</span>), <span class="t">Vec2</span>(x + w, y + h), <span class="t">Color</span>(<span class="n">0.15f</span>, <span class="n">0.55f</span>, <span class="n">0.3f</span>), <span class="t">Green</span>, <span class="t">Color</span>(<span class="n">0.15f</span>, <span class="n">0.55f</span>, <span class="n">0.3f</span>));
+    }
+}
+</code></pre></details></div>
+<div data-find="life pixels from a seed, fingerprinted and saved life"><h3 id="demo-life">Life</h3><p>Pixels from a seed, fingerprinted and saved</p>
+<div class="shots"><img loading="lazy" src="screenshots/life.png" alt="Life"></div>
+<details><summary><code>life/main.as</code> <span class="tag">179 lines</span></summary><pre><code><span class="k">const</span> <span class="k">uint</span> across = <span class="n">96</span>;
+<span class="k">const</span> <span class="k">uint</span> down = <span class="n">54</span>;
+
+<span class="c">// Pixels a script writes, one at a time: Conway&#x27;s Life, from a seed. The same seed grows the same way on every</span>
+<span class="c">// machine. Beside it, the cells fingerprinted and squeezed, a bell curve of random numbers, and a screenshot kept as a PNG.</span>
+
+<span class="k">class</span> <span class="t">LifeScreen</span> : <span class="t">Screen</span>
+{
+    <span class="t">Font</span>@ font = <span class="t">Assets</span>::font(<span class="s">&quot;global:freesans.sfn&quot;</span>, <span class="n">20</span>);
+    <span class="t">Font</span>@ big = <span class="t">Assets</span>::font(<span class="s">&quot;global:freesans.sfn&quot;</span>, <span class="n">30</span>);
+    <span class="t">Sound</span>@ click = <span class="t">Assets</span>::sound(<span class="s">&quot;global:sound/accept.wav&quot;</span>);
+    <span class="t">Sound</span>@ shutter = <span class="t">Assets</span>::sound(<span class="s">&quot;global:sound/case.wav&quot;</span>);
+    <span class="t">Pixels</span>@ picture = <span class="t">Pixels</span>(across, down, <span class="t">Color</span>(<span class="n">0.03f</span>, <span class="n">0.04f</span>, <span class="n">0.07f</span>));
+    <span class="k">array</span>&lt;uint8&gt;@ cells = <span class="k">array</span>&lt;uint8&gt;(across * down);
+    <span class="k">array</span>&lt;uint8&gt;@ next = <span class="k">array</span>&lt;uint8&gt;(across * down);
+    <span class="k">array</span>&lt;<span class="k">float</span>&gt; heat(across * down);
+    <span class="k">array</span>&lt;<span class="k">uint</span>&gt; leftOf(across), rightOf(across);
+    <span class="k">array</span>&lt;<span class="t">Color</span>&gt; alive(across);
+    <span class="k">uint</span> seed = <span class="n">1</span>;
+    <span class="k">uint</span> generation = <span class="n">0</span>;
+    <span class="k">float</span> wait = <span class="n">0</span>;
+    <span class="k">string</span> fingerprint;
+    <span class="k">uint</span> squeezed = <span class="n">0</span>;
+    <span class="k">array</span>&lt;<span class="k">uint</span>&gt; bell(<span class="n">31</span>);
+    <span class="k">string</span> message;
+    <span class="k">float</span> messageTime = <span class="n">0</span>;
+
+    <span class="k">void</span> onEnter()
+    {
+        <span class="c">// Worked out once: the neighbours across, wrapping round, and each column&#x27;s colour.</span>
+        <span class="k">for</span> (<span class="k">uint</span> x = <span class="n">0</span>; x &lt; across; x++)
+        {
+            leftOf[x] = (x + across - <span class="n">1</span>) % across;
+            rightOf[x] = (x + <span class="n">1</span>) % across;
+            alive[x] = hsv(<span class="n">0.45f</span> + <span class="k">float</span>(x) / <span class="k">float</span>(across) * <span class="n">0.3f</span>, <span class="n">0.6f</span>, <span class="n">1</span>);
+        }
+        start(<span class="n">2026</span>);
+    }
+
+    <span class="k">void</span> start(<span class="k">uint</span> newSeed)
+    {
+        seed = newSeed;
+        generation = <span class="n">0</span>;
+        <span class="t">Random</span> r(seed);
+        <span class="k">for</span> (<span class="k">uint</span> i = <span class="n">0</span>; i &lt; cells.length(); i++)
+        {
+            cells[i] = r.random() &lt; <span class="n">0.3f</span> ? <span class="n">1</span> : <span class="n">0</span>;
+            heat[i] = <span class="n">0.03f</span>;   <span class="c">// so that every pixel is painted afresh</span>
+        }
+        <span class="c">// A bell curve from the same generator.</span>
+        <span class="k">for</span> (<span class="k">uint</span> i = <span class="n">0</span>; i &lt; bell.length(); i++)
+            bell[i] = <span class="n">0</span>;
+        <span class="k">for</span> (<span class="k">int</span> i = <span class="n">0</span>; i &lt; <span class="n">3000</span>; i++)
+        {
+            <span class="k">int</span> bin = <span class="k">int</span>(floor(r.normal(<span class="n">15.5f</span>, <span class="n">5</span>)));
+            <span class="k">if</span> (bin &gt;= <span class="n">0</span> &amp;&amp; bin &lt; <span class="k">int</span>(bell.length())) bell[bin]++;
+        }
+        measure();
+        paint();
+    }
+
+    <span class="c">// The cells as bytes: what they are fingerprinted and squeezed as.</span>
+    <span class="k">void</span> measure()
+    {
+        <span class="k">string</span> bytes;
+        bytes.resize(cells.length());
+        <span class="k">for</span> (<span class="k">uint</span> i = <span class="n">0</span>; i &lt; cells.length(); i++)
+            bytes[i] = cells[i];
+        fingerprint = <span class="t">Data</span>::sha256(bytes).substr(<span class="n">0</span>, <span class="n">16</span>);
+        squeezed = <span class="t">Data</span>::compress(bytes).length();
+    }
+
+    <span class="k">void</span> step()
+    {
+        <span class="k">for</span> (<span class="k">uint</span> y = <span class="n">0</span>; y &lt; down; y++)
+        {
+            <span class="k">uint</span> above = ((y + down - <span class="n">1</span>) % down) * across, here = y * across, below = ((y + <span class="n">1</span>) % down) * across;
+            <span class="k">for</span> (<span class="k">uint</span> x = <span class="n">0</span>; x &lt; across; x++)
+            {
+                <span class="k">uint</span> l = leftOf[x], r = rightOf[x];
+                <span class="k">uint</span> around = cells[above + l] + cells[above + x] + cells[above + r] + cells[here + l] + cells[here + r] + cells[below + l] + cells[below + x] + cells[below + r];
+                next[here + x] = around == <span class="n">3</span> || (around == <span class="n">2</span> &amp;&amp; cells[here + x] == <span class="n">1</span>) ? <span class="n">1</span> : <span class="n">0</span>;
+            }
+        }
+        <span class="k">array</span>&lt;uint8&gt;@ swap = cells;
+        @cells = next;
+        @next = swap;
+        generation++;
+    }
+
+    <span class="c">// Only the pixels that change: what lives, and what has died and is still fading.</span>
+    <span class="k">void</span> paint()
+    {
+        <span class="k">for</span> (<span class="k">uint</span> y = <span class="n">0</span>; y &lt; down; y++)
+            <span class="k">for</span> (<span class="k">uint</span> x = <span class="n">0</span>; x &lt; across; x++)
+            {
+                <span class="k">uint</span> i = y * across + x;
+                <span class="k">if</span> (cells[i] == <span class="n">1</span>)
+                {
+                    <span class="k">if</span> (heat[i] &lt; <span class="n">1</span>) picture.<span class="k">set</span>(x, y, alive[x]);
+                    heat[i] = <span class="n">1</span>;
+                }
+                <span class="k">else</span> <span class="k">if</span> (heat[i] &gt; <span class="n">0</span>)
+                {
+                    <span class="k">float</span> h = heat[i] * <span class="n">0.8f</span>;
+                    heat[i] = h &lt; <span class="n">0.02f</span> ? <span class="n">0</span> : h;
+                    picture.<span class="k">set</span>(x, y, <span class="t">Color</span>(<span class="n">0.03f</span> + h * <span class="n">0.25f</span>, <span class="n">0.04f</span> + h * <span class="n">0.12f</span>, <span class="n">0.07f</span> + h * <span class="n">0.35f</span>));
+                }
+            }
+    }
+
+    <span class="k">void</span> update(<span class="k">float</span> dt)
+    {
+        wait -= dt;
+        <span class="k">if</span> (wait &lt;= <span class="n">0</span>)
+        {
+            wait = <span class="n">0.09f</span>;
+            step();
+            paint();
+            <span class="k">if</span> (generation % <span class="n">10</span> == <span class="n">0</span>) measure();
+        }
+        messageTime -= dt;
+        <span class="k">if</span> (<span class="t">Input</span>::pressed(<span class="s">&quot;accept&quot;</span>))
+        {
+            click.play(<span class="n">0.5f</span>);
+            start(seed + <span class="n">1</span>);
+        }
+        <span class="k">if</span> (<span class="t">Input</span>::pressed(<span class="s">&quot;alternate&quot;</span>))
+        {
+            <span class="c">// The last frame, as pixels, kept as a PNG with the saves.</span>
+            <span class="t">Pixels</span>@ shot = <span class="t">App</span>::screenshot();
+            <span class="k">if</span> (shot <span class="k">is</span> <span class="k">null</span>) message = <span class="s">&quot;This machine can&#x27;t read its screen back&quot;</span>;
+            <span class="k">else</span> <span class="k">if</span> (shot.save(<span class="s">&quot;saved:life.png&quot;</span>)) message = <span class="s">&quot;Kept as saved:life.png, &quot;</span> + formatInt(shot.width) + <span class="s">&quot; x &quot;</span> + formatInt(shot.height);
+            <span class="k">else</span> message = <span class="s">&quot;It couldn&#x27;t be kept&quot;</span>;
+            shutter.play(<span class="n">0.6f</span>);
+            messageTime = <span class="n">3</span>;
+        }
+        <span class="k">if</span> (<span class="t">Input</span>::pressed(<span class="s">&quot;cancel&quot;</span>)) <span class="t">Screens</span>::pop();
+    }
+
+    <span class="k">void</span> draw(<span class="t">Canvas</span>@ c)
+    {
+        c.design(<span class="n">1280</span>, <span class="n">720</span>);
+        c.rect(<span class="n">0</span>, <span class="n">0</span>, <span class="n">1280</span>, <span class="n">720</span>, <span class="t">Color</span>(<span class="n">0.06f</span>, <span class="n">0.07f</span>, <span class="n">0.1f</span>));
+
+        <span class="c">// Ten design units to a pixel, kept sharp.</span>
+        c.push();
+        c.filter = <span class="t">FilterNearest</span>;
+        c.image(picture.texture, <span class="n">30</span>, <span class="n">60</span>, <span class="k">float</span>(across) * <span class="n">10</span>, <span class="k">float</span>(down) * <span class="n">10</span>);
+        c.pop();
+        c.rectLine(<span class="n">29</span>, <span class="n">59</span>, <span class="k">float</span>(across) * <span class="n">10</span> + <span class="n">2</span>, <span class="k">float</span>(down) * <span class="n">10</span> + <span class="n">2</span>, <span class="n">1</span>, <span class="t">Color</span>(<span class="n">0.3f</span>, <span class="n">0.34f</span>, <span class="n">0.45f</span>));
+
+        <span class="k">float</span> x = <span class="n">1010</span>;
+        c.text(big, <span class="s">&quot;Life&quot;</span>, x, <span class="n">60</span>, <span class="t">White</span>);
+        c.text(font, <span class="s">&quot;Seed &quot;</span> + formatInt(seed), x, <span class="n">110</span>, <span class="t">Color</span>(<span class="n">0.75f</span>, <span class="n">0.8f</span>, <span class="n">0.9f</span>));
+        c.text(font, <span class="s">&quot;Generation &quot;</span> + formatInt(generation), x, <span class="n">140</span>, <span class="t">Color</span>(<span class="n">0.75f</span>, <span class="n">0.8f</span>, <span class="n">0.9f</span>));
+        c.text(font, <span class="s">&quot;SHA-256 of the cells&quot;</span>, x, <span class="n">190</span>, <span class="t">Gray</span>);
+        c.text(font, fingerprint, x, <span class="n">216</span>, <span class="t">Yellow</span>);
+        c.text(font, <span class="s">&quot;Squeezed&quot;</span>, x, <span class="n">260</span>, <span class="t">Gray</span>);
+        c.text(font, formatInt(cells.length()) + <span class="s">&quot; to &quot;</span> + formatInt(squeezed) + <span class="s">&quot; bytes&quot;</span>, x, <span class="n">286</span>, <span class="t">Yellow</span>);
+
+        <span class="c">// The bell curve: Random.normal, 3000 times.</span>
+        c.text(font, <span class="s">&quot;Random.normal, 3000 times&quot;</span>, x, <span class="n">340</span>, <span class="t">Gray</span>);
+        <span class="k">uint</span> most = <span class="n">1</span>;
+        <span class="k">for</span> (<span class="k">uint</span> i = <span class="n">0</span>; i &lt; bell.length(); i++)
+            <span class="k">if</span> (bell[i] &gt; most) most = bell[i];
+        <span class="k">array</span>&lt;<span class="t">Vec2</span>&gt; curve;
+        <span class="k">for</span> (<span class="k">uint</span> i = <span class="n">0</span>; i &lt; bell.length(); i++)
+        {
+            <span class="k">float</span> h = <span class="k">float</span>(bell[i]) / <span class="k">float</span>(most) * <span class="n">120</span>;
+            c.rect(x + <span class="k">float</span>(i) * <span class="n">7.5f</span>, <span class="n">500</span> - h, <span class="n">6</span>, h, <span class="t">Color</span>(<span class="n">0.3f</span>, <span class="n">0.55f</span>, <span class="n">0.9f</span>));
+            curve.insertLast(<span class="t">Vec2</span>(x + <span class="k">float</span>(i) * <span class="n">7.5f</span> + <span class="n">3</span>, <span class="n">500</span> - h));
+        }
+        c.polyline(curve, <span class="n">2</span>, <span class="t">Color</span>(<span class="n">1</span>, <span class="n">1</span>, <span class="n">1</span>, <span class="n">0.6f</span>));
+
+        c.text(font, <span class="s">&quot;Accept: another seed    Alternate: screenshot    Cancel: back&quot;</span>, <span class="n">30</span>, <span class="n">650</span>, <span class="t">Yellow</span>);
+        <span class="k">if</span> (messageTime &gt; <span class="n">0</span>) c.text(font, message, <span class="n">30</span>, <span class="n">20</span>, fade(<span class="t">White</span>, min(<span class="n">1</span>, messageTime)));
     }
 }
 </code></pre></details></div>
@@ -6485,6 +6818,268 @@ summary { cursor: pointer; padding: 10px 16px; } details pre { border-width: 1px
         c.ring(cursor.x, cursor.y, <span class="n">14</span>, <span class="n">3</span>, <span class="t">White</span>);
         c.text(font, formatInt(<span class="t">Scene</span>::count) + <span class="s">&quot; bodies, &quot;</span> + formatInt(<span class="t">Scene</span>::contacts) + <span class="s">&quot; contacts&quot;</span>, <span class="n">40</span>, <span class="n">20</span>, <span class="t">Gray</span>);
         c.text(font, <span class="s">&quot;Accept: drop    Alternate: blast    Cancel: start again    Left trigger, C: shapes&quot;</span>, <span class="n">1240</span>, <span class="n">20</span>, <span class="t">Yellow</span>, <span class="t">AlignRight</span>);
+    }
+}
+</code></pre></details></div>
+<div data-find="contraptions a car on hills, ropes, springs and platforms contraptions"><h3 id="demo-contraptions">Contraptions</h3><p>A car on hills, ropes, springs and platforms</p>
+<div class="shots"><img loading="lazy" src="screenshots/contraptions.png" alt="Contraptions"></div>
+<details><summary><code>contraptions/main.as</code> <span class="tag">259 lines</span></summary><pre><code><span class="c">// Polygons, ground of chains, platforms that are solid only from above, and joints of every kind: a car whose</span>
+<span class="c">// wheels are driven by hinges&#x27; motors, a lamp on a spring, a weight on a rope, a block on a rail, a swinging door.</span>
+
+<span class="k">class</span> <span class="t">Rock</span>
+{
+    <span class="t">Entity</span>@ body;
+    <span class="k">array</span>&lt;<span class="t">Vec2</span>&gt; corners;
+    <span class="t">Color</span> color;
+}
+
+<span class="k">class</span> <span class="t">ContraptionsScreen</span> : <span class="t">Screen</span>
+{
+    <span class="t">Font</span>@ font = <span class="t">Assets</span>::font(<span class="s">&quot;global:freesans.sfn&quot;</span>, <span class="n">22</span>);
+    <span class="t">Sound</span>@ pop = <span class="t">Assets</span>::sound(<span class="s">&quot;global:sound/pop.wav&quot;</span>);
+    <span class="t">Sound</span>@ knock = <span class="t">Assets</span>::sound(<span class="s">&quot;global:sound/hit.wav&quot;</span>);
+    <span class="k">array</span>&lt;<span class="t">Vec2</span>&gt; hills;
+    <span class="k">array</span>&lt;<span class="t">Rock</span>@&gt; rocks;
+    <span class="t">Entity</span>@ car;
+    <span class="t">Entity</span>@ back;
+    <span class="t">Entity</span>@ front;
+    <span class="t">Entity</span>@ lamp;
+    <span class="t">Entity</span>@ weight;
+    <span class="t">Entity</span>@ held;
+    <span class="t">Vec2</span> cursor(<span class="n">640</span>, <span class="n">200</span>);
+    <span class="t">Vec2</span> lastMouse;
+    <span class="k">array</span>&lt;<span class="t">Entity</span>@&gt; platforms;
+    <span class="k">float</span> fountain = <span class="n">0</span>;
+    <span class="k">float</span> sinceKnock = <span class="n">0</span>;
+
+    <span class="k">void</span> onEnter()
+    {
+        <span class="t">Scene</span>::gravity = <span class="t">Vec2</span>(<span class="n">0</span>, <span class="n">1000</span>);
+
+        <span class="c">// Rolling ground, as a chain of lines.</span>
+        <span class="k">for</span> (<span class="k">int</span> i = <span class="n">0</span>; i &lt;= <span class="n">64</span>; i++)
+        {
+            <span class="k">float</span> x = <span class="k">float</span>(i) * <span class="n">20</span>;
+            hills.insertLast(<span class="t">Vec2</span>(x, <span class="n">610</span> + sin(x * <span class="n">0.012f</span>) * <span class="n">40</span> + sin(x * <span class="n">0.031f</span> + <span class="n">1</span>) * <span class="n">18</span>));
+        }
+        hills.insertLast(<span class="t">Vec2</span>(<span class="n">1280</span>, <span class="n">200</span>));
+        hills.insertAt(<span class="n">0</span>, <span class="t">Vec2</span>(<span class="n">0</span>, <span class="n">200</span>));
+        <span class="t">Entity</span>@ ground = <span class="t">Scene</span>::spawn(<span class="t">Vec2</span>(<span class="n">0</span>, <span class="n">0</span>));
+        ground.chain(hills);
+
+        <span class="c">// Two platforms that balls come up through and land on.</span>
+        platform(<span class="n">1010</span>, <span class="n">330</span>, <span class="n">220</span>);
+        platform(<span class="n">1010</span>, <span class="n">440</span>, <span class="n">220</span>);
+
+        <span class="c">// The car: a polygon body, and two wheels on hinges that drive.</span>
+        <span class="k">array</span>&lt;<span class="t">Vec2</span>&gt; shell = { <span class="t">Vec2</span>(-<span class="n">62</span>, <span class="n">8</span>), <span class="t">Vec2</span>(-<span class="n">58</span>, -<span class="n">12</span>), <span class="t">Vec2</span>(-<span class="n">24</span>, -<span class="n">16</span>), <span class="t">Vec2</span>(-<span class="n">8</span>, -<span class="n">36</span>), <span class="t">Vec2</span>(<span class="n">34</span>, -<span class="n">36</span>), <span class="t">Vec2</span>(<span class="n">52</span>, -<span class="n">14</span>), <span class="t">Vec2</span>(<span class="n">64</span>, -<span class="n">8</span>), <span class="t">Vec2</span>(<span class="n">64</span>, <span class="n">8</span>) };
+        @car = rock(<span class="n">160</span>, <span class="n">450</span>, shell, <span class="n">4</span>, <span class="t">Color</span>(<span class="n">0.85f</span>, <span class="n">0.3f</span>, <span class="n">0.25f</span>)).body;
+        @back = wheel(<span class="n">160</span> - <span class="n">40</span>, <span class="n">470</span>);
+        @front = wheel(<span class="n">160</span> + <span class="n">42</span>, <span class="n">470</span>);
+        <span class="t">Scene</span>::hinge(back, car, back.position, <span class="n">0</span>, <span class="n">0</span>, <span class="n">0</span>, <span class="n">0</span>);
+        <span class="t">Scene</span>::hinge(front, car, front.position, <span class="n">0</span>, <span class="n">0</span>, <span class="n">0</span>, <span class="n">0</span>);
+
+        <span class="c">// A lamp on a spring, and a weight on a rope, from the sky.</span>
+        @lamp = <span class="t">Scene</span>::spawn(<span class="t">Vec2</span>(<span class="n">470</span>, <span class="n">230</span>));
+        lamp.disc(<span class="n">18</span>, <span class="t">Yellow</span>);
+        lamp.circle(<span class="n">18</span>);
+        lamp.gravity = <span class="n">1</span>;
+        lamp.mass = <span class="n">1</span>;
+        <span class="t">Scene</span>::spring(lamp, <span class="k">null</span>, lamp.position, <span class="t">Vec2</span>(<span class="n">470</span>, <span class="n">60</span>), <span class="n">1.5f</span>, <span class="n">0.1f</span>, <span class="n">120</span>);
+        @weight = <span class="t">Scene</span>::spawn(<span class="t">Vec2</span>(<span class="n">640</span>, <span class="n">260</span>));
+        weight.rect(<span class="n">40</span>, <span class="n">40</span>, <span class="t">Color</span>(<span class="n">0.5f</span>, <span class="n">0.55f</span>, <span class="n">0.65f</span>));
+        weight.box(<span class="n">40</span>, <span class="n">40</span>);
+        weight.gravity = <span class="n">1</span>;
+        weight.mass = <span class="n">3</span>;
+        <span class="t">Scene</span>::rope(weight, <span class="k">null</span>, weight.position + <span class="t">Vec2</span>(<span class="n">0</span>, -<span class="n">20</span>), <span class="t">Vec2</span>(<span class="n">700</span>, <span class="n">60</span>), <span class="n">230</span>);
+
+        <span class="c">// A block on a rail, and a door that swings between two angles.</span>
+        <span class="t">Entity</span>@ rail = <span class="t">Scene</span>::spawn(<span class="t">Vec2</span>(<span class="n">790</span>, <span class="n">170</span>));
+        rail.rect(<span class="n">300</span>, <span class="n">4</span>, <span class="t">Color</span>(<span class="n">0.4f</span>, <span class="n">0.42f</span>, <span class="n">0.5f</span>));
+        <span class="t">Entity</span>@ slider = <span class="t">Scene</span>::spawn(<span class="t">Vec2</span>(<span class="n">790</span>, <span class="n">160</span>));
+        slider.rect(<span class="n">50</span>, <span class="n">24</span>, <span class="t">Color</span>(<span class="n">0.3f</span>, <span class="n">0.65f</span>, <span class="n">0.9f</span>));
+        slider.box(<span class="n">50</span>, <span class="n">24</span>);
+        slider.gravity = <span class="n">1</span>;
+        slider.mass = <span class="n">1</span>;
+        <span class="t">Scene</span>::slider(slider, <span class="k">null</span>, slider.position, <span class="t">Vec2</span>(<span class="n">1</span>, <span class="n">0</span>), -<span class="n">125</span>, <span class="n">125</span>);
+        <span class="t">Entity</span>@ door = <span class="t">Scene</span>::spawn(<span class="t">Vec2</span>(<span class="n">330</span>, <span class="n">380</span>));
+        door.rect(<span class="n">10</span>, <span class="n">120</span>, <span class="t">Color</span>(<span class="n">0.75f</span>, <span class="n">0.6f</span>, <span class="n">0.4f</span>));
+        door.box(<span class="n">10</span>, <span class="n">120</span>);
+        door.gravity = <span class="n">1</span>;
+        door.mass = <span class="n">1</span>;
+        <span class="t">Scene</span>::hinge(door, <span class="k">null</span>, <span class="t">Vec2</span>(<span class="n">330</span>, <span class="n">320</span>), -<span class="n">80</span>, <span class="n">80</span>);
+
+        <span class="k">for</span> (<span class="k">int</span> i = <span class="n">0</span>; i &lt; <span class="n">6</span>; i++)
+            drop(<span class="t">Vec2</span>(<span class="n">560</span> + <span class="k">float</span>(i) * <span class="n">40</span>, <span class="n">80</span> - <span class="k">float</span>(i) * <span class="n">30</span>));
+    }
+
+    <span class="k">void</span> platform(<span class="k">float</span> x, <span class="k">float</span> y, <span class="k">float</span> w)
+    {
+        <span class="t">Entity</span>@ p = <span class="t">Scene</span>::spawn(<span class="t">Vec2</span>(x, y));
+        p.rect(w, <span class="n">8</span>, <span class="t">Color</span>(<span class="n">0.55f</span>, <span class="n">0.6f</span>, <span class="n">0.75f</span>, <span class="n">0.8f</span>));
+        p.box(w, <span class="n">8</span>);
+        p.wall = <span class="k">true</span>;
+        p.oneWay = <span class="k">true</span>;
+        platforms.insertLast(p);
+    }
+
+    <span class="t">Entity</span>@ wheel(<span class="k">float</span> x, <span class="k">float</span> y)
+    {
+        <span class="t">Entity</span>@ e = <span class="t">Scene</span>::spawn(<span class="t">Vec2</span>(x, y));
+        e.disc(<span class="n">17</span>, <span class="t">Color</span>(<span class="n">0.15f</span>, <span class="n">0.15f</span>, <span class="n">0.18f</span>));
+        e.circle(<span class="n">17</span>);
+        e.gravity = <span class="n">1</span>;
+        e.mass = <span class="n">1</span>;
+        e.friction = <span class="n">1.2f</span>;
+        <span class="t">Entity</span>@ hub = <span class="t">Scene</span>::spawn(<span class="t">Vec2</span>(<span class="n">8</span>, <span class="n">0</span>));
+        hub.disc(<span class="n">4</span>, <span class="t">Gray</span>);
+        hub.attach(e);
+        hub.layer = <span class="n">1</span>;
+        <span class="k">return</span> e;
+    }
+
+    <span class="t">Rock</span>@ rock(<span class="k">float</span> x, <span class="k">float</span> y, <span class="k">const</span> <span class="k">array</span>&lt;<span class="t">Vec2</span>&gt; &amp;<span class="k">in</span> corners, <span class="k">float</span> mass, <span class="k">const</span> <span class="t">Color</span> &amp;<span class="k">in</span> color)
+    {
+        <span class="t">Rock</span> r;
+        @r.body = <span class="t">Scene</span>::spawn(<span class="t">Vec2</span>(x, y));
+        r.body.polygon(corners);
+        r.body.gravity = <span class="n">1</span>;
+        r.body.mass = mass;
+        r.body.friction = <span class="n">0.7f</span>;
+        r.corners = corners;
+        r.color = color;
+        rocks.insertLast(r);
+        <span class="k">return</span> r;
+    }
+
+    <span class="k">void</span> drop(<span class="k">const</span> <span class="t">Vec2</span> &amp;<span class="k">in</span> at)
+    {
+        <span class="c">// A rock of from three to seven corners, roughly round.</span>
+        <span class="k">array</span>&lt;<span class="t">Vec2</span>&gt; corners;
+        <span class="k">int</span> count = randomInt(<span class="n">3</span>, <span class="n">7</span>);
+        <span class="k">float</span> size = random(<span class="n">16</span>, <span class="n">34</span>);
+        <span class="k">for</span> (<span class="k">int</span> i = <span class="n">0</span>; i &lt; count; i++)
+        {
+            <span class="k">float</span> a = <span class="k">float</span>(i) * <span class="n">6.28318f</span> / <span class="k">float</span>(count) + random(-<span class="n">0.2f</span>, <span class="n">0.2f</span>);
+            <span class="k">float</span> r = size * random(<span class="n">0.75f</span>, <span class="n">1.2f</span>);
+            corners.insertLast(<span class="t">Vec2</span>(cos(a) * r, sin(a) * r));
+        }
+        rock(at.x, at.y, corners, <span class="n">1</span>, hsv(random(<span class="n">0.05f</span>, <span class="n">0.15f</span>), random(<span class="n">0.3f</span>, <span class="n">0.6f</span>), random(<span class="n">0.6f</span>, <span class="n">0.9f</span>)));
+    }
+
+    <span class="k">void</span> update(<span class="k">float</span> dt)
+    {
+        cursor += <span class="t">Input</span>::move * <span class="n">600</span> * dt;
+        <span class="t">Vec2</span> mouse = <span class="t">Input</span>::mouse;
+        <span class="k">if</span> (<span class="t">Input</span>::hasMouse &amp;&amp; mouse != lastMouse) cursor = mouse;
+        lastMouse = mouse;
+        cursor = <span class="t">Vec2</span>(clamp(cursor.x, <span class="n">20</span>, <span class="n">1260</span>), clamp(cursor.y, <span class="n">20</span>, <span class="n">700</span>));
+
+        <span class="c">// Left and right drive the car, unless something is held.</span>
+        <span class="k">float</span> drive = held <span class="k">is</span> <span class="k">null</span> ? <span class="t">Input</span>::move.x : <span class="n">0</span>;
+        <span class="t">Scene</span>::motor(back, drive * <span class="n">700</span>, drive != <span class="n">0</span> ? 4e4f : 1e4f);
+        <span class="t">Scene</span>::motor(front, drive * <span class="n">700</span>, drive != <span class="n">0</span> ? 4e4f : 1e4f);
+
+        <span class="k">if</span> (<span class="t">Input</span>::repeated(<span class="s">&quot;accept&quot;</span>) &amp;&amp; rocks.length() &lt; <span class="n">80</span>)
+        {
+            pop.play(<span class="n">0.4f</span>, (cursor.x - <span class="n">640</span>) / <span class="n">640</span>, random(<span class="n">0.8f</span>, <span class="n">1.3f</span>));
+            drop(cursor);
+        }
+
+        <span class="c">// Fire picks up whatever is under the pointer, and lets go of it.</span>
+        <span class="k">if</span> (<span class="t">Input</span>::pressed(<span class="s">&quot;fire&quot;</span>) || (<span class="t">Input</span>::hasMouse &amp;&amp; <span class="t">Input</span>::mouseDown(<span class="n">0</span>) &amp;&amp; held <span class="k">is</span> <span class="k">null</span>))
+        {
+            <span class="k">array</span>&lt;<span class="t">Entity</span>@&gt;@ under = <span class="t">Scene</span>::within(cursor, <span class="n">4</span>);
+            <span class="k">for</span> (<span class="k">uint</span> i = <span class="n">0</span>; i &lt; under.length() &amp;&amp; held <span class="k">is</span> <span class="k">null</span>; i++)
+                <span class="k">if</span> (under[i].mass &gt; <span class="n">0</span> &amp;&amp; under[i] !<span class="k">is</span> car &amp;&amp; under[i] !<span class="k">is</span> back &amp;&amp; under[i] !<span class="k">is</span> front)
+                {
+                    @held = under[i];
+                    <span class="t">Scene</span>::drag(held, cursor, <span class="n">8</span>);
+                }
+        }
+        <span class="k">else</span> <span class="k">if</span> (held !<span class="k">is</span> <span class="k">null</span> &amp;&amp; (<span class="t">Input</span>::released(<span class="s">&quot;fire&quot;</span>) || (<span class="t">Input</span>::hasMouse &amp;&amp; !<span class="t">Input</span>::mouseDown(<span class="n">0</span>) &amp;&amp; !<span class="t">Input</span>::held(<span class="s">&quot;fire&quot;</span>))))
+        {
+            <span class="t">Scene</span>::unjoin(held);
+            @held = <span class="k">null</span>;
+        }
+        <span class="k">if</span> (held !<span class="k">is</span> <span class="k">null</span>) <span class="t">Scene</span>::dragTo(held, cursor);
+
+        <span class="c">// Balls come up through the platforms and land on them.</span>
+        fountain -= dt;
+        <span class="k">if</span> (fountain &lt;= <span class="n">0</span>)
+        {
+            fountain = <span class="n">1.2f</span>;
+            <span class="t">Entity</span>@ ball = <span class="t">Scene</span>::spawn(<span class="t">Vec2</span>(random(<span class="n">930</span>, <span class="n">1090</span>), <span class="n">560</span>));
+            ball.disc(<span class="n">10</span>, hsv(random(), <span class="n">0.6f</span>, <span class="n">1</span>));
+            ball.circle(<span class="n">10</span>);
+            ball.gravity = <span class="n">1</span>;
+            ball.mass = <span class="n">0.3f</span>;
+            ball.bounce = <span class="n">0.3f</span>;
+            ball.velocity = <span class="t">Vec2</span>(random(-<span class="n">30</span>, <span class="n">30</span>), -<span class="n">900</span>);
+            ball.lifetime = <span class="n">12</span>;
+        }
+
+        <span class="c">// A knock when the weight hits something hard.</span>
+        sinceKnock += dt;
+        <span class="t">Vec2</span> at, normal;
+        <span class="k">float</span> impulse;
+        <span class="k">for</span> (<span class="k">uint</span> i = <span class="n">0</span>; i &lt; rocks.length(); i++)
+            <span class="k">if</span> (sinceKnock &gt; <span class="n">0.15f</span> &amp;&amp; <span class="t">Scene</span>::contact(weight, rocks[i].body, at, normal, impulse) &amp;&amp; impulse &gt; <span class="n">400</span>)
+            {
+                knock.play(<span class="n">0.3f</span>, (at.x - <span class="n">640</span>) / <span class="n">640</span>);
+                sinceKnock = <span class="n">0</span>;
+            }
+
+        <span class="k">if</span> (<span class="t">Input</span>::pressed(<span class="s">&quot;cancel&quot;</span>)) <span class="t">Screens</span>::replace(<span class="s">&quot;contraptions&quot;</span>);
+        <span class="k">bool</span> shapes = <span class="t">Input</span>::padTriggers(<span class="n">0</span>).x &gt; <span class="n">0.5f</span> || <span class="t">Input</span>::key(<span class="s">&quot;C&quot;</span>);
+        <span class="k">if</span> (shapes &amp;&amp; !wasShapes) <span class="t">Scene</span>::showShapes = !<span class="t">Scene</span>::showShapes;
+        wasShapes = shapes;
+    }
+    <span class="k">bool</span> wasShapes = <span class="k">false</span>;
+
+    <span class="k">void</span> draw(<span class="t">Canvas</span>@ c)
+    {
+        c.design(<span class="n">1280</span>, <span class="n">720</span>);
+        c.gradient(<span class="n">0</span>, <span class="n">0</span>, <span class="n">1280</span>, <span class="n">720</span>, <span class="t">Color</span>(<span class="n">0.16f</span>, <span class="n">0.22f</span>, <span class="n">0.34f</span>), <span class="t">Color</span>(<span class="n">0.07f</span>, <span class="n">0.08f</span>, <span class="n">0.13f</span>));
+
+        <span class="c">// The ground, filled down from the chain.</span>
+        <span class="k">array</span>&lt;<span class="t">Vec2</span>&gt; land;
+        <span class="k">for</span> (<span class="k">uint</span> i = <span class="n">1</span>; i + <span class="n">1</span> &lt; hills.length(); i++)
+            land.insertLast(hills[i]);
+        land.insertLast(<span class="t">Vec2</span>(<span class="n">1280</span>, <span class="n">720</span>));
+        land.insertLast(<span class="t">Vec2</span>(<span class="n">0</span>, <span class="n">720</span>));
+        c.polygon(land, <span class="t">Color</span>(<span class="n">0.2f</span>, <span class="n">0.3f</span>, <span class="n">0.22f</span>));
+        c.polyline(land, <span class="n">4</span>, <span class="t">Color</span>(<span class="n">0.35f</span>, <span class="n">0.55f</span>, <span class="n">0.3f</span>));
+
+        <span class="c">// What holds the lamp, the weight and the door.</span>
+        c.line(<span class="n">470</span>, <span class="n">60</span>, lamp.position.x, lamp.position.y, <span class="n">2</span>, fade(<span class="t">White</span>, <span class="n">0.4f</span>));
+        c.circle(<span class="n">470</span>, <span class="n">60</span>, <span class="n">5</span>, <span class="t">Gray</span>);
+        <span class="t">Vec2</span> top = weight.position + <span class="t">Vec2</span>(sin(-weight.rotation * <span class="n">3.14159f</span> / <span class="n">180</span>) * <span class="n">20</span>, -cos(weight.rotation * <span class="n">3.14159f</span> / <span class="n">180</span>) * <span class="n">20</span>);
+        c.line(<span class="n">700</span>, <span class="n">60</span>, top.x, top.y, <span class="n">2</span>, <span class="t">Color</span>(<span class="n">0.75f</span>, <span class="n">0.7f</span>, <span class="n">0.55f</span>));
+        c.circle(<span class="n">700</span>, <span class="n">60</span>, <span class="n">5</span>, <span class="t">Gray</span>);
+        c.circle(<span class="n">330</span>, <span class="n">320</span>, <span class="n">6</span>, <span class="t">Gray</span>);
+
+        <span class="t">Scene</span>::draw(c);
+        <span class="k">for</span> (<span class="k">uint</span> i = <span class="n">0</span>; i &lt; rocks.length(); i++)
+        {
+            <span class="t">Rock</span>@ r = rocks[i];
+            c.push();
+            c.translate(r.body.position.x, r.body.position.y);
+            c.rotate(r.body.rotation);
+            c.polygon(r.corners, r.color);
+            c.polygonLine(r.corners, <span class="n">2</span>, <span class="t">Color</span>(r.color.r * <span class="n">0.6f</span>, r.color.g * <span class="n">0.6f</span>, r.color.b * <span class="n">0.6f</span>));
+            c.pop();
+        }
+        <span class="c">// The car&#x27;s windows, over its body.</span>
+        c.push();
+        c.translate(car.position.x, car.position.y);
+        c.rotate(car.rotation);
+        <span class="k">array</span>&lt;<span class="t">Vec2</span>&gt; window = { <span class="t">Vec2</span>(-<span class="n">4</span>, -<span class="n">14</span>), <span class="t">Vec2</span>(-<span class="n">4</span>, -<span class="n">31</span>), <span class="t">Vec2</span>(<span class="n">30</span>, -<span class="n">31</span>), <span class="t">Vec2</span>(<span class="n">44</span>, -<span class="n">14</span>) };
+        c.polygon(window, <span class="t">Color</span>(<span class="n">0.6f</span>, <span class="n">0.8f</span>, <span class="n">0.95f</span>, <span class="n">0.8f</span>));
+        c.pop();
+
+        c.ring(cursor.x, cursor.y, held <span class="k">is</span> <span class="k">null</span> ? <span class="n">12</span> : <span class="n">8</span>, <span class="n">3</span>, held <span class="k">is</span> <span class="k">null</span> ? <span class="t">White</span> : <span class="t">Yellow</span>);
+        c.text(font, <span class="s">&quot;Left, right: drive    Accept: rock    Fire: pick up    Cancel: again    C: shapes&quot;</span>, <span class="n">640</span>, <span class="n">16</span>, <span class="t">Yellow</span>, <span class="t">AlignCenter</span>);
     }
 }
 </code></pre></details></div>

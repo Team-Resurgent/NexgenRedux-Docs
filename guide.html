@@ -104,6 +104,20 @@ summary { cursor: pointer; padding: 10px 16px; } details pre { border-width: 1px
 <p><code>rich</code> draws a paragraph with some of it marked: <code>[color=orange]</code>, <code>[b]</code>, <code>[u]</code> and <code>[s]</code>, each ended with <code>[/color]</code>, <code>[/b]</code>,</p>
 <p><code>[/u]</code> or <code>[/s]</code>, and <code>[[</code> for a bracket itself. Colours are names (white, black, red, green, blue, yellow, orange, pink, purple,</p>
 <p>cyan, gray) or <code>#rrggbb</code>. It wraps as <code>paragraph</code> does, and <code>richHeight</code> says how tall it will be.</p>
+<h3 id="polygons-paths-meshes-and-masks">Polygons, paths, meshes and masks</h3>
+<p><code>polygon</code> fills up to 256 corners, either way round and concave too, as long as its sides don&#x27;t cross; <code>polygonLine</code> is its</p>
+<p>outline and <code>polyline</code> lines through points, both mitred where they turn and bevelled where that would be sharp. <code>ellipse</code> and</p>
+<p><code>ellipseLine</code> are circles stretched.</p>
+<p><code>mesh</code> draws triangles of a picture: a point and where in the picture it comes from (<code>uvs</code>, 0 to 1 across it) for each corner,</p>
+<p>three indices to a triangle, or a fan from the first point without them. A colour for each point tints it, and with no picture it is coloured triangles. A flag that waves, cloth, water, a picture wrapped round a shape.</p>
+<p>A mask hides what is drawn outside a shape, or inside it:</p>
+<pre><code>c.mask();                                         <span class="c">// what is drawn now marks the mask, and isn&#x27;t seen</span>
+c.circle(spot.x, spot.y, <span class="n">80</span>, <span class="t">White</span>);
+c.text(font, <span class="s">&quot;NEXGEN&quot;</span>, <span class="n">640</span>, <span class="n">300</span>, <span class="t">White</span>, <span class="t">AlignCenter</span>);   <span class="c">// text and pictures mark their shapes, not their squares</span>
+c.masked();                                       <span class="c">// only what is inside it is seen; masked(false) for outside</span>
+c.image(scene, <span class="n">0</span>, <span class="n">0</span>, <span class="n">1280</span>, <span class="n">720</span>);
+c.unmask();</code></pre>
+<p>Each <code>mask()</code> starts a new one. A mask doesn&#x27;t last into or out of a picture being drawn into, or into the next frame. On every GPU; the Paths and Masks demo has them all.</p>
 <h3 id="pictures-to-draw-into">Pictures to draw into</h3>
 <p><code>Assets::picture(width, height)</code> makes a blank picture of its own. Between <code>c.beginPicture(picture)</code> and <code>c.endPicture()</code>,</p>
 <p>everything drawn goes into it rather than onto the screen, 3D included; then it is drawn like any other picture:</p>
@@ -122,6 +136,19 @@ summary { cursor: pointer; padding: 10px 16px; } details pre { border-width: 1px
     c.image(map, c.width - <span class="n">340</span>, <span class="n">20</span>, <span class="n">320</span>, <span class="n">320</span>);       <span class="c">// a minimap</span>
 }</code></pre>
 <p>A minimap, a screen in a room, a mirror, or something drawn once and shown many times. One is drawn into at a time; effects, bloom and grading are for the screen. Up to 2048 pixels a side, and 1024 on the original Xbox; the Pictures demo has one.</p>
+<h3 id="pixels">Pixels</h3>
+<p><code>Pixels</code> is a picture a script reads and writes one pixel at a time: made blank, read from a file with <code>Assets::pixels</code>, or the</p>
+<p>last frame shown with <code>App::screenshot()</code>. Its <code>texture</code> draws it, sent to the GPU again when a pixel has changed:</p>
+<pre><code><span class="t">Pixels</span>@ board = <span class="t">Pixels</span>(<span class="n">96</span>, <span class="n">54</span>, <span class="t">Black</span>);
+board.<span class="k">set</span>(<span class="n">10</span>, <span class="n">4</span>, <span class="t">Yellow</span>);
+<span class="t">Color</span> under = board.<span class="k">get</span>(<span class="n">10</span>, <span class="n">4</span>);
+c.filter = <span class="t">FilterNearest</span>;                          <span class="c">// sharp, drawn ten times as big</span>
+c.image(board.texture, <span class="n">0</span>, <span class="n">0</span>, <span class="n">960</span>, <span class="n">540</span>);
+
+<span class="t">Pixels</span>@ shot = <span class="t">App</span>::screenshot();                  <span class="c">// in update(), not draw(); null on the Xbox 360</span>
+<span class="k">if</span> (shot !<span class="k">is</span> <span class="k">null</span>) shot.save(<span class="s">&quot;saved:shot.png&quot;</span>);    <span class="c">// a PNG with the saves; Assets::pixels(&quot;saved:shot.png&quot;) reads it</span></code></pre>
+<p><code>paste</code> puts one on another, <code>copy</code> makes another, and <code>png()</code> is the PNG file in a string, to send. Up to 2048 a side. The Life</p>
+<p>demo draws Conway&#x27;s Life this way.</p>
 <h2 id="scenes">Scenes</h2>
 <p><code>Canvas</code> draws whatever you tell it to each frame. For things that move, collide and come and go, let the engine keep them:</p>
 <pre><code><span class="t">Entity</span>@ rock = <span class="t">Scene</span>::spawn(<span class="t">Vec2</span>(<span class="n">640</span>, <span class="n">100</span>));
@@ -207,6 +234,19 @@ crate.occluder = <span class="k">true</span>;                             <span 
 <p>There are two kinds. A <b>solid</b> body is stopped by walls and tiles and never turns: use it for characters, with <code>onGround</code>,</p>
 <p><code>onWall</code> and <code>onCeiling</code>. A body with <b>mass</b> is rigid: it pushes, stacks, bounces and turns. <code>Scene::join</code> pins two together, for</p>
 <p>chains, hinges and wheels.</p>
+<p>A collider is a <code>circle</code>, a <code>box</code>, a convex <code>polygon</code> of up to 8 corners (made convex if it isn&#x27;t), or a <code>chain</code>: lines through up to 256 points that never move, for ground with hills and slopes, hit from either side. Characters stand on a chain&#x27;s gentle parts, walk up and down them, and are stopped by its steep ones; to them a polygon is the box around it. A wall with <code>oneWay</code> is solid only from above: what is under it jumps up through it and lands on it, characters and rigid bodies alike.</p>
+<p>Joints hold rigid bodies together, or to the scene where the second is null. Bodies joined together pass through each other:</p>
+<pre><code><span class="t">Scene</span>::hinge(wheel, car, wheel.position);                  <span class="c">// turns freely</span>
+<span class="t">Scene</span>::hinge(door, <span class="k">null</span>, hingePlace, -<span class="n">80</span>, <span class="n">80</span>);             <span class="c">// between two angles, in degrees</span>
+<span class="t">Scene</span>::motor(wheel, <span class="n">700</span>, 4e4f);                            <span class="c">// driven: degrees a second, and how strongly</span>
+<span class="t">Scene</span>::weld(a, b, between);                                <span class="c">// as one</span>
+<span class="t">Scene</span>::rope(lamp, <span class="k">null</span>, lamp.position, hook, <span class="n">120</span>);         <span class="c">// no further apart than a length</span>
+<span class="t">Scene</span>::spring(bob, <span class="k">null</span>, bob.position, hook, <span class="n">2</span>, <span class="n">0.2f</span>);     <span class="c">// bounces twice a second, settling slowly</span>
+<span class="t">Scene</span>::slider(lift, <span class="k">null</span>, lift.position, <span class="t">Vec2</span>(<span class="n">0</span>, <span class="n">1</span>), -<span class="n">200</span>, <span class="n">0</span>);   <span class="c">// along a line, between two places</span>
+<span class="t">Scene</span>::drag(rock, mouse);                                  <span class="c">// pulled softly, as a hand would; dragTo moves it on</span>
+<span class="t">Scene</span>::unjoin(rock);                                       <span class="c">// every joint it is in</span></code></pre>
+<p><code>Scene::contact(a, b, at, normal, impulse)</code> says whether two touched in the last step, where, which way and how hard: for a knock</p>
+<p>as loud as the hit, or sparks where it was. The Contraptions demo has a car on hills, a lamp on a spring, a weight on a rope, a block on a rail, a door, and platforms that balls come up through.</p>
 <h2 id="three-dimensions">Three dimensions</h2>
 <p>The same entities can be in space: x right, y up, z towards you, in metres. <code>Space::spawn</code> puts one there, and behaviours, parents, groups, <code>onHit</code> and <code>lifetime</code> work as they do on the plane.</p>
 <pre><code><span class="t">Model</span>@ robot = <span class="t">Assets</span>::model(<span class="s">&quot;global:model/robot.glb&quot;</span>);
@@ -706,6 +746,17 @@ j.<span class="k">set</span>(<span class="s">&quot;score&quot;</span>, <span cla
 <span class="t">Assets</span>::write(<span class="s">&quot;asset:level.json&quot;</span>, j.write());</code></pre>
 <p><code>Assets::write</code> writes only a screen&#x27;s own <code>asset:</code> files that end in <code>.json</code>. With <code>--dev</code> it is the file in the media; otherwise</p>
 <p>it is kept with the saves, on consoles too, and <code>Assets::read</code> and <code>Space::load</code> read that one from then on. <code>Assets::forget</code> goes back to the one that came with the screen.</p>
+<h3 id="bytes">Bytes</h3>
+<p>A string holds any bytes, and <code>Data</code> works on them: <code>compress</code> and <code>uncompress</code> in zlib&#x27;s format, which most languages read;</p>
+<p><code>md5</code>, <code>sha1</code> and <code>sha256</code>, fingerprints as hex digits; <code>base64</code> and <code>unbase64</code>, <code>hex</code> and <code>unhex</code>, to carry bytes as text.</p>
+<pre><code><span class="k">string</span> packed = <span class="t">Data</span>::base64(<span class="t">Data</span>::compress(level.write()));   <span class="c">// small enough to share as a code</span>
+<span class="k">string</span> sum = <span class="t">Data</span>::sha256(<span class="t">Assets</span>::read(<span class="s">&quot;asset:level.json&quot;</span>));  <span class="c">// has it changed?</span></code></pre>
+<h3 id="random-numbers-from-a-seed">Random numbers from a seed</h3>
+<p><code>random()</code> and <code>randomInt</code> share one generator. A <code>Random</code> is one of a script&#x27;s own: the same seed gives the same numbers in the</p>
+<p>same order on every machine, for a world made from a number, a replay, or the same deal twice. <code>normal(mean, deviation)</code> is mostly near the mean and seldom far from it, in a bell curve; <code>randomNormal</code> is the same from the shared one. <code>state</code> is where it has got to, as text to keep in a save and give back.</p>
+<pre><code><span class="t">Random</span> r(seed);
+<span class="k">float</span> height = r.normal(<span class="n">1.7f</span>, <span class="n">0.1f</span>);
+<span class="k">int</span> card = r.randomInt(<span class="n">0</span>, <span class="n">51</span>);</code></pre>
 <h2 id="on-the-original-xbox">On the original Xbox</h2>
 <ul><li>64 MB in all. Images and fonts may take 20 MB and sounds 6 MB by default.</li><li>A scene may have 4096 entities and 1500 particles at once; elsewhere 16384 and 8000.</li><li>Build the disc with the cook tool, which makes images a quarter to an eighth of the size in memory and sounds a quarter, under the same names.</li><li>Three dimensions use the fixed pipeline: lights are worked out at corners, so give a floor plenty of squares. Ray-marched shapes become triangles. Effects are stand-ins.</li><li>Live reload works with a <code>dev</code> folder beside the title: copy changed scripts to the console over the network and the screen reloads. The debugger works over the network too: put a <code>debug</code> folder there, or call <code>App::debugger()</code>, and attach to the console&#x27;s address.</li></ul></main></div>
 </body>
