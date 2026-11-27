@@ -1437,6 +1437,88 @@ summary { cursor: pointer; padding: 10px 16px; } details pre { border-width: 1px
     }
 }
 </code></pre></details></div>
+<div data-find="lights lights on the plane, and the shadows walls cast lights"><h3 id="demo-lights">Lights</h3><p>Lights on the plane, and the shadows walls cast</p>
+<div class="shots"><img loading="lazy" src="screenshots/lights.png" alt="Lights"></div>
+<details><summary><code>lights/main.as</code> <span class="tag">79 lines</span></summary><pre><code><span class="c">// Lights on the plane: a dark dungeon, a lantern that goes where you do, torches that flicker, crystals of colour, and</span>
+<span class="c">// crates and a pillar that turns, all casting shadows. Scene::ambient is the dark; each light adds to it.</span>
+
+<span class="k">class</span> <span class="t">LightsScreen</span> : <span class="t">Screen</span>
+{
+    <span class="t">Font</span>@ font = <span class="t">Assets</span>::font(<span class="s">&quot;global:freesans.sfn&quot;</span>, <span class="n">22</span>);
+    <span class="t">Entity</span>@ hero;
+    <span class="k">array</span>&lt;<span class="t">Entity</span>@&gt; torches;
+    <span class="k">array</span>&lt;<span class="t">Entity</span>@&gt; crates;
+    <span class="t">Entity</span>@ pillar;
+    <span class="k">float</span> t = <span class="n">0</span>;
+
+    <span class="k">void</span> onEnter()
+    {
+        <span class="t">Scene</span>::load(<span class="s">&quot;asset:scene.json&quot;</span>);
+        <span class="t">Scene</span>::gravity = <span class="t">Vec2</span>(<span class="n">0</span>, <span class="n">0</span>);
+        <span class="t">Scene</span>::ambient = <span class="t">Color</span>(<span class="n">0.07f</span>, <span class="n">0.07f</span>, <span class="n">0.13f</span>);
+        <span class="t">Scene</span>::lightLayer = <span class="n">5</span>;      <span class="c">// the flames above it glow, unlit</span>
+
+        @hero = <span class="t">Scene</span>::spawn(<span class="t">Vec2</span>(<span class="n">100</span>, <span class="n">100</span>));
+        hero.disc(<span class="n">13</span>, <span class="t">Color</span>(<span class="n">1</span>, <span class="n">0.85f</span>, <span class="n">0.55f</span>));
+        hero.circle(<span class="n">13</span>);
+        hero.solid = <span class="k">true</span>;
+        hero.light(<span class="t">Color</span>(<span class="n">1</span>, <span class="n">0.86f</span>, <span class="n">0.62f</span>), <span class="n">260</span>);
+
+        <span class="k">array</span>&lt;<span class="t">Vec2</span>&gt; places = { <span class="t">Vec2</span>(<span class="n">260</span>, <span class="n">60</span>), <span class="t">Vec2</span>(<span class="n">1020</span>, <span class="n">60</span>), <span class="t">Vec2</span>(<span class="n">60</span>, <span class="n">420</span>), <span class="t">Vec2</span>(<span class="n">1220</span>, <span class="n">300</span>), <span class="t">Vec2</span>(<span class="n">640</span>, <span class="n">660</span>), <span class="t">Vec2</span>(<span class="n">420</span>, <span class="n">300</span>) };
+        <span class="k">for</span> (<span class="k">uint</span> i = <span class="n">0</span>; i &lt; places.length(); i++)
+        {
+            <span class="t">Entity</span>@ torch = <span class="t">Scene</span>::spawn(places[i]);
+            torch.disc(<span class="n">7</span>, <span class="t">Color</span>(<span class="n">1</span>, <span class="n">0.6f</span>, <span class="n">0.2f</span>));
+            torch.layer = <span class="n">10</span>;
+            torches.insertLast(torch);
+        }
+        <span class="k">array</span>&lt;<span class="t">Vec2</span>&gt; gems = { <span class="t">Vec2</span>(<span class="n">860</span>, <span class="n">200</span>), <span class="t">Vec2</span>(<span class="n">680</span>, <span class="n">330</span>), <span class="t">Vec2</span>(<span class="n">1100</span>, <span class="n">560</span>) };
+        <span class="k">array</span>&lt;<span class="t">Color</span>&gt; colours = { <span class="t">Color</span>(<span class="n">0.3f</span>, <span class="n">0.6f</span>, <span class="n">1</span>), <span class="t">Color</span>(<span class="n">0.4f</span>, <span class="n">1</span>, <span class="n">0.5f</span>), <span class="t">Color</span>(<span class="n">1</span>, <span class="n">0.35f</span>, <span class="n">0.8f</span>) };
+        <span class="k">for</span> (<span class="k">uint</span> i = <span class="n">0</span>; i &lt; gems.length(); i++)
+        {
+            <span class="t">Entity</span>@ gem = <span class="t">Scene</span>::spawn(gems[i]);
+            gem.disc(<span class="n">9</span>, colours[i]);
+            gem.layer = <span class="n">10</span>;
+            gem.light(colours[i], <span class="n">200</span>);
+        }
+        <span class="k">for</span> (<span class="k">int</span> i = <span class="n">0</span>; i &lt; <span class="n">3</span>; i++)
+        {
+            <span class="t">Entity</span>@ crate = <span class="t">Scene</span>::spawn(<span class="t">Vec2</span>(<span class="n">520</span> + <span class="k">float</span>(i) * <span class="n">120</span>, <span class="n">420</span>));
+            crate.rect(<span class="n">44</span>, <span class="n">44</span>, <span class="t">Color</span>(<span class="n">0.55f</span>, <span class="n">0.4f</span>, <span class="n">0.25f</span>));
+            crate.box(<span class="n">44</span>, <span class="n">44</span>);
+            crate.wall = <span class="k">true</span>;
+            crate.occluder = <span class="k">true</span>;
+            crates.insertLast(crate);
+        }
+        @pillar = <span class="t">Scene</span>::spawn(<span class="t">Vec2</span>(<span class="n">860</span>, <span class="n">380</span>));
+        pillar.rect(<span class="n">140</span>, <span class="n">20</span>, <span class="t">Color</span>(<span class="n">0.45f</span>, <span class="n">0.45f</span>, <span class="n">0.55f</span>));
+        pillar.box(<span class="n">140</span>, <span class="n">20</span>);
+        pillar.occluder = <span class="k">true</span>;
+    }
+
+    <span class="k">void</span> update(<span class="k">float</span> dt)
+    {
+        t += dt;
+        hero.velocity = <span class="t">Input</span>::move * <span class="n">230</span>;
+        <span class="k">for</span> (<span class="k">uint</span> i = <span class="n">0</span>; i &lt; torches.length(); i++)
+        {
+            <span class="k">float</span> flicker = <span class="n">0.85f</span> + noise(t * <span class="n">5</span>, <span class="k">float</span>(i) * <span class="n">9</span>) * <span class="n">0.25f</span>;
+            torches[i].light(<span class="t">Color</span>(flicker, <span class="n">0.55f</span> * flicker, <span class="n">0.2f</span> * flicker), <span class="n">190</span> + noise(t * <span class="n">3</span>, <span class="k">float</span>(i) * <span class="n">7</span> + <span class="n">50</span>) * <span class="n">20</span>);
+        }
+        <span class="k">for</span> (<span class="k">uint</span> i = <span class="n">0</span>; i &lt; crates.length(); i++)
+            crates[i].position = <span class="t">Vec2</span>(<span class="n">520</span> + <span class="k">float</span>(i) * <span class="n">120</span> + sin(t * <span class="n">0.8f</span> + <span class="k">float</span>(i)) * <span class="n">50</span>, <span class="n">420</span> + cos(t * <span class="n">0.6f</span> + <span class="k">float</span>(i) * <span class="n">2</span>) * <span class="n">30</span>);
+        pillar.rotation = t * <span class="n">40</span>;
+    }
+
+    <span class="k">void</span> draw(<span class="t">Canvas</span>@ c)
+    {
+        c.design(<span class="n">1280</span>, <span class="n">720</span>);
+        c.rect(<span class="n">0</span>, <span class="n">0</span>, <span class="n">1280</span>, <span class="n">720</span>, <span class="t">Color</span>(<span class="n">0.1f</span>, <span class="n">0.1f</span>, <span class="n">0.12f</span>));
+        <span class="t">Scene</span>::draw(c);
+        c.text(font, <span class="s">&quot;A lantern, torches and crystals; the walls, crates and pillar cast shadows&quot;</span>, <span class="n">20</span>, <span class="n">690</span>, <span class="t">Color</span>(<span class="n">0.85f</span>, <span class="n">0.88f</span>, <span class="n">1</span>));
+    }
+}
+</code></pre></details></div>
 </section>
 <section id="interface" data-title="interface"><h2>Interface</h2>
 <div data-find="gauges dials, meters and graphs of the engine itself gauges"><h3 id="demo-gauges">Gauges</h3><p>Dials, meters and graphs of the engine itself</p>
@@ -7631,99 +7713,6 @@ summary { cursor: pointer; padding: 10px 16px; } details pre { border-width: 1px
         c.bloom(<span class="n">0.3f</span>, <span class="n">0.8f</span>);
         c.roundRect(<span class="n">20</span>, <span class="n">660</span>, c.width - <span class="n">40</span>, <span class="n">42</span>, <span class="n">12</span>, <span class="t">Color</span>(<span class="n">0</span>, <span class="n">0</span>, <span class="n">0</span>, <span class="n">0.45f</span>));
         c.text(font, <span class="s">&quot;Left, right: look around     Accept: next     &quot;</span> + kinds[kind], <span class="n">40</span>, <span class="n">668</span>);
-    }
-}
-</code></pre></details></div>
-<div data-find="night lights sixteen lights in the dark lights"><h3 id="demo-lights">Night lights</h3><p>Sixteen lights in the dark</p>
-<div class="shots"><img loading="lazy" src="screenshots/lights.png" alt="Night lights"></div>
-<details><summary><code>lights/main.as</code> <span class="tag">90 lines</span></summary><pre><code><span class="c">// Lights that move: sixteen at once, the nearest four on each thing.</span>
-
-<span class="k">class</span> <span class="t">Wisp</span> : <span class="t">Behaviour</span>
-{
-    <span class="k">float</span> at = <span class="n">0</span>;
-    <span class="k">float</span> reach = <span class="n">0</span>;
-    <span class="t">Color</span> color;
-
-    <span class="t">Wisp</span>(<span class="k">float</span> at_, <span class="k">float</span> reach_, <span class="k">const</span> <span class="t">Color</span> &amp;<span class="k">in</span> color_)
-    {
-        at = at_;
-        reach = reach_;
-        color = color_;
-    }
-
-    <span class="k">void</span> update(<span class="k">float</span> dt)
-    {
-        at += dt * (<span class="n">0.5f</span> + <span class="n">2</span> / reach);
-        entity.place = <span class="t">Vec3</span>(sin(at) * reach, <span class="n">0.8f</span> + sin(at * <span class="n">2.3f</span>) * <span class="n">0.5f</span>, cos(at * <span class="n">1.1f</span>) * reach);
-        <span class="k">float</span> flicker = <span class="n">2</span> + sin(at * <span class="n">11</span>) * <span class="n">0.2f</span>;
-        entity.light(<span class="t">Color</span>(color.r * flicker, color.g * flicker, color.b * flicker), <span class="n">6</span>);
-    }
-}
-
-<span class="k">class</span> <span class="t">LightsScreen</span> : <span class="t">Screen</span>
-{
-    <span class="t">Font</span>@ font = <span class="t">Assets</span>::font(<span class="s">&quot;global:freesans.sfn&quot;</span>, <span class="n">22</span>);
-    <span class="t">Model</span>@ crystal = <span class="t">Assets</span>::model(<span class="s">&quot;global:model/crystal.glb&quot;</span>);
-    <span class="t">Model</span>@ rock = <span class="t">Assets</span>::model(<span class="s">&quot;global:model/rock.glb&quot;</span>);
-    <span class="t">Model</span>@ mushroom = <span class="t">Assets</span>::model(<span class="s">&quot;global:model/mushroom.glb&quot;</span>);
-    <span class="k">float</span> around = <span class="n">0</span>;
-    <span class="k">bool</span> moon = <span class="k">false</span>;
-
-    <span class="k">void</span> onEnter()
-    {
-        <span class="t">Mesh</span>@ floor = <span class="t">Mesh</span>();
-        floor.plane(<span class="n">44</span>, <span class="n">44</span>, <span class="n">40</span>, <span class="t">Color</span>(<span class="n">0.5f</span>, <span class="n">0.5f</span>, <span class="n">0.55f</span>));
-        <span class="t">Space</span>::spawn(<span class="t">Vec3</span>(<span class="n">0</span>, <span class="n">0</span>, <span class="n">0</span>)).mesh(floor);
-        <span class="k">for</span> (<span class="k">int</span> i = <span class="n">0</span>; i &lt; <span class="n">40</span>; i++)
-        {
-            <span class="k">float</span> a = <span class="k">float</span>(i) * <span class="n">2.4f</span>, r = <span class="n">1.2f</span> + sqrt(<span class="k">float</span>(i)) * <span class="n">1.5f</span>;
-            <span class="t">Vec3</span> p(sin(a) * r, <span class="n">0</span>, cos(a) * r);
-            <span class="t">Entity</span>@ e = <span class="t">Space</span>::spawn(p);
-            e.angles = <span class="t">Vec3</span>(<span class="n">0</span>, <span class="k">float</span>(i * <span class="n">77</span>), <span class="n">0</span>);
-            <span class="k">if</span> (i % <span class="n">3</span> == <span class="n">0</span>)
-            {
-                e.shape(<span class="t">SolidCylinder</span>, <span class="t">Color</span>(<span class="n">0.75f</span>, <span class="n">0.73f</span>, <span class="n">0.7f</span>));
-                <span class="k">float</span> tall = <span class="n">1.5f</span> + <span class="k">float</span>(i % <span class="n">5</span>) * <span class="n">0.5f</span>;
-                e.place = p + <span class="t">Vec3</span>(<span class="n">0</span>, tall * <span class="n">0.5f</span>, <span class="n">0</span>);
-                e.size = <span class="t">Vec3</span>(<span class="n">0.7f</span>, tall, <span class="n">0.7f</span>);
-            }
-            <span class="k">else</span>
-            {
-                e.model(i % <span class="n">3</span> == <span class="n">1</span> ? rock : mushroom);
-                <span class="k">float</span> size = <span class="n">0.5f</span> + <span class="k">float</span>(i % <span class="n">4</span>) * <span class="n">0.2f</span>;
-                e.size = <span class="t">Vec3</span>(size, size, size);
-            }
-            e.shine = <span class="n">0.4f</span>;
-        }
-        <span class="k">for</span> (<span class="k">int</span> i = <span class="n">0</span>; i &lt; <span class="n">16</span>; i++)
-        {
-            <span class="t">Color</span> color = hsv(<span class="k">float</span>(i) / <span class="n">16.0f</span>, <span class="n">0.7f</span>, <span class="n">1</span>);
-            <span class="t">Entity</span>@ e = <span class="t">Space</span>::spawn(<span class="t">Vec3</span>(<span class="n">0</span>, <span class="n">1</span>, <span class="n">0</span>));
-            e.glow(<span class="n">1</span>, color);
-            e.add(<span class="t">Wisp</span>(<span class="k">float</span>(i) * <span class="n">1.7f</span>, <span class="n">1.5f</span> + <span class="k">float</span>(i) * <span class="n">0.5f</span>, color));
-        }
-        <span class="t">Space</span>::sky(<span class="t">Color</span>(<span class="n">0.01f</span>, <span class="n">0.01f</span>, <span class="n">0.04f</span>), <span class="t">Color</span>(<span class="n">0.05f</span>, <span class="n">0.05f</span>, <span class="n">0.12f</span>));
-        <span class="t">Space</span>::fog(<span class="t">Color</span>(<span class="n">0.04f</span>, <span class="n">0.04f</span>, <span class="n">0.1f</span>), <span class="n">12</span>, <span class="n">30</span>);
-    }
-
-    <span class="k">void</span> update(<span class="k">float</span> dt)
-    {
-        around += (<span class="t">Input</span>::move.x * <span class="n">1.5f</span> + <span class="n">0.1f</span>) * dt;
-        <span class="k">if</span> (<span class="t">Input</span>::pressed(<span class="s">&quot;accept&quot;</span>))
-            moon = !moon;
-        <span class="t">Space</span>::sun(<span class="t">Vec3</span>(<span class="n">0.5f</span>, <span class="n">0.7f</span>, -<span class="n">0.5f</span>), moon ? <span class="t">Color</span>(<span class="n">0.25f</span>, <span class="n">0.28f</span>, <span class="n">0.4f</span>) : <span class="t">Color</span>(<span class="n">0</span>, <span class="n">0</span>, <span class="n">0</span>));
-        <span class="t">Space</span>::ambient(<span class="t">Color</span>(<span class="n">0.04f</span>, <span class="n">0.04f</span>, <span class="n">0.07f</span>), <span class="t">Color</span>(<span class="n">0.02f</span>, <span class="n">0.02f</span>, <span class="n">0.03f</span>));
-        <span class="t">Space</span>::shadows(moon ? <span class="n">0.7f</span> : <span class="n">0.0f</span>, <span class="n">16</span>);
-        <span class="t">Space</span>::camera(<span class="t">Vec3</span>(sin(around) * <span class="n">9</span>, <span class="n">4.2f</span>, cos(around) * <span class="n">9</span>), <span class="t">Vec3</span>(<span class="n">0</span>, <span class="n">0.7f</span>, <span class="n">0</span>), <span class="n">55</span>);
-    }
-
-    <span class="k">void</span> draw(<span class="t">Canvas</span>@ c)
-    {
-        c.designHeight(<span class="n">720</span>);
-        <span class="t">Space</span>::draw(c);
-        c.bloom(<span class="n">0.55f</span>, <span class="n">0.65f</span>);
-        c.roundRect(<span class="n">20</span>, <span class="n">660</span>, c.width - <span class="n">40</span>, <span class="n">42</span>, <span class="n">12</span>, <span class="t">Color</span>(<span class="n">0</span>, <span class="n">0</span>, <span class="n">0</span>, <span class="n">0.45f</span>));
-        c.text(font, <span class="s">&quot;Left, right: look around     Accept: &quot;</span> + (moon ? <span class="s">&quot;hide the moon&quot;</span> : <span class="s">&quot;bring out the moon&quot;</span>), <span class="n">40</span>, <span class="n">668</span>);
     }
 }
 </code></pre></details></div>

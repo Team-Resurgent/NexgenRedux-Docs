@@ -191,6 +191,15 @@ rock.add(<span class="t">Rock</span>());</code></pre>
 <p>With <code>&quot;image&quot;</code> and <code>&quot;sheet&quot;</code> it is drawn from a picture instead of colours.</p>
 <p><code>Scene::path(from, to, way)</code> finds a way round the solid tiles: the corners of it, as straight as it can be, ending where it was</p>
 <p>asked to go. It goes diagonally too, but never across a corner, unless it is told to keep to straight steps. <code>Scene::blocked</code> says whether a solid tile is at a place.</p>
+<h3 id="lights">Lights</h3>
+<p><code>Scene::ambient</code> is the light everywhere: white, as it starts, is no lighting at all, and anything darker turns it on. Then an</p>
+<p>entity&#x27;s <code>light(colour, radius)</code> lights what is round it, fading to nothing at the edge, and solid tiles cast shadows from it, as does any collider made an <code>occluder</code>:</p>
+<pre><code><span class="t">Scene</span>::ambient = <span class="t">Color</span>(<span class="n">0.07f</span>, <span class="n">0.07f</span>, <span class="n">0.13f</span>);       <span class="c">// night</span>
+hero.light(<span class="t">Color</span>(<span class="n">1</span>, <span class="n">0.85f</span>, <span class="n">0.6f</span>), <span class="n">260</span>);            <span class="c">// a lantern that goes where it does</span>
+crate.box(<span class="n">44</span>, <span class="n">44</span>);
+crate.occluder = <span class="k">true</span>;                             <span class="c">// its shadow moves with it</span>
+<span class="t">Scene</span>::lightLayer = <span class="n">5</span>;                             <span class="c">// layers above 5 are drawn after the light, bright: flames, sparks</span></code></pre>
+<p>Lights add up, and are multiplied over what is drawn, so a red light on blue shows dark. <code>light(colour, 0)</code> puts one out. The Lights demo has torches that flicker, crystals of colour, and crates and a pillar that cast moving shadows. <code>BlendMultiply</code> is there for drawing of your own, too.</p>
 <h3 id="physics">Physics</h3>
 <p>There are two kinds. A <b>solid</b> body is stopped by walls and tiles and never turns: use it for characters, with <code>onGround</code>,</p>
 <p><code>onWall</code> and <code>onCeiling</code>. A body with <b>mass</b> is rigid: it pushes, stacks, bounces and turns. <code>Scene::join</code> pins two together, for</p>
