@@ -478,16 +478,16 @@ float4 paint(float4 color, float2 uv, float3 place, float3 normal, inout <span c
 <tr><td><code>sunPlace</code>, <code>sunInFront</code></td><td>Where the sun is, 0 to 1 across the view, and 1 if it is ahead of the camera</td></tr>
 <tr><td><code>upward</code>, <code>farthest</code></td><td>Which way is up as the camera sees it (right, up, away), and how far it sees</td></tr>
 </table></div>
-<p>The last three rows are on GPUs where <code>Space::depthEffects</code>: Windows, Linux, macOS and the Xbox One. They are enough for god rays, fog by distance, outlines where things meet and the like: <code>global:effect/rays.fx</code> is god rays, written that way.</p>
+<p>The last three rows are on GPUs where <code>Space::depthEffects</code>: Windows, Linux, macOS, the Xbox One and the Xbox 360. They are enough for god rays, fog by distance, outlines where things meet and the like: <code>global:effect/rays.fx</code> is god rays, written that way.</p>
 <p>It is written as HLSL is, and every number with a point in it. <code>float2</code> to <code>float4</code>, <code>lerp</code>, <code>frac</code>, <code>saturate</code> and <code>fmod</code> have their OpenGL names put in for you; keep to what both have. Don&#x27;t name anything <code>out</code>, <code>in</code>, <code>sample</code>, <code>texture</code>, <code>step</code>, <code>distance</code> or any of the words in the table.</p>
 <h3 id="blur-and-finishing-a-view">Blur, and finishing a view</h3>
 <p><code>c.blur(8)</code> blurs all that has been drawn so far, about 8 pixels across on a screen 720 high, or only inside the clip: frosted glass</p>
-<p>behind a pause menu, or a dream. It works on every GPU but the Xbox 360 for now.</p>
+<p>behind a pause menu, or a dream. It works on every GPU.</p>
 <p>Where <code>Space::depthEffects</code>, each view in space can be finished from how far away each of its pixels is:</p>
 <pre><code><span class="t">Space</span>::occlusion(<span class="n">1</span>, <span class="n">0.6f</span>);          <span class="c">// corners and creases darker, within 0.6 metres</span>
 <span class="t">Space</span>::reflections(<span class="n">0.6f</span>);           <span class="c">// wet floors and still water show what is around</span>
 <span class="t">Space</span>::focus(<span class="n">5</span>, <span class="n">1</span>, <span class="n">12</span>);             <span class="c">// sharp at 5 metres, 1 either side; 12 pixels of blur, with bokeh</span>
-<span class="t">Space</span>::autoExposure(<span class="n">0.45f</span>);         <span class="c">// brighter in the dark and darker in the light, gradually</span></code></pre>
+<span class="t">Space</span>::autoExposure(<span class="n">0.4f</span>);          <span class="c">// brighter in the dark and darker in the light, gradually</span></code></pre>
 <p>Each takes 0 for none. Reflections show only what is on the screen and in what faces up; the further a pixel is from the focus, the more it is blurred, and the brightest spread into round bokeh. The Lens demo has them all, god rays and decals too, behind a frosted panel.</p>
 <h3 id="decals">Decals</h3>
 <pre><code><span class="t">Vec3</span> hit, normal;

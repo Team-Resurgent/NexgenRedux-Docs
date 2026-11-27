@@ -13244,7 +13244,7 @@ summary { cursor: pointer; padding: 10px 16px; } details pre { border-width: 1px
     }
 }
 </code></pre></details></div>
-<div data-find="lens ambient occlusion, reflections, depth of field with bokeh, auto exposure, god rays, decals and frosted glass lens"><h3 id="demo-lens">Lens</h3><p>Ambient occlusion, reflections, depth of field with bokeh, auto exposure, god rays, decals and frosted glass</p>
+<div data-find="lens occlusion, reflections, bokeh, exposure, god rays and decals lens"><h3 id="demo-lens">Lens</h3><p>Occlusion, reflections, bokeh, exposure, god rays and decals</p>
 <details><summary><code>lens/main.as</code> <span class="tag">153 lines</span></summary><pre><code><span class="c">// How a view is finished: corners darkened by ambient occlusion, a wet floor reflecting, depth of field with bokeh, the</span>
 <span class="c">// eye adjusting to the light, and god rays from a shader of our own. Paint thrown with fire stays as decals, and the</span>
 <span class="c">// panel is frosted glass. The first five need a GPU that sees depth; decals and blur are everywhere.</span>
@@ -13343,7 +13343,7 @@ summary { cursor: pointer; padding: 10px 16px; } details pre { border-width: 1px
         <span class="t">Space</span>::reflections(on[<span class="n">1</span>] ? <span class="n">0.55f</span> : <span class="n">0.0f</span>);
         <span class="c">// Sharp on the robot, wherever the camera is.</span>
         <span class="t">Space</span>::focus(on[<span class="n">2</span>] ? <span class="n">5.0f</span> : <span class="n">0.0f</span>, <span class="n">0.8f</span>, <span class="n">14</span>, <span class="n">5</span>, <span class="n">1.5f</span>);
-        <span class="t">Space</span>::autoExposure(on[<span class="n">3</span>] ? <span class="n">0.5f</span> : <span class="n">0.0f</span>);
+        <span class="t">Space</span>::autoExposure(on[<span class="n">3</span>] ? <span class="n">0.4f</span> : <span class="n">0.0f</span>);
     }
 
     <span class="k">void</span> update(<span class="k">float</span> dt)
