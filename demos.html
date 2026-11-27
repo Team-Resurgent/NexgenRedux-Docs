@@ -6614,7 +6614,7 @@ summary { cursor: pointer; padding: 10px 16px; } details pre { border-width: 1px
     <span class="t">Font</span>@ font = <span class="t">Assets</span>::font(<span class="s">&quot;global:freesans.sfn&quot;</span>, <span class="n">24</span>);
     <span class="t">Font</span>@ big = <span class="t">Assets</span>::font(<span class="s">&quot;global:freesans.sfn&quot;</span>, <span class="n">46</span>);
     <span class="k">array</span>&lt;<span class="k">string</span>&gt; titles = { <span class="s">&quot;Night Shift&quot;</span>, <span class="s">&quot;Slow Light&quot;</span> };
-    <span class="k">array</span>&lt;<span class="t">Sound</span>@&gt; tunes = { <span class="t">Assets</span>::sound(<span class="s">&quot;asset:tune.ogg&quot;</span>), <span class="t">Assets</span>::sound(<span class="s">&quot;asset:ambient.mp3&quot;</span>) };
+    <span class="k">array</span>&lt;<span class="t">Sound</span>@&gt; tunes = { <span class="t">Assets</span>::sound(<span class="s">&quot;asset:tune.ogg&quot;</span>), <span class="t">Assets</span>::sound(<span class="s">&quot;asset:ambient.ogg&quot;</span>) };
     <span class="t">Playlist</span>@ list = <span class="t">Playlist</span>();
     <span class="k">array</span>&lt;<span class="k">float</span>&gt; peaks(<span class="n">32</span>);
     <span class="k">float</span> beat = <span class="n">0</span>;
@@ -6697,6 +6697,139 @@ summary { cursor: pointer; padding: 10px 16px; } details pre { border-width: 1px
     {
         <span class="k">int</span> s = <span class="k">int</span>(t);
         <span class="k">return</span> formatInt(s / <span class="n">60</span>) + <span class="s">&quot;:&quot;</span> + formatInt(s % <span class="n">60</span>, <span class="s">&quot;0&quot;</span>, <span class="n">2</span>);
+    }
+}
+</code></pre></details></div>
+<div data-find="synth sound made as it plays, and effects to put it through synth"><h3 id="demo-synth">Synth</h3><p>Sound made as it plays, and effects to put it through</p>
+<div class="shots"><img loading="lazy" src="screenshots/synth.png" alt="Synth"></div>
+<details><summary><code>synth/main.as</code> <span class="tag">130 lines</span></summary><pre><code><span class="c">// Sound a script makes: an arpeggio written into an AudioStream as it plays, a laser made sample by sample, and the</span>
+<span class="c">// effects a bus can put them through.</span>
+
+<span class="k">class</span> <span class="t">Switch</span>
+{
+    <span class="k">string</span> name;
+    <span class="k">bool</span> on;
+}
+
+<span class="k">class</span> <span class="t">SynthScreen</span> : <span class="t">Screen</span>
+{
+    <span class="t">Font</span>@ font = <span class="t">Assets</span>::font(<span class="s">&quot;global:freesans.sfn&quot;</span>, <span class="n">22</span>);
+    <span class="t">Font</span>@ big = <span class="t">Assets</span>::font(<span class="s">&quot;global:freesans.sfn&quot;</span>, <span class="n">34</span>);
+    <span class="t">AudioStream</span>@ stream = <span class="t">AudioStream</span>(<span class="n">48000</span>, <span class="n">1</span>, <span class="n">0.1f</span>);
+    <span class="t">Samples</span>@ laser;
+    <span class="k">array</span>&lt;<span class="t">Switch</span>@&gt; effects;
+    <span class="k">uint</span> chosen = <span class="n">0</span>;
+    <span class="k">uint</span> shape = <span class="n">0</span>;             <span class="c">// sine, square, saw</span>
+    <span class="k">array</span>&lt;<span class="k">string</span>&gt; shapes = { <span class="s">&quot;Sine&quot;</span>, <span class="s">&quot;Square&quot;</span>, <span class="s">&quot;Saw&quot;</span> };
+    <span class="k">array</span>&lt;<span class="k">float</span>&gt; notes = { <span class="n">220</span>, <span class="n">261.63f</span>, <span class="n">329.63f</span>, <span class="n">392</span>, <span class="n">440</span>, <span class="n">392</span>, <span class="n">329.63f</span>, <span class="n">261.63f</span> };
+    <span class="k">uint</span> note = <span class="n">0</span>;
+    <span class="k">uint</span> noteLeft = <span class="n">0</span>;          <span class="c">// frames left of the note playing</span>
+    <span class="k">float</span> phase = <span class="n">0</span>;
+    <span class="k">array</span>&lt;<span class="k">float</span>&gt; chunk;
+
+    <span class="k">void</span> onEnter()
+    {
+        <span class="k">array</span>&lt;<span class="k">string</span>&gt; names = { <span class="s">&quot;Distortion&quot;</span>, <span class="s">&quot;Chorus&quot;</span>, <span class="s">&quot;Flanger&quot;</span>, <span class="s">&quot;Compressor&quot;</span>, <span class="s">&quot;Equaliser&quot;</span>, <span class="s">&quot;Band-pass&quot;</span>, <span class="s">&quot;Echo&quot;</span>, <span class="s">&quot;Reverb&quot;</span> };
+        <span class="k">for</span> (<span class="k">uint</span> i = <span class="n">0</span>; i &lt; names.length(); i++)
+        {
+            <span class="t">Switch</span> e;
+            e.name = names[i];
+            e.on = <span class="k">false</span>;
+            effects.insertLast(e);
+        }
+        <span class="c">// A laser: a sine that falls in pitch and fades, made one sample at a time.</span>
+        @laser = <span class="t">Samples</span>(<span class="n">12000</span>, <span class="n">48000</span>, <span class="n">1</span>);
+        <span class="k">float</span> p = <span class="n">0</span>;
+        <span class="k">for</span> (<span class="k">uint</span> i = <span class="n">0</span>; i &lt; laser.frames; i++)
+        {
+            <span class="k">float</span> t = <span class="k">float</span>(i) / <span class="n">12000</span>;
+            p += (<span class="n">1800</span> - <span class="n">1500</span> * t) * <span class="n">6.2831853f</span> / <span class="n">48000</span>;
+            laser.<span class="k">set</span>(i, sin(p) * (<span class="n">1</span> - t) * <span class="n">0.6f</span>);
+        }
+        stream.play(<span class="n">0.7f</span>);
+    }
+
+    <span class="c">// As much of the arpeggio as there is room for: an eighth of a second a note, each one fading.</span>
+    <span class="k">void</span> fill()
+    {
+        <span class="k">uint</span> room = stream.room;
+        <span class="k">if</span> (room == <span class="n">0</span>) <span class="k">return</span>;
+        chunk.resize(room);
+        <span class="k">for</span> (<span class="k">uint</span> i = <span class="n">0</span>; i &lt; room; i++)
+        {
+            <span class="k">if</span> (noteLeft == <span class="n">0</span>)
+            {
+                note = (note + <span class="n">1</span>) % notes.length();
+                noteLeft = <span class="n">6000</span>;
+            }
+            <span class="k">float</span> t = <span class="n">1</span> - <span class="k">float</span>(noteLeft) / <span class="n">6000</span>;
+            phase += notes[note] / <span class="n">48000</span>;
+            phase -= floor(phase);
+            <span class="k">float</span> v = shape == <span class="n">0</span> ? sin(phase * <span class="n">6.2831853f</span>) : shape == <span class="n">1</span> ? (phase &lt; <span class="n">0.5f</span> ? <span class="n">0.6f</span> : -<span class="n">0.6f</span>) : (phase * <span class="n">2</span> - <span class="n">1</span>) * <span class="n">0.7f</span>;
+            chunk[i] = v * <span class="n">0.5f</span> * (<span class="n">1</span> - t) * (<span class="n">1</span> - t);
+            noteLeft--;
+        }
+        stream.write(chunk);
+    }
+
+    <span class="k">void</span> apply()
+    {
+        <span class="t">Audio</span>::distortion(<span class="t">BusEffects</span>, effects[<span class="n">0</span>].on ? <span class="n">0.7f</span> : <span class="n">0</span>, <span class="n">0.1f</span>);
+        <span class="t">Audio</span>::chorus(<span class="t">BusEffects</span>, effects[<span class="n">1</span>].on ? <span class="n">0.8f</span> : <span class="n">0</span>, <span class="n">1.5f</span>, <span class="n">0.1f</span>);
+        <span class="t">Audio</span>::flanger(<span class="t">BusEffects</span>, effects[<span class="n">2</span>].on ? <span class="n">0.8f</span> : <span class="n">0</span>, <span class="n">0.25f</span>, <span class="n">0.6f</span>, <span class="n">0.1f</span>);
+        <span class="t">Audio</span>::compressor(<span class="t">BusEffects</span>, effects[<span class="n">3</span>].on ? -<span class="n">24</span> : <span class="n">0</span>, <span class="n">8</span>);
+        <span class="k">if</span> (effects[<span class="n">4</span>].on) <span class="t">Audio</span>::equalizer(<span class="t">BusEffects</span>, <span class="n">9</span>, -<span class="n">6</span>, <span class="n">6</span>, <span class="n">0.2f</span>);
+        <span class="k">else</span> <span class="t">Audio</span>::equalizer(<span class="t">BusEffects</span>, <span class="n">0</span>, <span class="n">0</span>, <span class="n">0</span>, <span class="n">0.2f</span>);
+        <span class="k">if</span> (effects[<span class="n">5</span>].on) <span class="t">Audio</span>::bandPass(<span class="t">BusEffects</span>, <span class="n">900</span>, <span class="n">1</span>, <span class="n">0.2f</span>);
+        <span class="k">else</span> { <span class="t">Audio</span>::lowPass(<span class="t">BusEffects</span>, <span class="n">20000</span>, <span class="n">0.2f</span>); <span class="t">Audio</span>::highPass(<span class="t">BusEffects</span>, <span class="n">0</span>, <span class="n">0.2f</span>); }
+        <span class="t">Audio</span>::echo(<span class="t">BusEffects</span>, effects[<span class="n">6</span>].on ? <span class="n">0.5f</span> : <span class="n">0</span>, <span class="n">0.25f</span>, <span class="n">0.4f</span>, <span class="n">0.1f</span>);
+        <span class="t">Audio</span>::reverb(<span class="t">BusEffects</span>, effects[<span class="n">7</span>].on ? <span class="n">0.6f</span> : <span class="n">0</span>, <span class="n">0.8f</span>, <span class="n">0.1f</span>);
+    }
+
+    <span class="k">void</span> update(<span class="k">float</span> dt)
+    {
+        fill();
+        <span class="k">if</span> (<span class="t">Input</span>::repeated(<span class="s">&quot;down&quot;</span>)) chosen = (chosen + <span class="n">1</span>) % effects.length();
+        <span class="k">if</span> (<span class="t">Input</span>::repeated(<span class="s">&quot;up&quot;</span>)) chosen = (chosen + effects.length() - <span class="n">1</span>) % effects.length();
+        <span class="k">if</span> (<span class="t">Input</span>::pressed(<span class="s">&quot;accept&quot;</span>))
+        {
+            effects[chosen].on = !effects[chosen].on;
+            apply();
+        }
+        <span class="k">if</span> (<span class="t">Input</span>::pressed(<span class="s">&quot;alternate&quot;</span>)) shape = (shape + <span class="n">1</span>) % shapes.length();
+        <span class="k">if</span> (<span class="t">Input</span>::pressed(<span class="s">&quot;fire&quot;</span>)) laser.play(<span class="n">0.8f</span>, random(-<span class="n">0.5f</span>, <span class="n">0.5f</span>), random(<span class="n">0.8f</span>, <span class="n">1.2f</span>));
+        <span class="k">if</span> (<span class="t">Input</span>::pressed(<span class="s">&quot;cancel&quot;</span>)) <span class="t">Screens</span>::pop();
+    }
+
+    <span class="k">void</span> draw(<span class="t">Canvas</span>@ c)
+    {
+        c.design(<span class="n">1280</span>, <span class="n">720</span>);
+        c.gradient(<span class="n">0</span>, <span class="n">0</span>, <span class="n">1280</span>, <span class="n">720</span>, <span class="t">Color</span>(<span class="n">0.08f</span>, <span class="n">0.07f</span>, <span class="n">0.14f</span>), <span class="t">Color</span>(<span class="n">0.03f</span>, <span class="n">0.03f</span>, <span class="n">0.06f</span>));
+        c.text(big, <span class="s">&quot;Synth&quot;</span>, <span class="n">60</span>, <span class="n">40</span>, <span class="t">White</span>);
+        c.text(font, <span class="s">&quot;A &quot;</span> + shapes[shape] + <span class="s">&quot; arpeggio, written as it plays&quot;</span>, <span class="n">60</span>, <span class="n">90</span>, <span class="t">Gray</span>);
+
+        <span class="c">// What is heard, as a wave and as bands.</span>
+        <span class="k">array</span>&lt;<span class="t">Vec2</span>&gt; wave;
+        <span class="k">for</span> (<span class="k">uint</span> i = <span class="n">0</span>; i &lt; <span class="n">256</span>; i++)
+            wave.insertLast(<span class="t">Vec2</span>(<span class="n">60</span> + <span class="k">float</span>(i) * <span class="n">3</span>, <span class="n">300</span> + <span class="t">Audio</span>::wave(i * <span class="n">2</span>) * <span class="n">120</span>));
+        c.polyline(wave, <span class="n">3</span>, <span class="t">Color</span>(<span class="n">0.4f</span>, <span class="n">0.9f</span>, <span class="n">0.8f</span>));
+        <span class="k">for</span> (<span class="k">uint</span> i = <span class="n">0</span>; i &lt; <span class="n">32</span>; i++)
+        {
+            <span class="k">float</span> h = <span class="t">Audio</span>::spectrum(i) * <span class="n">160</span>;
+            c.rect(<span class="n">60</span> + <span class="k">float</span>(i) * <span class="n">24</span>, <span class="n">620</span> - h, <span class="n">18</span>, h, hsv(<span class="n">0.5f</span> + <span class="k">float</span>(i) / <span class="n">64</span>, <span class="n">0.6f</span>, <span class="n">0.9f</span>));
+        }
+
+        <span class="c">// The effects, on and off.</span>
+        <span class="k">for</span> (<span class="k">uint</span> i = <span class="n">0</span>; i &lt; effects.length(); i++)
+        {
+            <span class="k">float</span> y = <span class="n">150</span> + <span class="k">float</span>(i) * <span class="n">54</span>;
+            <span class="k">bool</span> here = i == chosen;
+            c.roundRect(<span class="n">900</span>, y, <span class="n">320</span>, <span class="n">44</span>, <span class="n">10</span>, here ? <span class="t">Color</span>(<span class="n">0.25f</span>, <span class="n">0.3f</span>, <span class="n">0.5f</span>) : <span class="t">Color</span>(<span class="n">0.14f</span>, <span class="n">0.15f</span>, <span class="n">0.24f</span>));
+            c.text(font, effects[i].name, <span class="n">920</span>, y + <span class="n">10</span>, here ? <span class="t">White</span> : <span class="t">Color</span>(<span class="n">0.75f</span>, <span class="n">0.78f</span>, <span class="n">0.88f</span>));
+            c.roundRect(<span class="n">1150</span>, y + <span class="n">10</span>, <span class="n">50</span>, <span class="n">24</span>, <span class="n">12</span>, effects[i].on ? <span class="t">Color</span>(<span class="n">0.3f</span>, <span class="n">0.8f</span>, <span class="n">0.5f</span>) : <span class="t">Color</span>(<span class="n">0.3f</span>, <span class="n">0.32f</span>, <span class="n">0.4f</span>));
+            c.circle(effects[i].on ? <span class="n">1188</span> : <span class="n">1162</span>, y + <span class="n">22</span>, <span class="n">9</span>, <span class="t">White</span>);
+        }
+        c.text(font, <span class="s">&quot;Up, down: choose    Accept: on or off    Alternate: shape    Fire: laser&quot;</span>, <span class="n">640</span>, <span class="n">676</span>, <span class="t">Yellow</span>, <span class="t">AlignCenter</span>);
     }
 }
 </code></pre></details></div>
@@ -9636,7 +9769,7 @@ summary { cursor: pointer; padding: 10px 16px; } details pre { border-width: 1px
             pictureNames.insertLast(label);
             <span class="k">return</span> <span class="k">true</span>;
         }
-        <span class="k">bool</span> sound = ends(file, <span class="k">array</span>&lt;<span class="k">string</span>&gt; = { <span class="s">&quot;.wav&quot;</span>, <span class="s">&quot;.ogg&quot;</span>, <span class="s">&quot;.mp3&quot;</span> });
+        <span class="k">bool</span> sound = ends(file, <span class="k">array</span>&lt;<span class="k">string</span>&gt; = { <span class="s">&quot;.wav&quot;</span>, <span class="s">&quot;.ogg&quot;</span> });
         <span class="k">if</span> ((!sound &amp;&amp; !isModel(file)) || kinds.length() &gt;= builtIn + <span class="n">60</span>)
             <span class="k">return</span> <span class="k">false</span>;
         <span class="k">for</span> (<span class="k">uint</span> i = <span class="n">0</span>; i &lt; kinds.length(); i++)

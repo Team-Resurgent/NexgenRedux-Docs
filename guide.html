@@ -580,7 +580,7 @@ look.load(<span class="s">&quot;asset:film.cube&quot;</span>);      <span class=
 <p>Ask for what a screen needs in its fields: <code>onEnter()</code> waits for those. Anything asked for later arrives in the background, and draws as nothing until <code>ready</code>. Asking twice gives the same one. Letting go doesn&#x27;t unload it: it stays warm, so going back to a screen is instant, until the budget needs the room. A missing image draws as a checkerboard.</p>
 <div class="scroll"><table><tr><th>What</th><th>Formats</th></tr>
 <tr><td>Images</td><td>PNG, JPEG, TGA, BMP and GIF, up to 2048 pixels a side</td></tr>
-<tr><td>Sounds</td><td>WAV, Ogg Vorbis and MP3</td></tr>
+<tr><td>Sounds</td><td>WAV and Ogg Vorbis; the cook tool makes MP3 and FLAC into these, and short sounds into ADPCM</td></tr>
 <tr><td>Fonts</td><td>SSFN</td></tr>
 <tr><td>Models</td><td>glTF 2.0 (<code>.glb</code>, <code>.gltf</code>), FBX, OBJ, STL and PLY. Pictures in them up to 4096 pixels a side, made smaller if need be</td></tr>
 </table></div>
@@ -595,6 +595,12 @@ music.stop(<span class="n">1.5f</span>);                <span class="c">// fadin
 <span class="t">Audio</span>::highPass(<span class="t">BusEffects</span>, <span class="n">1000</span>);         <span class="c">// thin, as a small radio</span>
 <span class="t">Audio</span>::reverb(<span class="t">BusEffects</span>, <span class="n">0.7f</span>, <span class="n">0.9f</span>);     <span class="c">// how much of the room, and how big it is</span>
 <span class="t">Audio</span>::echo(<span class="t">BusEffects</span>, <span class="n">0.5f</span>, <span class="n">0.4f</span>, <span class="n">0.3f</span>); <span class="c">// how loud, how late, and how much echoes again</span>
+<span class="t">Audio</span>::bandPass(<span class="t">BusEffects</span>, <span class="n">900</span>, <span class="n">1</span>);       <span class="c">// only what is near 900 Hz, an octave wide: a voice through a pipe</span>
+<span class="t">Audio</span>::distortion(<span class="t">BusEffects</span>, <span class="n">0.7f</span>);       <span class="c">// driven too hard, 0 to 1</span>
+<span class="t">Audio</span>::chorus(<span class="t">BusMusic</span>, <span class="n">0.6f</span>);             <span class="c">// a swaying copy, so that one sounds like several</span>
+<span class="t">Audio</span>::flanger(<span class="t">BusEffects</span>, <span class="n">0.8f</span>, <span class="n">0.25f</span>, <span class="n">0.6f</span>);  <span class="c">// a sweeping copy fed back: a jet&#x27;s whoosh, a robot&#x27;s voice</span>
+<span class="t">Audio</span>::compressor(<span class="t">BusMusic</span>, -<span class="n">18</span>, <span class="n">4</span>);       <span class="c">// what is louder than -18 dB pressed down four times; 0 for none</span>
+<span class="t">Audio</span>::equalizer(<span class="t">BusMusic</span>, <span class="n">6</span>, -<span class="n">3</span>, <span class="n">4</span>);      <span class="c">// lows, middle and highs, in dB</span>
 <span class="t">Audio</span>::clearEffects();</code></pre>
 <p>A screen starts with none, and they go when it closes. The Sounds demo puts its pads in a room, a hall, a canyon, under water and on the radio.</p>
 <p>Sounds in space, from <code>playAt</code> or an entity&#x27;s <code>sound</code>, are quieter further away and come from where they are. <code>Space::doppler = 1</code> bends them as well, higher coming closer and lower going away, as a car or a siren passing is; more than 1 makes it plainer. A camera that cuts somewhere new isn&#x27;t taken for a speed. The Moves demo&#x27;s drone is heard going by.</p>
@@ -607,6 +613,30 @@ list.crossfade = <span class="n">3</span>;                 <span class="c">// ea
 list.play();
 list.next();                        <span class="c">// now, over crossfade; previous(), stop(), index, paused, position and seconds too</span></code></pre>
 <p>It goes on by itself while its screen is on top, round again unless <code>loop</code> is false. The Music demo is one.</p>
+<h3 id="sound-a-script-makes">Sound a script makes</h3>
+<p><code>Samples</code> is sound as numbers, -1 to 1, written and read one at a time, and played like a sound: each play has a copy of its own.</p>
+<p><code>Assets::samples</code> reads a sound&#x27;s own, to look at or change.</p>
+<pre><code><span class="t">Samples</span>@ zap = <span class="t">Samples</span>(<span class="n">12000</span>);                      <span class="c">// a quarter of a second at 48000 a second, one channel</span>
+<span class="k">float</span> p = <span class="n">0</span>;
+<span class="k">for</span> (<span class="k">uint</span> i = <span class="n">0</span>; i &lt; zap.frames; i++)
+{
+    <span class="k">float</span> t = <span class="k">float</span>(i) / zap.frames;
+    p += (<span class="n">1800</span> - <span class="n">1500</span> * t) * <span class="n">6.2831853f</span> / <span class="n">48000</span>;    <span class="c">// falling in pitch</span>
+    zap.<span class="k">set</span>(i, sin(p) * (<span class="n">1</span> - t));                    <span class="c">// and fading</span>
+}
+zap.play();</code></pre>
+<p>An <code>AudioStream</code> plays sound as it is written, for a synthesiser, a tracker or an emulator: write as much as there is <code>room</code> for each frame. It holds so many seconds, as made; it is quiet while it has none, and plays out what it has after it is let go.</p>
+<pre><code><span class="t">AudioStream</span>@ <span class="k">out</span> = <span class="t">AudioStream</span>(<span class="n">48000</span>, <span class="n">1</span>, <span class="n">0.1f</span>);
+<span class="k">array</span>&lt;<span class="k">float</span>&gt; chunk;
+
+<span class="k">void</span> update(<span class="k">float</span> dt)
+{
+    chunk.resize(<span class="k">out</span>.room);
+    <span class="k">for</span> (<span class="k">uint</span> i = <span class="n">0</span>; i &lt; chunk.length(); i++)
+        chunk[i] = nextSample();
+    <span class="k">out</span>.write(chunk);
+}</code></pre>
+<p>The Synth demo plays an arpeggio this way, with a laser made from <code>Samples</code>, through every effect.</p>
 <h3 id="video">Video</h3>
 <p>Films are MPEG-1 with MP2 sound, in a <code>.mpg</code>, decoded as they play on every machine, the original Xbox included. ffmpeg makes one from anything:</p>
 <pre><code>ffmpeg -i <span class="k">in</span>.mp4 -c:v mpeg1video -q:v <span class="n">4</span> -c:a mp2 -b:a 128k -format mpeg film.mpg</code></pre>
