@@ -12964,7 +12964,7 @@ summary { cursor: pointer; padding: 10px 16px; } details pre { border-width: 1px
 }
 </code></pre></details></div>
 <div data-find="moves animations mixed by speed, root motion, layers and heads that look moves"><h3 id="demo-moves">Moves</h3><p>Animations mixed by speed, root motion, layers and heads that look</p>
-<details><summary><code>moves/main.as</code> <span class="tag">140 lines</span></summary><pre><code><span class="c">// Animation beyond one at a time: idle, walk and run mixed by speed, a stride that carries the robot along,</span>
+<details><summary><code>moves/main.as</code> <span class="tag">142 lines</span></summary><pre><code><span class="c">// Animation beyond one at a time: idle, walk and run mixed by speed, a stride that carries the robot along,</span>
 <span class="c">// a wave over the top half while walking on, and heads that follow a ball.</span>
 
 <span class="k">class</span> <span class="t">MovesScreen</span> : <span class="t">Screen</span>
@@ -13012,7 +13012,6 @@ summary { cursor: pointer; padding: 10px 16px; } details pre { border-width: 1px
         ball.glowing = <span class="n">1</span>;
         ball.shadow = <span class="k">false</span>;
         ball.light(<span class="t">Color</span>(<span class="n">1</span>, <span class="n">0.6f</span>, <span class="n">0.3f</span>), <span class="n">5</span>);
-        <span class="t">Space</span>::camera(<span class="t">Vec3</span>(<span class="n">0</span>, <span class="n">4.2f</span>, <span class="n">10.5f</span>), <span class="t">Vec3</span>(<span class="n">0</span>, <span class="n">1.1f</span>, <span class="n">0</span>), <span class="n">52</span>);
     }
 
     <span class="t">Entity</span>@ robotAt(<span class="k">const</span> <span class="t">Vec3</span> &amp;<span class="k">in</span> at)
@@ -13072,6 +13071,9 @@ summary { cursor: pointer; padding: 10px 16px; } details pre { border-width: 1px
     <span class="k">void</span> draw(<span class="t">Canvas</span>@ c)
     {
         c.designHeight(<span class="n">720</span>);
+        <span class="c">// Further back on a narrower screen, so all three are seen.</span>
+        <span class="k">float</span> narrower = max(<span class="n">0.0f</span>, <span class="n">16.0f</span> / <span class="n">9</span> - c.width / c.height);
+        <span class="t">Space</span>::camera(<span class="t">Vec3</span>(<span class="n">0</span>, <span class="n">4.2f</span> + narrower * <span class="n">4</span>, <span class="n">10.5f</span> + narrower * <span class="n">11</span>), <span class="t">Vec3</span>(<span class="n">0</span>, <span class="n">1.1f</span>, <span class="n">0</span>), <span class="n">52</span>);
         <span class="t">Space</span>::draw(c);
         <span class="c">// How much of each animation the mixing robot is.</span>
         <span class="k">float</span> walk = speed &lt; <span class="n">1.5f</span> ? speed / <span class="n">1.5f</span> : <span class="n">1</span> - (speed - <span class="n">1.5f</span>) / <span class="n">2.5f</span>;
@@ -13102,6 +13104,126 @@ summary { cursor: pointer; padding: 10px 16px; } details pre { border-width: 1px
         <span class="k">float</span> w = font.measure(text).x;
         c.roundRect(at.x - w / <span class="n">2</span> - <span class="n">10</span>, at.y - <span class="n">30</span>, w + <span class="n">20</span>, <span class="n">32</span>, <span class="n">10</span>, <span class="t">Color</span>(<span class="n">0</span>, <span class="n">0</span>, <span class="n">0</span>, <span class="n">0.45f</span>));
         c.text(font, text, at.x - w / <span class="n">2</span>, at.y - <span class="n">27</span>);
+    }
+}
+</code></pre></details></div>
+<div data-find="topple ragdolls: knocked over, falling off ledges, and getting up again topple"><h3 id="demo-topple">Topple</h3><p>Ragdolls: knocked over, falling off ledges, and getting up again</p>
+<details><summary><code>topple/main.as</code> <span class="tag">118 lines</span></summary><pre><code><span class="c">// Ragdolls: robots knocked over go limp, a body for each limb pinned where they meet, and fall off what they stand</span>
+<span class="c">// on; a few seconds later they get up again from wherever they lie.</span>
+
+<span class="k">class</span> <span class="t">ToppleScreen</span> : <span class="t">Screen</span>
+{
+    <span class="t">Font</span>@ font = <span class="t">Assets</span>::font(<span class="s">&quot;global:freesans.sfn&quot;</span>, <span class="n">22</span>);
+    <span class="t">Model</span>@ robot = <span class="t">Assets</span>::model(<span class="s">&quot;global:model/robot.glb&quot;</span>);
+    <span class="k">array</span>&lt;<span class="t">Entity</span>@&gt; robots;
+    <span class="k">array</span>&lt;<span class="k">float</span>&gt; down;
+    <span class="k">array</span>&lt;<span class="k">string</span>&gt; doing = { <span class="s">&quot;idle&quot;</span>, <span class="s">&quot;wave&quot;</span>, <span class="s">&quot;dance&quot;</span>, <span class="s">&quot;idle&quot;</span>, <span class="s">&quot;run&quot;</span> };
+    <span class="k">uint</span> next = <span class="n">0</span>;
+    <span class="t">Vec3</span> eye(<span class="n">0</span>, <span class="n">7</span>, <span class="n">11</span>);
+
+    <span class="k">void</span> onEnter()
+    {
+        <span class="t">Mesh</span>@ floor = <span class="t">Mesh</span>();
+        <span class="k">for</span> (<span class="k">int</span> z = -<span class="n">8</span>; z &lt; <span class="n">8</span>; z++)
+            <span class="k">for</span> (<span class="k">int</span> x = -<span class="n">10</span>; x &lt; <span class="n">10</span>; x++)
+            {
+                <span class="k">float</span> a = <span class="k">float</span>(x) * <span class="n">2</span>, b = <span class="k">float</span>(z) * <span class="n">2</span>;
+                floor.quad(<span class="t">Vec3</span>(a, <span class="n">0</span>, b + <span class="n">2</span>), <span class="t">Vec3</span>(a + <span class="n">2</span>, <span class="n">0</span>, b + <span class="n">2</span>), <span class="t">Vec3</span>(a + <span class="n">2</span>, <span class="n">0</span>, b), <span class="t">Vec3</span>(a, <span class="n">0</span>, b), (x + z) % <span class="n">2</span> == <span class="n">0</span> ? <span class="t">Color</span>(<span class="n">0.36f</span>, <span class="n">0.42f</span>, <span class="n">0.4f</span>) : <span class="t">Color</span>(<span class="n">0.3f</span>, <span class="n">0.36f</span>, <span class="n">0.34f</span>));
+            }
+        <span class="t">Space</span>::spawn(<span class="t">Vec3</span>(<span class="n">0</span>, <span class="n">0</span>, <span class="n">0</span>)).mesh(floor);
+        <span class="t">Space</span>::ground(<span class="n">0</span>);
+        <span class="t">Space</span>::sky(<span class="t">Color</span>(<span class="n">0.25f</span>, <span class="n">0.4f</span>, <span class="n">0.65f</span>), <span class="t">Color</span>(<span class="n">0.8f</span>, <span class="n">0.84f</span>, <span class="n">0.85f</span>));
+        <span class="t">Space</span>::fog(<span class="t">Color</span>(<span class="n">0.8f</span>, <span class="n">0.84f</span>, <span class="n">0.85f</span>), <span class="n">25</span>, <span class="n">60</span>);
+        <span class="t">Space</span>::sun(<span class="t">Vec3</span>(<span class="n">0.5f</span>, <span class="n">0.9f</span>, <span class="n">0.5f</span>), <span class="t">Color</span>(<span class="n">0.95f</span>, <span class="n">0.9f</span>, <span class="n">0.8f</span>));
+        <span class="t">Space</span>::shadows(<span class="n">0.65f</span>, <span class="n">18</span>);
+
+        <span class="c">// A ledge to fall from, and crates to fall over.</span>
+        block(<span class="t">Vec3</span>(<span class="n">0</span>, <span class="n">0.6f</span>, -<span class="n">2.5f</span>), <span class="t">Vec3</span>(<span class="n">9</span>, <span class="n">1.2f</span>, <span class="n">3</span>), <span class="t">Color</span>(<span class="n">0.55f</span>, <span class="n">0.5f</span>, <span class="n">0.45f</span>), <span class="n">0</span>);
+        <span class="k">for</span> (<span class="k">int</span> i = <span class="n">0</span>; i &lt; <span class="n">4</span>; i++)
+            block(<span class="t">Vec3</span>(-<span class="n">4.5f</span> + <span class="k">float</span>(i) * <span class="n">3</span>, <span class="n">0.35f</span>, <span class="n">1.6f</span>), <span class="t">Vec3</span>(<span class="n">0.7f</span>, <span class="n">0.7f</span>, <span class="n">0.7f</span>), <span class="t">Color</span>(<span class="n">0.75f</span>, <span class="n">0.55f</span>, <span class="n">0.3f</span>), <span class="n">8</span>);
+
+        <span class="k">for</span> (<span class="k">uint</span> i = <span class="n">0</span>; i &lt; <span class="n">5</span>; i++)
+        {
+            <span class="t">Vec3</span> at = i &lt; <span class="n">3</span> ? <span class="t">Vec3</span>(-<span class="n">3</span> + <span class="k">float</span>(i) * <span class="n">3</span>, <span class="n">1.2f</span>, -<span class="n">2.2f</span>) : <span class="t">Vec3</span>(i == <span class="n">3</span> ? -<span class="n">6.5f</span> : <span class="n">6.5f</span>, <span class="n">0</span>, <span class="n">0.5f</span>);
+            <span class="t">Entity</span>@ e = <span class="t">Space</span>::spawn(at);
+            e.model(robot);
+            e.capsule(<span class="n">0.35f</span>, <span class="n">1.6f</span>, <span class="n">1</span>);
+            e.colliderAt = <span class="t">Vec3</span>(<span class="n">0</span>, <span class="n">0.8f</span>, <span class="n">0</span>);
+            e.walker = <span class="k">true</span>;
+            e.mass = <span class="n">60</span>;
+            robots.insertLast(e);
+            down.insertLast(<span class="n">0</span>);
+        }
+    }
+
+    <span class="t">Entity</span>@ block(<span class="k">const</span> <span class="t">Vec3</span> &amp;<span class="k">in</span> at, <span class="k">const</span> <span class="t">Vec3</span> &amp;<span class="k">in</span> size, <span class="k">const</span> <span class="t">Color</span> &amp;<span class="k">in</span> color, <span class="k">float</span> mass)
+    {
+        <span class="t">Entity</span>@ e = <span class="t">Space</span>::spawn(at);
+        e.shape(<span class="t">SolidBox</span>, color);
+        e.size = size;
+        e.cube(<span class="t">Vec3</span>(<span class="n">1</span>, <span class="n">1</span>, <span class="n">1</span>));
+        e.mass = mass;
+        e.gravity = mass &gt; <span class="n">0</span> ? <span class="n">1</span> : <span class="n">0</span>;
+        e.friction = <span class="n">0.6f</span>;
+        e.shine = <span class="n">0.15f</span>;
+        <span class="k">return</span> e;
+    }
+
+    <span class="c">// Toward where we look from, off the ledge, and up a little.</span>
+    <span class="k">void</span> knock(<span class="k">uint</span> i)
+    {
+        <span class="t">Entity</span>@ e = robots[i];
+        <span class="k">if</span> (e.ragdolled)
+            <span class="k">return</span>;
+        <span class="t">Vec3</span> toward = eye - e.place;
+        toward.y = <span class="n">0</span>;
+        e.ragdoll(<span class="k">true</span>, toward.normalized() * <span class="n">3.5f</span> + <span class="t">Vec3</span>(<span class="n">0</span>, <span class="n">1.5f</span>, <span class="n">0</span>));
+        down[i] = <span class="n">3.5f</span>;
+    }
+
+    <span class="k">void</span> update(<span class="k">float</span> dt)
+    {
+        <span class="k">if</span> (<span class="t">Input</span>::pressed(<span class="s">&quot;accept&quot;</span>))
+        {
+            knock(next);
+            next = (next + <span class="n">1</span>) % robots.length();
+        }
+        <span class="k">if</span> (<span class="t">Input</span>::pressed(<span class="s">&quot;alternate&quot;</span>))
+            <span class="k">for</span> (<span class="k">uint</span> i = <span class="n">0</span>; i &lt; robots.length(); i++)
+                knock(i);
+        <span class="k">for</span> (<span class="k">uint</span> i = <span class="n">0</span>; i &lt; robots.length(); i++)
+        {
+            <span class="t">Entity</span>@ e = robots[i];
+            <span class="k">if</span> (e.ragdolled)
+            {
+                down[i] -= dt;
+                <span class="c">// Up again where it lies, facing the way we look.</span>
+                <span class="k">if</span> (down[i] &lt;= <span class="n">0</span>)
+                {
+                    e.ragdoll(<span class="k">false</span>);
+                    e.face(eye - e.place);
+                }
+                <span class="k">continue</span>;
+            }
+            e.animate(doing[i]);
+            e.motion = <span class="t">Vec3</span>();
+        }
+        <span class="t">Space</span>::camera(eye, <span class="t">Vec3</span>(<span class="n">0</span>, <span class="n">0.8f</span>, -<span class="n">1</span>), <span class="n">55</span>);
+    }
+
+    <span class="k">void</span> draw(<span class="t">Canvas</span>@ c)
+    {
+        c.designHeight(<span class="n">720</span>);
+        <span class="k">float</span> narrower = max(<span class="n">0.0f</span>, <span class="n">16.0f</span> / <span class="n">9</span> - c.width / c.height);
+        eye = <span class="t">Vec3</span>(<span class="n">0</span>, <span class="n">7</span> + narrower * <span class="n">4</span>, <span class="n">11</span> + narrower * <span class="n">10</span>);
+        <span class="t">Space</span>::draw(c);
+        <span class="k">uint</span> lying = <span class="n">0</span>;
+        <span class="k">for</span> (<span class="k">uint</span> i = <span class="n">0</span>; i &lt; robots.length(); i++)
+            lying += robots[i].ragdolled ? <span class="n">1</span> : <span class="n">0</span>;
+        c.roundRect(<span class="n">24</span>, <span class="n">22</span>, <span class="n">300</span>, <span class="n">44</span>, <span class="n">14</span>, <span class="t">Color</span>(<span class="n">0</span>, <span class="n">0</span>, <span class="n">0</span>, <span class="n">0.45f</span>));
+        c.text(font, formatInt(<span class="k">int</span>(lying)) + <span class="s">&quot; of &quot;</span> + formatInt(<span class="k">int</span>(robots.length())) + <span class="s">&quot; lying down&quot;</span>, <span class="n">44</span>, <span class="n">31</span>);
+        c.roundRect(<span class="n">20</span>, <span class="n">660</span>, c.width - <span class="n">40</span>, <span class="n">42</span>, <span class="n">12</span>, <span class="t">Color</span>(<span class="n">0</span>, <span class="n">0</span>, <span class="n">0</span>, <span class="n">0.45f</span>));
+        c.text(font, <span class="s">&quot;Accept: knock one over     Alternate: knock them all over&quot;</span>, <span class="n">40</span>, <span class="n">668</span>);
     }
 }
 </code></pre></details></div>
