@@ -552,6 +552,23 @@ room.send(m, <span class="k">false</span>);                          <span class
         where[m.from] = m.readVec2();         <span class="c">// m.whole says whether it was all there</span></code></pre>
 <p><code>room.state</code> is <code>RoomIn</code> once you are in, and <code>RoomLost</code> if the host goes. <code>arrived()</code> and <code>departed()</code> say who has come and gone. Use</p>
 <p>quick messages for what is out of date in a moment, such as where things are, and sure ones for what happened.</p>
+<h3 id="shared-entities">Shared entities</h3>
+<p>Rather than saying where everything is yourself, share it: the room keeps an entity of yours alike in every other copy of the game, where it is, how it is turned, its frame, flip, alpha and whether it is shown, or in space its place, turn and animation.</p>
+<pre><code>room.share(ship, <span class="s">&quot;ship&quot;</span>);                     <span class="c">// this player&#x27;s; the kind says what to make of it elsewhere</span>
+
+<span class="t">Entity</span>@ make(<span class="k">const</span> <span class="k">string</span> &amp;<span class="k">in</span> kind, <span class="k">int</span> player)   <span class="c">// makes this game&#x27;s copy of another player&#x27;s</span>
+{
+    <span class="t">Entity</span>@ e = <span class="t">Scene</span>::spawn(<span class="t">Vec2</span>(<span class="n">0</span>, <span class="n">0</span>));
+    e.rect(<span class="n">46</span>, <span class="n">22</span>, colorOf(player));
+    <span class="k">return</span> e;
+}
+
+<span class="k">void</span> update(<span class="k">float</span> dt)
+{
+    room.sync(<span class="t">Copy</span>(<span class="k">this</span>.make));               <span class="c">// once a frame</span>
+}</code></pre>
+<p><code>sync</code> says where this player&#x27;s are, 20 times a second, and moves the copies of everyone else&#x27;s smoothly after theirs, going on</p>
+<p>the way they were going for a moment if a message is late; one that jumps a long way is jumped, not glided. Copies are hidden until it is known where they are. Whoever joins later is told of everything already shared, a copy goes when its original is unshared or destroyed, and all of a player&#x27;s go when they leave. <code>ownerOf(e)</code> says whose an entity is. This travels on the room&#x27;s own channel, alongside your messages, which still say everything else: who scored, what was picked up. A copy is placed by its owner, so give it no body of its own. The Arena demo shares each player&#x27;s ship and the sparks it leaves.</p>
 <h3 id="playing-over-the-internet">Playing over the internet</h3>
 <p>Players on different networks meet at a <b>meeting place</b>: a machine every one of them can reach, such as a small server somewhere, running the engine with <code>--meeting 27300</code> (no window, nothing else; it says now and then how many rooms and players it has). Give it to a room before hosting, finding or joining:</p>
 <pre><code>room.meet(<span class="s">&quot;games.example.com&quot;</span>);               <span class="c">// or &quot;1.2.3.4:27300&quot;</span>

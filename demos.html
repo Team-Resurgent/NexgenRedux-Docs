@@ -13450,6 +13450,185 @@ summary { cursor: pointer; padding: 10px 16px; } details pre { border-width: 1px
     }
 }
 </code></pre></details></div>
+<div data-find="arena ships kept alike in every game in the room arena"><h3 id="demo-arena">Arena</h3><p>Ships kept alike in every game in the room</p>
+<details><summary><code>arena/main.as</code> <span class="tag">177 lines</span></summary><pre><code><span class="c">// Shared entities: each player&#x27;s ship, and the sparks it leaves behind, are kept alike in everyone&#x27;s game. room.share</span>
+<span class="c">// says which are this player&#x27;s; room.sync, once a frame, says where they are and moves everyone else&#x27;s after them,</span>
+<span class="c">// asking copy() to make one of each. A spark that burns out goes from every game by itself.</span>
+
+<span class="k">const</span> <span class="k">string</span> <span class="t">Game</span> = <span class="s">&quot;nexgen arena&quot;</span>;
+
+<span class="k">class</span> <span class="t">ArenaScreen</span> : <span class="t">Screen</span>
+{
+    <span class="t">Font</span>@ font = <span class="t">Assets</span>::font(<span class="s">&quot;global:freesans.sfn&quot;</span>, <span class="n">22</span>);
+    <span class="t">Font</span>@ big = <span class="t">Assets</span>::font(<span class="s">&quot;global:freesans.sfn&quot;</span>, <span class="n">44</span>);
+    <span class="t">Sound</span>@ tick = <span class="t">Assets</span>::sound(<span class="s">&quot;global:sound/pop.wav&quot;</span>);
+    <span class="t">Room</span>@ room = <span class="t">Room</span>();
+    <span class="t">Entity</span>@ ship;
+    <span class="k">array</span>&lt;<span class="t">Entity</span>@&gt; sparks;
+    <span class="k">array</span>&lt;<span class="t">Entity</span>@&gt; others;    <span class="c">// copies of the other players&#x27; ships</span>
+    <span class="k">array</span>&lt;<span class="k">string</span>&gt; news;
+    <span class="k">uint</span> chosen = <span class="n">0</span>;
+    <span class="k">float</span> burning = <span class="n">0</span>;
+    <span class="k">string</span> name = <span class="s">&quot;Pilot &quot;</span> + formatInt(randomInt(<span class="n">10</span>, <span class="n">99</span>));
+
+    <span class="t">Color</span> colorOf(<span class="k">int</span> who) { <span class="k">return</span> hsv(<span class="k">float</span>(who &lt; <span class="n">0</span> ? <span class="n">0</span> : who) * <span class="n">0.137f</span> + <span class="n">0.02f</span>, <span class="n">0.7f</span>, <span class="n">1</span>); }
+
+    <span class="k">void</span> tell(<span class="k">const</span> <span class="k">string</span> &amp;<span class="k">in</span> text)
+    {
+        news.insertLast(text);
+        <span class="k">if</span> (news.length() &gt; <span class="n">4</span>)
+            news.removeAt(<span class="n">0</span>);
+    }
+
+    <span class="k">void</span> onEnter()
+    {
+        <span class="t">Scene</span>::gravity = <span class="t">Vec2</span>(<span class="n">0</span>, <span class="n">0</span>);
+        @ship = <span class="t">Scene</span>::spawn(<span class="t">Vec2</span>(<span class="n">640</span>, <span class="n">380</span>));
+        ship.rect(<span class="n">46</span>, <span class="n">22</span>, colorOf(<span class="n">0</span>));
+        ship.layer = <span class="n">2</span>;
+        <span class="c">// Shared from the start: whoever is in a room with it later is told of it.</span>
+        room.share(ship, <span class="s">&quot;ship&quot;</span>);
+    }
+
+    <span class="c">// Another player&#x27;s: a ship or a spark, in their colour.</span>
+    <span class="t">Entity</span>@ copy(<span class="k">const</span> <span class="k">string</span> &amp;<span class="k">in</span> kind, <span class="k">int</span> player)
+    {
+        <span class="t">Entity</span>@ e = <span class="t">Scene</span>::spawn(<span class="t">Vec2</span>(<span class="n">0</span>, <span class="n">0</span>));
+        <span class="k">if</span> (kind == <span class="s">&quot;ship&quot;</span>)
+        {
+            e.rect(<span class="n">46</span>, <span class="n">22</span>, colorOf(player));
+            e.layer = <span class="n">2</span>;
+            others.insertLast(e);
+        }
+        <span class="k">else</span>
+            e.disc(<span class="n">7</span>, colorOf(player));
+        <span class="k">return</span> e;
+    }
+
+    <span class="k">void</span> update(<span class="k">float</span> dt)
+    {
+        room.sync(<span class="t">Copy</span>(<span class="k">this</span>.copy));
+        fly(dt);
+
+        <span class="k">if</span> (room.state == <span class="t">RoomIdle</span> || room.state == <span class="t">RoomLost</span>)
+        {
+            <span class="k">if</span> (<span class="t">Input</span>::pressed(<span class="s">&quot;accept&quot;</span>))
+                tell(room.host(<span class="t">Game</span>, name, <span class="n">8</span>) ? <span class="s">&quot;Waiting for others&quot;</span> : <span class="s">&quot;There is no network&quot;</span>);
+            <span class="k">else</span> <span class="k">if</span> (<span class="t">Input</span>::pressed(<span class="s">&quot;alternate&quot;</span>))
+            {
+                chosen = <span class="n">0</span>;
+                tell(room.find(<span class="t">Game</span>) ? <span class="s">&quot;Looking for an arena&quot;</span> : <span class="s">&quot;There is no network&quot;</span>);
+            }
+            <span class="k">else</span> <span class="k">if</span> (room.state == <span class="t">RoomLost</span> &amp;&amp; <span class="t">Input</span>::pressed(<span class="s">&quot;cancel&quot;</span>))
+                room.leave();
+            <span class="k">return</span>;
+        }
+        <span class="k">if</span> (room.state == <span class="t">RoomFinding</span>)
+        {
+            <span class="k">if</span> (<span class="t">Input</span>::repeated(<span class="s">&quot;down&quot;</span>) &amp;&amp; chosen + <span class="n">1</span> &lt; room.found) chosen++;
+            <span class="k">if</span> (<span class="t">Input</span>::repeated(<span class="s">&quot;up&quot;</span>) &amp;&amp; chosen &gt; <span class="n">0</span>) chosen--;
+            <span class="k">if</span> (<span class="t">Input</span>::pressed(<span class="s">&quot;accept&quot;</span>) &amp;&amp; room.found &gt; chosen)
+                room.join(<span class="t">Game</span>, chosen, name);
+            <span class="k">if</span> (<span class="t">Input</span>::pressed(<span class="s">&quot;cancel&quot;</span>))
+                room.leave();
+            <span class="k">return</span>;
+        }
+        <span class="k">if</span> (<span class="t">Input</span>::pressed(<span class="s">&quot;cancel&quot;</span>))
+        {
+            room.leave();
+            <span class="k">return</span>;
+        }
+        ship.color = colorOf(room.me);
+        <span class="k">for</span> (<span class="k">int</span> who = room.arrived(); who &gt;= <span class="n">0</span>; who = room.arrived())
+        {
+            tell(room.playerName(who) + <span class="s">&quot; is here&quot;</span>);
+            tick.play(<span class="n">0.6f</span>);
+        }
+        <span class="k">for</span> (<span class="k">int</span> who = room.departed(); who &gt;= <span class="n">0</span>; who = room.departed())
+            tell(<span class="s">&quot;Pilot &quot;</span> + formatInt(who + <span class="n">1</span>) + <span class="s">&quot; has gone&quot;</span>);
+    }
+
+    <span class="k">void</span> fly(<span class="k">float</span> dt)
+    {
+        <span class="t">Vec2</span> move = <span class="t">Input</span>::move;
+        <span class="k">if</span> (room.state != <span class="t">RoomFinding</span>)
+        {
+            ship.velocity = move * <span class="n">340</span>;
+            <span class="k">if</span> (move.length() &gt; <span class="n">0.2f</span>)
+                ship.rotation = atan2(move.y, move.x) * <span class="n">57.29578f</span>;
+        }
+        <span class="k">else</span>
+            ship.velocity = <span class="t">Vec2</span>(<span class="n">0</span>, <span class="n">0</span>);
+        ship.position = <span class="t">Vec2</span>(clamp(ship.x, <span class="n">30</span>, <span class="n">1250</span>), clamp(ship.y, <span class="n">90</span>, <span class="n">640</span>));
+
+        <span class="c">// Sparks, shared too, that fade and burn out.</span>
+        burning -= dt;
+        <span class="k">if</span> (<span class="t">Input</span>::held(<span class="s">&quot;fire&quot;</span>) &amp;&amp; burning &lt; <span class="n">0</span>)
+        {
+            burning = <span class="n">0.08f</span>;
+            <span class="t">Entity</span>@ s = <span class="t">Scene</span>::spawn(ship.position);
+            s.disc(<span class="n">7</span>, colorOf(room.me));
+            s.lifetime = <span class="n">1.4f</span>;
+            room.share(s, <span class="s">&quot;spark&quot;</span>);
+            sparks.insertLast(s);
+        }
+        <span class="k">for</span> (<span class="k">uint</span> i = <span class="n">0</span>; i &lt; sparks.length();)
+        {
+            <span class="k">if</span> (!sparks[i].alive)
+            {
+                sparks.removeAt(i);
+                <span class="k">continue</span>;
+            }
+            sparks[i].alpha = sparks[i].lifetime / <span class="n">1.4f</span>;
+            i++;
+        }
+        <span class="k">for</span> (<span class="k">uint</span> i = <span class="n">0</span>; i &lt; others.length();)
+        {
+            <span class="k">if</span> (!others[i].alive)
+                others.removeAt(i);
+            <span class="k">else</span>
+                i++;
+        }
+    }
+
+    <span class="k">void</span> draw(<span class="t">Canvas</span>@ c)
+    {
+        c.design(<span class="n">1280</span>, <span class="n">720</span>);
+        c.gradient(<span class="n">0</span>, <span class="n">0</span>, <span class="n">1280</span>, <span class="n">720</span>, <span class="t">Color</span>(<span class="n">0.08f</span>, <span class="n">0.09f</span>, <span class="n">0.14f</span>), <span class="t">Color</span>(<span class="n">0.03f</span>, <span class="n">0.04f</span>, <span class="n">0.07f</span>));
+        c.roundRect(<span class="n">20</span>, <span class="n">80</span>, <span class="n">1240</span>, <span class="n">570</span>, <span class="n">20</span>, <span class="t">Color</span>(<span class="n">0.12f</span>, <span class="n">0.14f</span>, <span class="n">0.2f</span>));
+        <span class="t">Scene</span>::draw(c);
+        <span class="k">for</span> (<span class="k">uint</span> i = <span class="n">0</span>; i &lt; others.length(); i++)
+        {
+            <span class="k">int</span> who = room.ownerOf(others[i]);
+            <span class="k">if</span> (who &gt;= <span class="n">0</span> &amp;&amp; others[i].visible)
+                c.text(font, room.playerName(who), others[i].x, others[i].y - <span class="n">42</span>, colorOf(who), <span class="t">AlignCenter</span>);
+        }
+        c.text(font, room.state == <span class="t">RoomIn</span> ? room.playerName(room.me) : name, ship.x, ship.y - <span class="n">42</span>, <span class="t">Color</span>(<span class="n">1</span>, <span class="n">1</span>, <span class="n">1</span>, <span class="n">0.8f</span>), <span class="t">AlignCenter</span>);
+        c.text(big, <span class="s">&quot;Arena&quot;</span>, <span class="n">30</span>, <span class="n">18</span>);
+        <span class="k">string</span> state;
+        <span class="k">if</span> (room.state == <span class="t">RoomIn</span>)
+            state = formatInt(<span class="k">int</span>(room.players)) + <span class="s">&quot; flying, &quot;</span> + formatInt(<span class="k">int</span>(room.copies)) + <span class="s">&quot; of theirs here&quot;</span> + (room.hosting ? <span class="s">&quot;&quot;</span> : <span class="s">&quot;, &quot;</span> + formatInt(room.ping(<span class="n">0</span>)) + <span class="s">&quot; ms away&quot;</span>);
+        <span class="k">else</span>
+            state = room.state == <span class="t">RoomFinding</span> ? <span class="s">&quot;Looking&quot;</span> : room.state == <span class="t">RoomJoining</span> ? <span class="s">&quot;Joining&quot;</span> : room.state == <span class="t">RoomLost</span> ? <span class="s">&quot;That didn&#x27;t work&quot;</span> : <span class="s">&quot;By yourself&quot;</span>;
+        c.text(font, state, <span class="n">1250</span>, <span class="n">30</span>, <span class="t">Color</span>(<span class="n">0.7f</span>, <span class="n">0.8f</span>, <span class="n">0.9f</span>), <span class="t">AlignRight</span>);
+        <span class="k">for</span> (<span class="k">uint</span> i = <span class="n">0</span>; i &lt; news.length(); i++)
+            c.text(font, news[i], <span class="n">44</span>, <span class="n">630</span> - <span class="k">float</span>(news.length() - i) * <span class="n">28</span>, <span class="t">Color</span>(<span class="n">0.6f</span>, <span class="n">0.7f</span>, <span class="n">0.85f</span>, <span class="n">0.8f</span>));
+        <span class="k">if</span> (room.state == <span class="t">RoomFinding</span>)
+        {
+            c.roundRect(<span class="n">390</span>, <span class="n">190</span>, <span class="n">500</span>, <span class="n">300</span>, <span class="n">20</span>, <span class="t">Color</span>(<span class="n">0.1f</span>, <span class="n">0.12f</span>, <span class="n">0.18f</span>, <span class="n">0.94f</span>));
+            c.text(font, room.found == <span class="n">0</span> ? <span class="s">&quot;Nobody yet...&quot;</span> : <span class="s">&quot;Arenas to fly in&quot;</span>, <span class="n">640</span>, <span class="n">206</span>, <span class="t">White</span>, <span class="t">AlignCenter</span>);
+            <span class="k">for</span> (<span class="k">uint</span> i = <span class="n">0</span>; i &lt; room.found &amp;&amp; i &lt; <span class="n">6</span>; i++)
+            {
+                c.roundRect(<span class="n">410</span>, <span class="n">250</span> + <span class="k">float</span>(i) * <span class="n">38</span>, <span class="n">460</span>, <span class="n">34</span>, <span class="n">8</span>, i == chosen ? <span class="t">Blue</span> : <span class="t">Color</span>(<span class="n">1</span>, <span class="n">1</span>, <span class="n">1</span>, <span class="n">0.08f</span>));
+                c.text(font, room.foundName(i) + (room.foundFar(i) ? <span class="s">&quot;  (internet)&quot;</span> : <span class="s">&quot;&quot;</span>), <span class="n">424</span>, <span class="n">253</span> + <span class="k">float</span>(i) * <span class="n">38</span>);
+                c.text(font, formatInt(<span class="k">int</span>(room.foundPlayers(i))) + <span class="s">&quot; of &quot;</span> + formatInt(<span class="k">int</span>(room.foundMost(i))), <span class="n">856</span>, <span class="n">253</span> + <span class="k">float</span>(i) * <span class="n">38</span>, <span class="t">Color</span>(<span class="n">0.8f</span>, <span class="n">0.85f</span>, <span class="n">0.95f</span>), <span class="t">AlignRight</span>);
+            }
+        }
+        <span class="k">string</span> help = room.state == <span class="t">RoomIn</span> ? <span class="s">&quot;Move: fly     Fire: sparks     Cancel: leave&quot;</span> : room.state == <span class="t">RoomFinding</span> ? <span class="s">&quot;Up, down: choose     Accept: join     Cancel: stop&quot;</span> : <span class="s">&quot;Move: fly     Accept: open an arena     Alternate: look for one&quot;</span>;
+        c.text(font, help, <span class="n">640</span>, <span class="n">670</span>, <span class="t">Color</span>(<span class="n">0.7f</span>, <span class="n">0.75f</span>, <span class="n">0.85f</span>), <span class="t">AlignCenter</span>);
+    }
+}
+</code></pre></details></div>
 </section><p class="none" id="none" hidden>Nothing found.</p></main></div>
 <script>
 const box = document.getElementById('search');
