@@ -189,6 +189,7 @@ rock.add(<span class="t">Rock</span>());</code></pre>
   ]
 }</code></pre>
 <p>With <code>&quot;image&quot;</code> and <code>&quot;sheet&quot;</code> it is drawn from a picture instead of colours.</p>
+<p>A tile can be a terrain, which joins up with its neighbours: with <code>&quot;terrains&quot;: { &quot;2&quot;: 1 }</code>, tile 2 is drawn with one of 16 frames of the sheet from frame 1, chosen by which of its sides meet more tile 2: up 1, right 2, down 4 and left 8, added up. So water gets its shores, and a path its bends, wherever they are painted, and <code>Scene::setTile</code> joins them up again as it goes. Past the map&#x27;s edge counts as more of it. A map drawn only in colours edges its terrains instead, lit along the top and shadowed along the bottom, with rounded outer corners. <code>Scene::terrain(tile, firstFrame)</code> does the same from a script, and the Tiles demo has both, to paint on.</p>
 <p><code>Scene::path(from, to, way)</code> finds a way round the solid tiles: the corners of it, as straight as it can be, ending where it was</p>
 <p>asked to go. It goes diagonally too, but never across a corner, unless it is told to keep to straight steps. <code>Scene::blocked</code> says whether a solid tile is at a place.</p>
 <h3 id="lights">Lights</h3>

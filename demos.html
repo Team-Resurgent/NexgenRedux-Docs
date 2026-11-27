@@ -688,6 +688,48 @@ summary { cursor: pointer; padding: 10px 16px; } details pre { border-width: 1px
     }
 }
 </code></pre></details></div>
+<div data-find="tiles terrains that join up with their neighbours tiles"><h3 id="demo-tiles">Tiles</h3><p>Terrains that join up with their neighbours</p>
+<details><summary><code>tiles/main.as</code> <span class="tag">40 lines</span></summary><pre><code><span class="c">// Tiles that join up: water and a path drawn from a sheet of 16 frames each, chosen by which sides meet more of the same,</span>
+<span class="c">// and on the right a map drawn only in colours, whose terrains are edged and rounded where they end. Paint the left one.</span>
+
+<span class="k">class</span> <span class="t">TilesScreen</span> : <span class="t">Screen</span>
+{
+    <span class="t">Font</span>@ font = <span class="t">Assets</span>::font(<span class="s">&quot;global:freesans.sfn&quot;</span>, <span class="n">22</span>);
+    <span class="t">Font</span>@ small = <span class="t">Assets</span>::font(<span class="s">&quot;global:freesans.sfn&quot;</span>, <span class="n">18</span>);
+    <span class="k">int</span> cx = <span class="n">10</span>, cy = <span class="n">10</span>;       <span class="c">// the brush, in tiles of the painted map</span>
+    <span class="k">float</span> t = <span class="n">0</span>;
+
+    <span class="k">void</span> onEnter()
+    {
+        <span class="t">Scene</span>::load(<span class="s">&quot;asset:scene.json&quot;</span>);
+    }
+
+    <span class="t">Vec2</span> placeOf(<span class="k">int</span> x, <span class="k">int</span> y) { <span class="k">return</span> <span class="t">Vec2</span>(<span class="n">20</span> + (<span class="k">float</span>(x) + <span class="n">0.5f</span>) * <span class="n">32</span>, <span class="n">8</span> + (<span class="k">float</span>(y) + <span class="n">0.5f</span>) * <span class="n">32</span>); }
+
+    <span class="k">void</span> update(<span class="k">float</span> dt)
+    {
+        t += dt;
+        <span class="k">if</span> (<span class="t">Input</span>::repeated(<span class="s">&quot;left&quot;</span>)) cx = max(<span class="n">0</span>, cx - <span class="n">1</span>);
+        <span class="k">if</span> (<span class="t">Input</span>::repeated(<span class="s">&quot;right&quot;</span>)) cx = min(<span class="n">19</span>, cx + <span class="n">1</span>);
+        <span class="k">if</span> (<span class="t">Input</span>::repeated(<span class="s">&quot;up&quot;</span>)) cy = max(<span class="n">0</span>, cy - <span class="n">1</span>);
+        <span class="k">if</span> (<span class="t">Input</span>::repeated(<span class="s">&quot;down&quot;</span>)) cy = min(<span class="n">21</span>, cy + <span class="n">1</span>);
+        <span class="k">if</span> (<span class="t">Input</span>::held(<span class="s">&quot;accept&quot;</span>)) <span class="t">Scene</span>::setTile(placeOf(cx, cy), <span class="n">2</span>);
+        <span class="k">if</span> (<span class="t">Input</span>::held(<span class="s">&quot;alternate&quot;</span>)) <span class="t">Scene</span>::setTile(placeOf(cx, cy), <span class="n">3</span>);
+        <span class="k">if</span> (<span class="t">Input</span>::held(<span class="s">&quot;cancel&quot;</span>)) <span class="t">Scene</span>::setTile(placeOf(cx, cy), <span class="n">1</span>);
+    }
+
+    <span class="k">void</span> draw(<span class="t">Canvas</span>@ c)
+    {
+        c.design(<span class="n">1280</span>, <span class="n">720</span>);
+        c.rect(<span class="n">0</span>, <span class="n">0</span>, <span class="n">1280</span>, <span class="n">720</span>, <span class="t">Color</span>(<span class="n">0.12f</span>, <span class="n">0.13f</span>, <span class="n">0.16f</span>));
+        <span class="t">Scene</span>::draw(c);
+        <span class="t">Vec2</span> at = placeOf(cx, cy);
+        c.rectLine(at.x - <span class="n">16</span>, at.y - <span class="n">16</span>, <span class="n">32</span>, <span class="n">32</span>, <span class="n">3</span>, <span class="t">Color</span>(<span class="n">1</span>, <span class="n">1</span>, <span class="n">1</span>, <span class="n">0.6f</span> + <span class="n">0.4f</span> * sin(t * <span class="n">6</span>)));
+        c.text(small, <span class="t">Input</span>::buttons(<span class="s">&quot;accept&quot;</span>) + <span class="s">&quot;: water   &quot;</span> + <span class="t">Input</span>::buttons(<span class="s">&quot;alternate&quot;</span>) + <span class="s">&quot;: path   &quot;</span> + <span class="t">Input</span>::buttons(<span class="s">&quot;cancel&quot;</span>) + <span class="s">&quot;: grass&quot;</span>, <span class="n">680</span>, <span class="n">694</span>, <span class="t">Yellow</span>);
+        c.text(small, <span class="s">&quot;Drawn from a sheet: 16 frames for each&quot;</span>, <span class="n">24</span>, <span class="n">694</span>, <span class="t">Color</span>(<span class="n">0.85f</span>, <span class="n">0.9f</span>, <span class="n">1</span>));
+    }
+}
+</code></pre></details></div>
 <div data-find="stress test how many sprites until it slows down? stress"><h3 id="demo-stress">Stress test</h3><p>How many sprites until it slows down?</p>
 <div class="shots"><img loading="lazy" src="screenshots/stress.png" alt="Stress test"></div>
 <details><summary><code>stress/main.as</code> <span class="tag">63 lines</span></summary><pre><code><span class="c">// How much can it draw? Every sprite shares one image, so however many there are it is one draw.</span>
