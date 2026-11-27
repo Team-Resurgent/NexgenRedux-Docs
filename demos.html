@@ -566,6 +566,67 @@ summary { cursor: pointer; padding: 10px 16px; } details pre { border-width: 1px
     }
 }
 </code></pre></details></div>
+<div data-find="video a film with its sound, shown on a card too video"><h3 id="demo-video">Video</h3><p>A film with its sound, shown on a card too</p>
+<details><summary><code>video/main.as</code> <span class="tag">59 lines</span></summary><pre><code><span class="c">// A film: MPEG-1 with MP2 sound, from ffmpeg. It plays by itself while the screen is on top, and its picture is an</span>
+<span class="c">// image like any other, drawn here as it is and on a card that turns.</span>
+
+<span class="k">class</span> <span class="t">VideoScreen</span> : <span class="t">Screen</span>
+{
+    <span class="t">Font</span>@ font = <span class="t">Assets</span>::font(<span class="s">&quot;global:freesans.sfn&quot;</span>, <span class="n">22</span>);
+    <span class="t">Video</span>@ film = <span class="t">Assets</span>::video(<span class="s">&quot;asset:mandel.mpg&quot;</span>);
+    <span class="t">Entity</span>@ card;
+    <span class="k">float</span> t = <span class="n">0</span>;
+
+    <span class="k">void</span> onEnter()
+    {
+        film.loop = <span class="k">true</span>;
+        film.play();
+        @card = <span class="t">Scene</span>::spawn(<span class="t">Vec2</span>(<span class="n">1110</span>, <span class="n">520</span>));
+        card.image(film.picture, <span class="n">240</span>, <span class="n">136</span>);
+        card.layer = <span class="n">2</span>;
+    }
+
+    <span class="k">void</span> update(<span class="k">float</span> dt)
+    {
+        t += dt;
+        <span class="k">if</span> (<span class="t">Input</span>::pressed(<span class="s">&quot;accept&quot;</span>))
+        {
+            <span class="k">if</span> (film.playing) film.pause();
+            <span class="k">else</span> film.play();
+        }
+        <span class="k">if</span> (<span class="t">Input</span>::pressed(<span class="s">&quot;alternate&quot;</span>))
+        {
+            film.stop();
+            film.play();
+        }
+        card.rotation = sin(t * <span class="n">0.8f</span>) * <span class="n">18</span>;
+        card.scale = <span class="t">Vec2</span>(<span class="n">0.85f</span> + <span class="n">0.15f</span> * cos(t * <span class="n">1.7f</span>), <span class="n">1</span>);
+    }
+
+    <span class="k">void</span> draw(<span class="t">Canvas</span>@ c)
+    {
+        c.design(<span class="n">1280</span>, <span class="n">720</span>);
+        c.gradient(<span class="n">0</span>, <span class="n">0</span>, <span class="n">1280</span>, <span class="n">720</span>, <span class="t">Color</span>(<span class="n">0.07f</span>, <span class="n">0.08f</span>, <span class="n">0.12f</span>), <span class="t">Color</span>(<span class="n">0.02f</span>, <span class="n">0.02f</span>, <span class="n">0.04f</span>));
+        <span class="k">float</span> w = <span class="n">960</span>, h = w * <span class="k">float</span>(film.height) / <span class="k">float</span>(film.width);
+        <span class="k">float</span> x = <span class="n">40</span>, y = <span class="n">40</span>;
+        c.roundRect(x - <span class="n">8</span>, y - <span class="n">8</span>, w + <span class="n">16</span>, h + <span class="n">16</span>, <span class="n">12</span>, <span class="t">Color</span>(<span class="n">0</span>, <span class="n">0</span>, <span class="n">0</span>, <span class="n">0.6f</span>));
+        c.image(film.picture, x, y, w, h);
+        <span class="k">if</span> (!film.playing)
+            c.text(font, film.done ? <span class="s">&quot;The end&quot;</span> : <span class="s">&quot;Paused&quot;</span>, x + w / <span class="n">2</span>, y + h / <span class="n">2</span> - <span class="n">12</span>, <span class="t">White</span>, <span class="t">AlignCenter</span>);
+
+        <span class="c">// How far in it is.</span>
+        <span class="k">float</span> part = film.duration &gt; <span class="n">0</span> ? film.time / film.duration : <span class="n">0</span>;
+        c.roundRect(x, y + h + <span class="n">24</span>, w, <span class="n">10</span>, <span class="n">5</span>, <span class="t">Color</span>(<span class="n">1</span>, <span class="n">1</span>, <span class="n">1</span>, <span class="n">0.15f</span>));
+        c.roundRect(x, y + h + <span class="n">24</span>, w * part, <span class="n">10</span>, <span class="n">5</span>, <span class="t">Color</span>(<span class="n">0.4f</span>, <span class="n">0.75f</span>, <span class="n">1</span>));
+        c.text(font, formatFloat(film.time, <span class="s">&quot;&quot;</span>, <span class="n">0</span>, <span class="n">1</span>) + <span class="s">&quot; of &quot;</span> + formatFloat(film.duration, <span class="s">&quot;&quot;</span>, <span class="n">0</span>, <span class="n">1</span>) + <span class="s">&quot; seconds, &quot;</span> + formatInt(film.width) + <span class="s">&quot; by &quot;</span> + formatInt(film.height) + <span class="s">&quot; at &quot;</span> + formatFloat(film.framerate, <span class="s">&quot;&quot;</span>, <span class="n">0</span>, <span class="n">0</span>) + <span class="s">&quot; a second&quot;</span> + (film.loop ? <span class="s">&quot;, over and over&quot;</span> : <span class="s">&quot;&quot;</span>), x, y + h + <span class="n">44</span>, <span class="t">Color</span>(<span class="n">0.8f</span>, <span class="n">0.85f</span>, <span class="n">0.95f</span>));
+
+        <span class="t">Scene</span>::draw(c);
+        c.text(font, <span class="s">&quot;The same picture,&quot;</span>, <span class="n">1110</span>, <span class="n">360</span>, <span class="t">Color</span>(<span class="n">0.7f</span>, <span class="n">0.75f</span>, <span class="n">0.85f</span>), <span class="t">AlignCenter</span>);
+        c.text(font, <span class="s">&quot;on a card&quot;</span>, <span class="n">1110</span>, <span class="n">386</span>, <span class="t">Color</span>(<span class="n">0.7f</span>, <span class="n">0.75f</span>, <span class="n">0.85f</span>), <span class="t">AlignCenter</span>);
+        c.text(font, <span class="t">Input</span>::buttons(<span class="s">&quot;accept&quot;</span>) + <span class="s">&quot;: play or pause    &quot;</span> + <span class="t">Input</span>::buttons(<span class="s">&quot;alternate&quot;</span>) + <span class="s">&quot;: from the start&quot;</span>, <span class="n">640</span>, <span class="n">680</span>, <span class="t">Color</span>(<span class="n">0.7f</span>, <span class="n">0.75f</span>, <span class="n">0.85f</span>), <span class="t">AlignCenter</span>);
+    }
+}
+</code></pre></details></div>
 </section>
 <section id="sprites" data-title="sprites"><h2>Sprites</h2>
 <div data-find="sprite animation frame animation and tiled water; steer the ship waves"><h3 id="demo-waves">Sprite animation</h3><p>Frame animation and tiled water; steer the ship</p>
