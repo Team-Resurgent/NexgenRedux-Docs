@@ -13244,6 +13244,161 @@ summary { cursor: pointer; padding: 10px 16px; } details pre { border-width: 1px
     }
 }
 </code></pre></details></div>
+<div data-find="lens ambient occlusion, reflections, depth of field with bokeh, auto exposure, god rays, decals and frosted glass lens"><h3 id="demo-lens">Lens</h3><p>Ambient occlusion, reflections, depth of field with bokeh, auto exposure, god rays, decals and frosted glass</p>
+<details><summary><code>lens/main.as</code> <span class="tag">153 lines</span></summary><pre><code><span class="c">// How a view is finished: corners darkened by ambient occlusion, a wet floor reflecting, depth of field with bokeh, the</span>
+<span class="c">// eye adjusting to the light, and god rays from a shader of our own. Paint thrown with fire stays as decals, and the</span>
+<span class="c">// panel is frosted glass. The first five need a GPU that sees depth; decals and blur are everywhere.</span>
+
+<span class="k">class</span> <span class="t">LensScreen</span> : <span class="t">Screen</span>
+{
+    <span class="t">Font</span>@ font = <span class="t">Assets</span>::font(<span class="s">&quot;global:freesans.sfn&quot;</span>, <span class="n">22</span>);
+    <span class="t">Font</span>@ small = <span class="t">Assets</span>::font(<span class="s">&quot;global:freesans.sfn&quot;</span>, <span class="n">18</span>);
+    <span class="t">Model</span>@ column = <span class="t">Assets</span>::model(<span class="s">&quot;global:model/column.glb&quot;</span>);
+    <span class="t">Model</span>@ robot = <span class="t">Assets</span>::model(<span class="s">&quot;global:model/robot.glb&quot;</span>);
+    <span class="t">Model</span>@ lantern = <span class="t">Assets</span>::model(<span class="s">&quot;global:model/lantern.glb&quot;</span>);
+    <span class="t">Texture</span>@ splash = <span class="t">Assets</span>::texture(<span class="s">&quot;global:picture/decal-splash.png&quot;</span>);
+    <span class="t">Texture</span>@ scorch = <span class="t">Assets</span>::texture(<span class="s">&quot;global:picture/decal-scorch.png&quot;</span>);
+    <span class="t">Effect</span>@ rays;
+    <span class="k">array</span>&lt;<span class="k">string</span>&gt; names = { <span class="s">&quot;Ambient occlusion&quot;</span>, <span class="s">&quot;Reflections&quot;</span>, <span class="s">&quot;Depth of field&quot;</span>, <span class="s">&quot;Auto exposure&quot;</span>, <span class="s">&quot;God rays&quot;</span> };
+    <span class="k">array</span>&lt;<span class="k">bool</span>&gt; on = { <span class="k">true</span>, <span class="k">true</span>, <span class="k">false</span>, <span class="k">false</span>, <span class="k">true</span> };
+    <span class="k">uint</span> row = <span class="n">0</span>;
+    <span class="k">float</span> around = <span class="n">0.6f</span>;
+    <span class="k">bool</span> depth = <span class="k">false</span>;
+    <span class="k">uint</span> thrown = <span class="n">0</span>;
+    <span class="t">Entity</span>@ dancer;
+
+    <span class="k">void</span> onEnter()
+    {
+        depth = <span class="t">Space</span>::depthEffects;
+        <span class="c">// Our own shader for god rays needs to see how far away things are.</span>
+        <span class="k">if</span> (depth)
+            @rays = <span class="t">Assets</span>::effect(<span class="s">&quot;global:effect/rays.fx&quot;</span>);
+        <span class="c">// A dark, polished floor, in tiles.</span>
+        <span class="t">Mesh</span>@ floor = <span class="t">Mesh</span>();
+        <span class="k">for</span> (<span class="k">int</span> z = -<span class="n">10</span>; z &lt; <span class="n">10</span>; z++)
+            <span class="k">for</span> (<span class="k">int</span> x = -<span class="n">10</span>; x &lt; <span class="n">10</span>; x++)
+            {
+                <span class="k">float</span> a = <span class="k">float</span>(x) * <span class="n">2</span>, b = <span class="k">float</span>(z) * <span class="n">2</span>;
+                <span class="k">float</span> shade = (x + z) % <span class="n">2</span> == <span class="n">0</span> ? <span class="n">0.22f</span> : <span class="n">0.17f</span>;
+                floor.quad(<span class="t">Vec3</span>(a, <span class="n">0</span>, b + <span class="n">2</span>), <span class="t">Vec3</span>(a + <span class="n">2</span>, <span class="n">0</span>, b + <span class="n">2</span>), <span class="t">Vec3</span>(a + <span class="n">2</span>, <span class="n">0</span>, b), <span class="t">Vec3</span>(a, <span class="n">0</span>, b), <span class="t">Color</span>(shade, shade * <span class="n">1.05f</span>, shade * <span class="n">1.15f</span>));
+            }
+        <span class="t">Entity</span>@ ground = <span class="t">Space</span>::spawn(<span class="t">Vec3</span>());
+        ground.mesh(floor);
+        ground.shine = <span class="n">0.9f</span>;
+        <span class="t">Space</span>::ground(<span class="n">0</span>);
+        <span class="c">// A ring of columns, crates between them, and lanterns.</span>
+        <span class="k">for</span> (<span class="k">int</span> i = <span class="n">0</span>; i &lt; <span class="n">10</span>; i++)
+        {
+            <span class="k">float</span> a = <span class="k">float</span>(i) / <span class="n">10</span> * <span class="n">6.283185f</span>;
+            <span class="t">Entity</span>@ c = <span class="t">Space</span>::spawn(<span class="t">Vec3</span>(cos(a) * <span class="n">8.5f</span>, <span class="n">0</span>, sin(a) * <span class="n">8.5f</span>));
+            c.model(column);
+            c.size = <span class="t">Vec3</span>(<span class="n">1.2f</span>, <span class="n">1.6f</span>, <span class="n">1.2f</span>);
+            <span class="k">if</span> (i % <span class="n">2</span> == <span class="n">0</span>)
+            {
+                <span class="t">Entity</span>@ box = <span class="t">Space</span>::spawn(<span class="t">Vec3</span>(cos(a + <span class="n">0.31f</span>) * <span class="n">7.5f</span>, <span class="n">0.45f</span>, sin(a + <span class="n">0.31f</span>) * <span class="n">7.5f</span>));
+                box.shape(<span class="t">SolidBox</span>, <span class="t">Color</span>(<span class="n">0.62f</span>, <span class="n">0.45f</span>, <span class="n">0.28f</span>));
+                box.size = <span class="t">Vec3</span>(<span class="n">0.9f</span>, <span class="n">0.9f</span>, <span class="n">0.9f</span>);
+                box.angles = <span class="t">Vec3</span>(<span class="n">0</span>, a * <span class="n">57.3f</span> + <span class="n">20</span>, <span class="n">0</span>);
+            }
+            <span class="k">else</span>
+            {
+                <span class="t">Entity</span>@ l = <span class="t">Space</span>::spawn(<span class="t">Vec3</span>(cos(a + <span class="n">0.31f</span>) * <span class="n">7.5f</span>, <span class="n">0</span>, sin(a + <span class="n">0.31f</span>) * <span class="n">7.5f</span>));
+                l.model(lantern);
+                l.light(<span class="t">Color</span>(<span class="n">1</span>, <span class="n">0.7f</span>, <span class="n">0.35f</span>), <span class="n">6</span>);
+            }
+        }
+        <span class="c">// Bright points far off, for the bokeh to show.</span>
+        <span class="k">for</span> (<span class="k">int</span> i = <span class="n">0</span>; i &lt; <span class="n">24</span>; i++)
+        {
+            <span class="k">float</span> a = <span class="k">float</span>(i) / <span class="n">24</span> * <span class="n">6.283185f</span>;
+            <span class="t">Entity</span>@ b = <span class="t">Space</span>::spawn(<span class="t">Vec3</span>(cos(a) * <span class="n">16</span>, <span class="n">1</span> + <span class="k">float</span>(i % <span class="n">3</span>) * <span class="n">1.4f</span>, sin(a) * <span class="n">16</span>));
+            b.shape(<span class="t">SolidSphere</span>, hsv(<span class="k">float</span>(i) / <span class="n">24</span>, <span class="n">0.5f</span>, <span class="n">1</span>));
+            b.size = <span class="t">Vec3</span>(<span class="n">0.25f</span>, <span class="n">0.25f</span>, <span class="n">0.25f</span>);
+            b.glowing = <span class="n">1</span>;
+            b.shadow = <span class="k">false</span>;
+        }
+        @dancer = <span class="t">Space</span>::spawn(<span class="t">Vec3</span>(<span class="n">0</span>, <span class="n">0</span>, <span class="n">0</span>));
+        dancer.model(robot);
+        dancer.animate(<span class="s">&quot;dance&quot;</span>);
+        <span class="t">Space</span>::sky(<span class="t">Color</span>(<span class="n">0.18f</span>, <span class="n">0.3f</span>, <span class="n">0.55f</span>), <span class="t">Color</span>(<span class="n">0.95f</span>, <span class="n">0.78f</span>, <span class="n">0.55f</span>));
+        <span class="t">Space</span>::sun(<span class="t">Vec3</span>(-<span class="n">0.9f</span>, <span class="n">0.22f</span>, -<span class="n">0.4f</span>), <span class="t">Color</span>(<span class="n">1</span>, <span class="n">0.85f</span>, <span class="n">0.65f</span>));
+        <span class="t">Space</span>::ambient(<span class="t">Color</span>(<span class="n">0.35f</span>, <span class="n">0.38f</span>, <span class="n">0.45f</span>), <span class="t">Color</span>(<span class="n">0.2f</span>, <span class="n">0.18f</span>, <span class="n">0.16f</span>));
+        <span class="t">Space</span>::fog(<span class="t">Color</span>(<span class="n">0.95f</span>, <span class="n">0.78f</span>, <span class="n">0.55f</span>), <span class="n">20</span>, <span class="n">45</span>);
+        <span class="t">Space</span>::shadows(<span class="n">0.6f</span>, <span class="n">20</span>);
+        <span class="t">Space</span>::decals = <span class="n">40</span>;
+        <span class="k">if</span> (rays !<span class="k">is</span> <span class="k">null</span>)
+        {
+            rays.<span class="k">set</span>(<span class="n">0</span>, <span class="n">1.4f</span>);
+            rays.<span class="k">set</span>(<span class="n">1</span>, <span class="n">0.85f</span>);
+            rays.<span class="k">set</span>(<span class="n">4</span>, <span class="n">1</span>);
+            rays.<span class="k">set</span>(<span class="n">5</span>, <span class="n">0.85f</span>);
+            rays.<span class="k">set</span>(<span class="n">6</span>, <span class="n">0.6f</span>);
+        }
+        apply();
+    }
+
+    <span class="k">void</span> apply()
+    {
+        <span class="t">Space</span>::occlusion(on[<span class="n">0</span>] ? <span class="n">1.0f</span> : <span class="n">0.0f</span>, <span class="n">0.7f</span>);
+        <span class="t">Space</span>::reflections(on[<span class="n">1</span>] ? <span class="n">0.55f</span> : <span class="n">0.0f</span>);
+        <span class="c">// Sharp on the robot, wherever the camera is.</span>
+        <span class="t">Space</span>::focus(on[<span class="n">2</span>] ? <span class="n">5.0f</span> : <span class="n">0.0f</span>, <span class="n">0.8f</span>, <span class="n">14</span>, <span class="n">5</span>, <span class="n">1.5f</span>);
+        <span class="t">Space</span>::autoExposure(on[<span class="n">3</span>] ? <span class="n">0.5f</span> : <span class="n">0.0f</span>);
+    }
+
+    <span class="k">void</span> update(<span class="k">float</span> dt)
+    {
+        <span class="k">if</span> (<span class="t">Input</span>::pressed(<span class="s">&quot;up&quot;</span>))
+            row = (row + names.length() - <span class="n">1</span>) % names.length();
+        <span class="k">if</span> (<span class="t">Input</span>::pressed(<span class="s">&quot;down&quot;</span>))
+            row = (row + <span class="n">1</span>) % names.length();
+        <span class="k">if</span> (<span class="t">Input</span>::pressed(<span class="s">&quot;accept&quot;</span>))
+        {
+            on[row] = !on[row];
+            apply();
+        }
+        around += dt * <span class="n">0.12f</span>;
+        <span class="t">Vec3</span> eye(cos(around) * <span class="n">5</span>, <span class="n">1.9f</span> + sin(around * <span class="n">0.7f</span>) * <span class="n">0.5f</span>, sin(around) * <span class="n">5</span>);
+        <span class="t">Space</span>::camera(eye, <span class="t">Vec3</span>(<span class="n">0</span>, <span class="n">1.1f</span>, <span class="n">0</span>), <span class="n">55</span>);
+        <span class="c">// Paint where the middle of the view lands, or at the floor near the robot.</span>
+        <span class="k">if</span> (<span class="t">Input</span>::pressed(<span class="s">&quot;fire&quot;</span>))
+        {
+            <span class="t">Vec3</span> hit, normal;
+            <span class="t">Vec3</span> way = <span class="t">Space</span>::ray(<span class="t">Vec2</span>(<span class="n">640</span> + random(-<span class="n">300</span>, <span class="n">300</span>), <span class="n">450</span> + random(-<span class="n">60</span>, <span class="n">200</span>)));
+            <span class="k">if</span> (<span class="t">Space</span>::raycast(eye, eye + way * <span class="n">40</span>, hit, normal))
+            {
+                <span class="k">bool</span> burn = thrown % <span class="n">4</span> == <span class="n">3</span>;
+                <span class="t">Space</span>::decal(burn ? scorch : splash, hit, normal, random(<span class="n">0.8f</span>, <span class="n">1.6f</span>), random(<span class="n">0</span>, <span class="n">360</span>), burn ? <span class="t">White</span> : hsv(random(<span class="n">0</span>, <span class="n">1</span>), <span class="n">0.75f</span>, <span class="n">0.95f</span>));
+                thrown++;
+            }
+        }
+    }
+
+    <span class="k">void</span> draw(<span class="t">Canvas</span>@ c)
+    {
+        c.designHeight(<span class="n">720</span>);
+        <span class="t">Space</span>::draw(c);
+        <span class="k">if</span> (on[<span class="n">4</span>] &amp;&amp; rays !<span class="k">is</span> <span class="k">null</span>)
+            c.effect(rays);
+        <span class="c">// Frosted glass behind the panel.</span>
+        c.clip(<span class="n">24</span>, <span class="n">22</span>, <span class="n">440</span>, <span class="n">210</span>);
+        c.blur(<span class="n">12</span>);
+        c.noClip();
+        c.roundRect(<span class="n">24</span>, <span class="n">22</span>, <span class="n">440</span>, <span class="n">210</span>, <span class="n">16</span>, <span class="t">Color</span>(<span class="n">0.05f</span>, <span class="n">0.07f</span>, <span class="n">0.12f</span>, <span class="n">0.45f</span>));
+        <span class="k">for</span> (<span class="k">uint</span> i = <span class="n">0</span>; i &lt; names.length(); i++)
+        {
+            <span class="k">float</span> y = <span class="n">34</span> + <span class="k">float</span>(i) * <span class="n">36</span>;
+            <span class="k">if</span> (i == row)
+                c.roundRect(<span class="n">32</span>, y - <span class="n">4</span>, <span class="n">424</span>, <span class="n">34</span>, <span class="n">10</span>, <span class="t">Color</span>(<span class="n">1</span>, <span class="n">1</span>, <span class="n">1</span>, <span class="n">0.18f</span>));
+            c.text(font, names[i], <span class="n">48</span>, y);
+            <span class="k">string</span> state = depth ? (on[i] ? <span class="s">&quot;on&quot;</span> : <span class="s">&quot;off&quot;</span>) : <span class="s">&quot;not on this GPU&quot;</span>;
+            c.text(small, state, <span class="n">450</span> - small.measure(state).x, y + <span class="n">3</span>, on[i] &amp;&amp; depth ? <span class="t">Color</span>(<span class="n">0.6f</span>, <span class="n">1</span>, <span class="n">0.7f</span>) : <span class="t">Color</span>(<span class="n">1</span>, <span class="n">1</span>, <span class="n">1</span>, <span class="n">0.6f</span>));
+        }
+        c.roundRect(<span class="n">20</span>, <span class="n">660</span>, c.width - <span class="n">40</span>, <span class="n">42</span>, <span class="n">12</span>, <span class="t">Color</span>(<span class="n">0</span>, <span class="n">0</span>, <span class="n">0</span>, <span class="n">0.45f</span>));
+        c.text(font, <span class="s">&quot;Up, down: choose     Accept: on or off     Fire: throw paint (&quot;</span> + formatInt(<span class="k">int</span>(thrown)) + <span class="s">&quot;)&quot;</span>, <span class="n">40</span>, <span class="n">668</span>);
+    }
+}
+</code></pre></details></div>
 </section>
 <section id="network" data-title="network"><h2>Network</h2>
 <div data-find="together draw with others on the same network together"><h3 id="demo-together">Together</h3><p>Draw with others on the same network</p>
