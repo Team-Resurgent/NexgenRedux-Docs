@@ -85,6 +85,8 @@ summary { cursor: pointer; padding: 10px 16px; } details pre { border-width: 1px
 <p>Start the showcase with <code>--dev</code> and it reloads the screen each time you save. If there is a mistake, the screen shows the file and the line; mend it, save, and it carries on. A console has no command line: there, put a folder called <code>dev</code> beside the title (in its <code>media</code>), and copy changed scripts and pictures to it over the network, as with an FTP client or the debug monitor. A script can also turn it on, or off, itself with <code>App::development</code>.</p>
 <h3 id="debugging">Debugging</h3>
 <p>The VS Code extension in <code>engine/tools/vscode</code> (<code>Nexgen-vscode.vsix</code> in each release) stops a script where you ask it to: set a breakpoint, press F5, and step over, into and out of functions, with the call stack, each frame&#x27;s locals, the screen&#x27;s members and the module&#x27;s globals. Objects open up to what they hold, the engine&#x27;s own types through their properties; hovering over a name, or typing <code>player.position.x</code> in the Debug Console, shows its value; a script error stops where it happened; and the log is in the Debug Console. Its profiler, on the debug toolbar, shows which functions and lines took the scripts&#x27; time. *Run and debug* starts the showcase with <code>--debug 4711 --debug-wait</code>; *Attach* connects to one already started with <code>--debug</code>, which listens on that machine only unless <code>--debug-remote</code> is given. On a console, a folder called <code>debug</code> beside the title lets a computer on the network attach to it.</p>
+<p>While it runs, *Nexgen entities* beside the call stack lists the entities of the screen on top, each with its children and what it is like: where it is, how it is turned and big, its colour, model, animation, body and collider. The pencil beside a property changes it there and then, as the game goes on: a robot moved to <code>1, 5, 2</code>, a body sent off at <code>0, 8, 0</code>.</p>
+<p>To see what touches what, <code>Space::showShapes</code> and <code>Scene::showShapes</code> draw every collider over the picture: grey walls, green bodies (darker asleep), blue walkers and characters, orange ragdolls, yellow areas that only feel. <code>Space::showNavigation</code> draws the squares that <code>Space::navigate</code> found can be walked on. In Guards, Tumble, Topple and Physics, C or the left trigger shows them.</p>
 <h2 id="screens">Screens</h2>
 <p>A screen is a class that implements <code>Screen</code>. The engine calls the methods it has:</p>
 <div class="scroll"><table><tr><th>Method</th><th>When</th></tr>
@@ -250,6 +252,19 @@ robot.lookAt(<span class="s">&quot;head&quot;</span>, ball.place);              
 robot.lookAway();</code></pre>
 <ul><li><b>Blends</b> mix animations by a number, usually speed: idle at 0, walk at 1.5 metres a second, run at 4. Between two points the robot is some of each, and both are kept at the same point of their steps, so the feet don&#x27;t stumble. <code>animate</code> changes back.</li><li><b>A layer</b> plays an animation over one bone and every bone that hangs from it: waving with <code>&quot;chest&quot;</code> while the legs keep walking. It comes in and goes over a quarter of a second; <code>layerPlayed</code> says when one that doesn&#x27;t loop has finished.</li><li><b>Root motion</b> moves the whole thing as far as the animation carries its highest moving bone along the ground, which way it faces, so a stride made in a modelling program covers exactly the ground its feet do. A walker so moved still stops at walls.</li><li><b>Looking</b> turns a bone after the animation, smoothly, and can be asked every update as the place moves.</li></ul>
 <p>The Moves demo has one of each, and the robot&#x27;s &quot;stride&quot; is a walk that goes forward, for root motion.</p>
+<p><code>robot.reach(&quot;hand.r&quot;, place)</code> bends a limb&#x27;s two bones, over whatever it plays, so that its end touches a place: a hand on a lever,</p>
+<p>a foot on a step. Up to four at once; amount 0 lets one go. In the Moves demo, Fire makes the robots reach for the drone.</p>
+<p>For more than a few animations, <code>#include &quot;global:states.as&quot;</code> brings in <code>AnimationStates</code>: states, each an animation, and links between them, with how long each change takes and whether it waits for the first to finish. <code>travel</code> goes the shortest way along the links, playing each state between, and a state that doesn&#x27;t loop can say what comes after it:</p>
+<pre><code><span class="t">AnimationStates</span> moves(robot);
+moves.add(<span class="s">&quot;idle&quot;</span>);
+moves.add(<span class="s">&quot;walk&quot;</span>);
+moves.add(<span class="s">&quot;leap&quot;</span>, <span class="s">&quot;jump&quot;</span>, <span class="k">false</span>, <span class="s">&quot;idle&quot;</span>);    <span class="c">// jumps once, then idles</span>
+moves.link(<span class="s">&quot;idle&quot;</span>, <span class="s">&quot;walk&quot;</span>, <span class="n">0.2f</span>, <span class="k">true</span>);      <span class="c">// both ways</span>
+moves.link(<span class="s">&quot;walk&quot;</span>, <span class="s">&quot;leap&quot;</span>, <span class="n">0.1f</span>);
+moves.start(<span class="s">&quot;idle&quot;</span>);
+<span class="c">// each update:</span>
+moves.update(dt);
+moves.travel(jumping ? <span class="s">&quot;leap&quot;</span> : speed &gt; <span class="n">0.1f</span> ? <span class="s">&quot;walk&quot;</span> : <span class="s">&quot;idle&quot;</span>);</code></pre>
 <h3 id="ragdolls">Ragdolls</h3>
 <p><code>ragdoll(true)</code> makes a model go limp. It gets a body for each bone that moves some of its skin, sized from that skin and pinned</p>
 <p>where the bones meet, and each swings no more than about 57 degrees from how it sits on the one above. It falls from the pose it was in, carried on as it was moving, plus whatever push you give it:</p>
@@ -266,6 +281,13 @@ robot.ragdoll(<span class="k">false</span>);                            <span cl
 <span class="t">Space</span>::rope(seat, <span class="k">null</span>, <span class="t">Vec3</span>(<span class="n">5</span>, <span class="n">1.3f</span>, <span class="n">0</span>), <span class="t">Vec3</span>(<span class="n">5</span>, <span class="n">6</span>, <span class="n">0</span>));        <span class="c">// no further apart than now: it pulls, never pushes</span>
 <span class="t">Space</span>::spring(weight, <span class="k">null</span>, <span class="t">Vec3</span>(<span class="n">3</span>, <span class="n">3</span>, <span class="n">0</span>), <span class="t">Vec3</span>(<span class="n">3</span>, <span class="n">6</span>, <span class="n">0</span>), <span class="n">40</span>, <span class="n">1</span>, <span class="n">2</span>);  <span class="c">// stiffness, damping and length</span></code></pre>
 <p>A joint goes when either thing does, or with <code>Space::unjoin</code>. The Tumble demo&#x27;s *Swings* has one of each.</p>
+<p>Joints can be held within limits, as a door stops against a wall or a neck turns only so far:</p>
+<pre><code><span class="t">Space</span>::hinge(door, <span class="k">null</span>, <span class="t">Vec3</span>(<span class="n">0</span>, <span class="n">1</span>, <span class="n">0</span>), <span class="t">Vec3</span>(<span class="n">0</span>, <span class="n">1</span>, <span class="n">0</span>), <span class="n">0</span>, <span class="n">100</span>);   <span class="c">// opens one way, to 100 degrees</span>
+<span class="t">Space</span>::join(head, neck, at, <span class="n">40</span>);                                    <span class="c">// swings no more than 40 degrees from how it hangs now</span></code></pre>
+<p>A ray can slip past what something thick would hit. <code>Space::sphereCast</code> moves a ball along a line instead, and says where its middle is when it first touches, and which way that faces; <code>Space::spherePick</code> says what it touched. For a character&#x27;s way ahead, a thrown thing, or a camera kept out of walls:</p>
+<pre><code><span class="t">Vec3</span> at, normal;
+<span class="k">if</span> (<span class="t">Space</span>::sphereCast(target, wanted, <span class="n">0.3f</span>, at, normal))
+    camera = at;                    <span class="c">// as near as it can be without going into the wall</span></code></pre>
 <h3 id="a-world-to-walk-in">A world to walk in</h3>
 <pre><code><span class="t">Space</span>::land(<span class="n">21</span>, <span class="n">192</span>, <span class="n">1.5f</span>, <span class="n">34</span>, <span class="n">0.45f</span>, <span class="k">true</span>);   <span class="c">// a seed, squares, metres to each, height, roughness, an island</span>
 <span class="t">Space</span>::flatten(<span class="n">0</span>, <span class="n">0</span>, <span class="n">40</span>, <span class="n">3</span>);                   <span class="c">// somewhere to build</span>
@@ -535,6 +557,16 @@ music.stop(<span class="n">1.5f</span>);                <span class="c">// fadin
 <span class="t">Audio</span>::echo(<span class="t">BusEffects</span>, <span class="n">0.5f</span>, <span class="n">0.4f</span>, <span class="n">0.3f</span>); <span class="c">// how loud, how late, and how much echoes again</span>
 <span class="t">Audio</span>::clearEffects();</code></pre>
 <p>A screen starts with none, and they go when it closes. The Sounds demo puts its pads in a room, a hall, a canyon, under water and on the radio.</p>
+<p>Sounds in space, from <code>playAt</code> or an entity&#x27;s <code>sound</code>, are quieter further away and come from where they are. <code>Space::doppler = 1</code> bends them as well, higher coming closer and lower going away, as a car or a siren passing is; more than 1 makes it plainer. A camera that cuts somewhere new isn&#x27;t taken for a speed. The Moves demo&#x27;s drone is heard going by.</p>
+<p>Music from one track to the next is a <code>Playlist</code>:</p>
+<pre><code><span class="t">Playlist</span>@ list = <span class="t">Playlist</span>();
+list.add(<span class="t">Assets</span>::sound(<span class="s">&quot;asset:one.ogg&quot;</span>));
+list.add(<span class="t">Assets</span>::sound(<span class="s">&quot;asset:two.ogg&quot;</span>));
+list.shuffle = <span class="k">true</span>;                <span class="c">// any but the last, each time</span>
+list.crossfade = <span class="n">3</span>;                 <span class="c">// each fades into the next over 3 seconds</span>
+list.play();
+list.next();                        <span class="c">// now, over crossfade; previous(), stop(), index, paused, position and seconds too</span></code></pre>
+<p>It goes on by itself while its screen is on top, round again unless <code>loop</code> is false. The Music demo is one.</p>
 <h3 id="video">Video</h3>
 <p>Films are MPEG-1 with MP2 sound, in a <code>.mpg</code>, decoded as they play on every machine, the original Xbox included. ffmpeg makes one from anything:</p>
 <pre><code>ffmpeg -i <span class="k">in</span>.mp4 -c:v mpeg1video -q:v <span class="n">4</span> -c:a mp2 -b:a 128k -format mpeg film.mpg</code></pre>
@@ -632,6 +664,17 @@ room.host(<span class="s">&quot;my game&quot;</span>, <span class="s">&quot;Sam&
 <span class="k">if</span> (request.done &amp;&amp; !request.failed)
     show(request.status, request.text);</code></pre>
 <p>Certificates are checked, against those in <code>media/global/certificates.pem</code>: a server that can&#x27;t be trusted is refused, and <code>error</code> says why. An answer may be up to 4 MB. <code>Net::post</code> sends something.</p>
+<p>A <code>WebSocket</code> stays open, for messages both ways with a web server: a chat, a lobby, scores as they change.</p>
+<pre><code><span class="t">WebSocket</span>@ socket = <span class="t">WebSocket</span>(<span class="s">&quot;wss://example.com/chat&quot;</span>);
+
+<span class="k">if</span> (socket.connected)
+    socket.send(<span class="s">&quot;hello&quot;</span>);
+<span class="k">string</span> message;
+<span class="k">while</span> (socket.receive(message))
+    show(message);
+<span class="k">if</span> (socket.closed)
+    show(socket.error);</code></pre>
+<p>It connects, sends and reads on a thread of its own, so nothing waits; <code>wss://</code> is over TLS, its certificate checked as for <code>Net::get</code>. Messages may be up to 4 MB, and pings are answered for you.</p>
 <h3 id="anything-else">Anything else</h3>
 <p><code>Connection</code> is a stream of text over TCP, to a server or from those who connect to you; <code>Datagrams</code> sends short texts over UDP.</p>
 <h2 id="what-only-an-xbox-can-do">What only an Xbox can do</h2>

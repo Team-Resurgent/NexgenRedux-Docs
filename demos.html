@@ -6273,7 +6273,8 @@ summary { cursor: pointer; padding: 10px 16px; } details pre { border-width: 1px
 </code></pre></details></div>
 <div data-find="music a tune, and what it looks like music"><h3 id="demo-music">Music</h3><p>A tune, and what it looks like</p>
 <div class="shots"><img loading="lazy" src="screenshots/music.png" alt="Music"></div>
-<details><summary><code>music/main.as</code> <span class="tag">93 lines</span></summary><pre><code><span class="c">// Music is decoded as it plays. The bars are its spectrum and the circle is its wave.</span>
+<details><summary><code>music/main.as</code> <span class="tag">93 lines</span></summary><pre><code><span class="c">// Music is decoded as it plays, from a playlist that goes on to the next by itself, fading one into the other. The bars</span>
+<span class="c">// are its spectrum and the circle is its wave.</span>
 
 <span class="k">class</span> <span class="t">MusicScreen</span> : <span class="t">Screen</span>
 {
@@ -6281,30 +6282,29 @@ summary { cursor: pointer; padding: 10px 16px; } details pre { border-width: 1px
     <span class="t">Font</span>@ big = <span class="t">Assets</span>::font(<span class="s">&quot;global:freesans.sfn&quot;</span>, <span class="n">46</span>);
     <span class="k">array</span>&lt;<span class="k">string</span>&gt; titles = { <span class="s">&quot;Night Shift&quot;</span>, <span class="s">&quot;Slow Light&quot;</span> };
     <span class="k">array</span>&lt;<span class="t">Sound</span>@&gt; tunes = { <span class="t">Assets</span>::sound(<span class="s">&quot;asset:tune.ogg&quot;</span>), <span class="t">Assets</span>::sound(<span class="s">&quot;asset:ambient.mp3&quot;</span>) };
-    <span class="k">uint</span> playing = <span class="n">0</span>;
-    <span class="t">Voice</span> voice;
-    <span class="k">bool</span> paused = <span class="k">false</span>;
+    <span class="t">Playlist</span>@ list = <span class="t">Playlist</span>();
     <span class="k">array</span>&lt;<span class="k">float</span>&gt; peaks(<span class="n">32</span>);
     <span class="k">float</span> beat = <span class="n">0</span>;
     <span class="k">float</span> turn = <span class="n">0</span>;
 
-    <span class="k">void</span> onEnter() { voice = tunes[<span class="n">0</span>].playMusic(<span class="n">0.9f</span>, <span class="n">0.5f</span>); }
+    <span class="k">void</span> onEnter()
+    {
+        <span class="k">for</span> (<span class="k">uint</span> i = <span class="n">0</span>; i &lt; tunes.length(); i++)
+            list.add(tunes[i]);
+        list.volume = <span class="n">0.9f</span>;
+        list.crossfade = <span class="n">3</span>;
+        list.play(<span class="n">0.5f</span>);
+    }
 
     <span class="k">void</span> update(<span class="k">float</span> dt)
     {
-        <span class="k">if</span> (<span class="t">Input</span>::pressed(<span class="s">&quot;left&quot;</span>) || <span class="t">Input</span>::pressed(<span class="s">&quot;right&quot;</span>))
-        {
-            <span class="c">// Crossfade.</span>
-            voice.stop(<span class="n">1.2f</span>);
-            playing = <span class="n">1</span> - playing;
-            voice = tunes[playing].playMusic(<span class="n">0.9f</span>, <span class="n">1.2f</span>);
-            paused = <span class="k">false</span>;
-        }
+        <span class="c">// Across, fading one into the other.</span>
+        <span class="k">if</span> (<span class="t">Input</span>::pressed(<span class="s">&quot;left&quot;</span>))
+            list.previous(<span class="n">1.2f</span>);
+        <span class="k">if</span> (<span class="t">Input</span>::pressed(<span class="s">&quot;right&quot;</span>))
+            list.next(<span class="n">1.2f</span>);
         <span class="k">if</span> (<span class="t">Input</span>::pressed(<span class="s">&quot;accept&quot;</span>))
-        {
-            paused = !paused;
-            voice.paused = paused;
-        }
+            list.paused = !list.paused;
         <span class="k">float</span> low = <span class="n">0</span>;
         <span class="k">for</span> (<span class="k">uint</span> i = <span class="n">0</span>; i &lt; <span class="n">4</span>; i++) low += <span class="t">Audio</span>::spectrum(i) / <span class="n">4</span>;
         beat = low &gt; beat ? low : beat * <span class="n">0.92f</span>;
@@ -6354,9 +6354,9 @@ summary { cursor: pointer; padding: 10px 16px; } details pre { border-width: 1px
             c.gradient(x, <span class="n">604</span>, <span class="n">28</span>, h * <span class="n">0.25f</span>, fade(color, <span class="n">0.25f</span>), fade(color, <span class="n">0</span>));
         }
 
-        c.text(big, titles[playing], <span class="n">60</span>, <span class="n">30</span>);
-        <span class="k">float</span> length = tunes[playing].seconds;
-        c.text(font, clock(voice.position) + (length &gt; <span class="n">0</span> ? <span class="s">&quot; / &quot;</span> + clock(length) : <span class="s">&quot;&quot;</span>) + (paused ? <span class="s">&quot;   paused&quot;</span> : <span class="s">&quot;&quot;</span>), <span class="n">62</span>, <span class="n">90</span>, <span class="t">Color</span>(<span class="n">0.7f</span>, <span class="n">0.75f</span>, <span class="n">0.9f</span>));
+        c.text(big, titles[list.index], <span class="n">60</span>, <span class="n">30</span>);
+        <span class="k">float</span> length = list.seconds;
+        c.text(font, clock(list.position) + (length &gt; <span class="n">0</span> ? <span class="s">&quot; / &quot;</span> + clock(length) : <span class="s">&quot;&quot;</span>) + (list.paused ? <span class="s">&quot;   paused&quot;</span> : <span class="s">&quot;&quot;</span>) + <span class="s">&quot;      &quot;</span> + formatInt(<span class="k">int</span>(list.index + <span class="n">1</span>)) + <span class="s">&quot; of &quot;</span> + formatInt(<span class="k">int</span>(list.count)), <span class="n">62</span>, <span class="n">90</span>, <span class="t">Color</span>(<span class="n">0.7f</span>, <span class="n">0.75f</span>, <span class="n">0.9f</span>));
         c.text(font, <span class="t">Input</span>::usingPad ? <span class="s">&quot;Left and right: change tune    A: pause&quot;</span> : <span class="s">&quot;Left and right: change tune    Enter: pause&quot;</span>, <span class="n">640</span>, <span class="n">672</span>, <span class="t">Color</span>(<span class="n">0.7f</span>, <span class="n">0.75f</span>, <span class="n">0.9f</span>), <span class="t">AlignCenter</span>);
     }
 
@@ -6371,7 +6371,7 @@ summary { cursor: pointer; padding: 10px 16px; } details pre { border-width: 1px
 <section id="scene" data-title="scene"><h2>Scene</h2>
 <div data-find="physics stacks, chains, a seesaw and a wrecking ball physics"><h3 id="demo-physics">Physics</h3><p>Stacks, chains, a seesaw and a wrecking ball</p>
 <div class="shots"><img loading="lazy" src="screenshots/physics.png" alt="Physics"></div>
-<details><summary><code>physics/main.as</code> <span class="tag">111 lines</span></summary><pre><code><span class="c">// Rigid bodies: give a collider some mass and the engine does the rest.</span>
+<details><summary><code>physics/main.as</code> <span class="tag">116 lines</span></summary><pre><code><span class="c">// Rigid bodies: give a collider some mass and the engine does the rest.</span>
 
 <span class="k">class</span> <span class="t">PhysicsScreen</span> : <span class="t">Screen</span>
 {
@@ -6469,7 +6469,12 @@ summary { cursor: pointer; padding: 10px 16px; } details pre { border-width: 1px
             }
         }
         <span class="k">if</span> (<span class="t">Input</span>::pressed(<span class="s">&quot;cancel&quot;</span>)) <span class="t">Screens</span>::replace(<span class="s">&quot;physics&quot;</span>);
+        <span class="c">// Not an action of its own, as the others are taken: the left trigger, or C.</span>
+        <span class="k">bool</span> shapes = <span class="t">Input</span>::padTriggers(<span class="n">0</span>).x &gt; <span class="n">0.5f</span> || <span class="t">Input</span>::key(<span class="s">&quot;C&quot;</span>);
+        <span class="k">if</span> (shapes &amp;&amp; !wasShapes) <span class="t">Scene</span>::showShapes = !<span class="t">Scene</span>::showShapes;
+        wasShapes = shapes;
     }
+    <span class="k">bool</span> wasShapes = <span class="k">false</span>;
 
     <span class="k">void</span> draw(<span class="t">Canvas</span>@ c)
     {
@@ -6479,7 +6484,7 @@ summary { cursor: pointer; padding: 10px 16px; } details pre { border-width: 1px
         <span class="t">Scene</span>::draw(c);
         c.ring(cursor.x, cursor.y, <span class="n">14</span>, <span class="n">3</span>, <span class="t">White</span>);
         c.text(font, formatInt(<span class="t">Scene</span>::count) + <span class="s">&quot; bodies, &quot;</span> + formatInt(<span class="t">Scene</span>::contacts) + <span class="s">&quot; contacts&quot;</span>, <span class="n">40</span>, <span class="n">20</span>, <span class="t">Gray</span>);
-        c.text(font, <span class="s">&quot;Accept: drop    Alternate: blast    Cancel: start again&quot;</span>, <span class="n">1240</span>, <span class="n">20</span>, <span class="t">Yellow</span>, <span class="t">AlignRight</span>);
+        c.text(font, <span class="s">&quot;Accept: drop    Alternate: blast    Cancel: start again    Left trigger, C: shapes&quot;</span>, <span class="n">1240</span>, <span class="n">20</span>, <span class="t">Yellow</span>, <span class="t">AlignRight</span>);
     }
 }
 </code></pre></details></div>
@@ -7390,7 +7395,7 @@ summary { cursor: pointer; padding: 10px 16px; } details pre { border-width: 1px
 </code></pre></details></div>
 <div data-find="tumble rigid bodies and joints: throw balls at things tumble"><h3 id="demo-tumble">Tumble</h3><p>Rigid bodies and joints: throw balls at things</p>
 <div class="shots"><img loading="lazy" src="screenshots/tumble.png" alt="Tumble"></div>
-<details><summary><code>tumble/main.as</code> <span class="tag">254 lines</span></summary><pre><code><span class="c">// Rigid bodies: give a collider some mass, and the engine does the rest. Joints hold them to each other, or to the</span>
+<details><summary><code>tumble/main.as</code> <span class="tag">260 lines</span></summary><pre><code><span class="c">// Rigid bodies: give a collider some mass, and the engine does the rest. Joints hold them to each other, or to the</span>
 <span class="c">// world: pinned, hinged, on a rope or on a spring.</span>
 
 <span class="k">class</span> <span class="t">TumbleScreen</span> : <span class="t">Screen</span>
@@ -7410,6 +7415,7 @@ summary { cursor: pointer; padding: 10px 16px; } details pre { border-width: 1px
     <span class="k">array</span>&lt;<span class="k">bool</span>&gt; coiled;
     <span class="k">float</span> rain = <span class="n">0</span>;
     <span class="k">uint</span> dropped = <span class="n">0</span>;
+    <span class="k">bool</span> wasShapes = <span class="k">false</span>;
     <span class="t">Vec2</span> mouseWas;
     <span class="k">bool</span> mouseDown = <span class="k">false</span>;
 
@@ -7512,7 +7518,8 @@ summary { cursor: pointer; padding: 10px 16px; } details pre { border-width: 1px
             <span class="c">// A door, hinged at its left edge.</span>
             <span class="t">Entity</span>@ door = block(<span class="t">Vec3</span>(<span class="n">0.6f</span>, <span class="n">1.1f</span>, <span class="n">0</span>), <span class="t">Vec3</span>(<span class="n">1.2f</span>, <span class="n">2.2f</span>, <span class="n">0.1f</span>), <span class="t">Color</span>(<span class="n">0.55f</span>, <span class="n">0.36f</span>, <span class="n">0.22f</span>), <span class="n">2</span>);
             door.drag = <span class="n">0.8f</span>;
-            <span class="t">Space</span>::hinge(door, <span class="k">null</span>, <span class="t">Vec3</span>(<span class="n">0</span>, <span class="n">1.1f</span>, <span class="n">0</span>), <span class="t">Vec3</span>(<span class="n">0</span>, <span class="n">1</span>, <span class="n">0</span>));
+            <span class="c">// It opens one way only, as far as a wall would let it.</span>
+            <span class="t">Space</span>::hinge(door, <span class="k">null</span>, <span class="t">Vec3</span>(<span class="n">0</span>, <span class="n">1.1f</span>, <span class="n">0</span>), <span class="t">Vec3</span>(<span class="n">0</span>, <span class="n">1</span>, <span class="n">0</span>), -<span class="n">110</span>, <span class="n">0</span>);
             block(<span class="t">Vec3</span>(-<span class="n">0.1f</span>, <span class="n">1.15f</span>, <span class="n">0</span>), <span class="t">Vec3</span>(<span class="n">0.2f</span>, <span class="n">2.3f</span>, <span class="n">0.2f</span>), <span class="t">Color</span>(<span class="n">0.35f</span>, <span class="n">0.3f</span>, <span class="n">0.28f</span>), <span class="n">0</span>);
             <span class="c">// A weight bobbing on a spring.</span>
             <span class="t">Entity</span>@ weight = block(<span class="t">Vec3</span>(<span class="n">3</span>, <span class="n">3</span>, -<span class="n">1</span>), <span class="t">Vec3</span>(<span class="n">0.6f</span>, <span class="n">0.6f</span>, <span class="n">0.6f</span>), <span class="t">Color</span>(<span class="n">0.85f</span>, <span class="n">0.75f</span>, <span class="n">0.2f</span>), <span class="n">1</span>);
@@ -7544,6 +7551,10 @@ summary { cursor: pointer; padding: 10px 16px; } details pre { border-width: 1px
         }
         <span class="k">else</span> <span class="k">if</span> (<span class="t">Input</span>::pressed(<span class="s">&quot;cancel&quot;</span>))
             build();
+        <span class="c">// Not an action of its own, as the others are taken: the left trigger, or C.</span>
+        <span class="k">bool</span> shapes = <span class="t">Input</span>::padTriggers(<span class="n">0</span>).x &gt; <span class="n">0.5f</span> || <span class="t">Input</span>::key(<span class="s">&quot;C&quot;</span>);
+        <span class="k">if</span> (shapes &amp;&amp; !wasShapes) <span class="t">Space</span>::showShapes = !<span class="t">Space</span>::showShapes;
+        wasShapes = shapes;
         <span class="k">bool</span> clicked = <span class="t">Input</span>::pressed(<span class="s">&quot;fire&quot;</span>) || <span class="t">Input</span>::pressed(<span class="s">&quot;accept&quot;</span>);
         <span class="k">if</span> (clicked)
         {
@@ -7640,7 +7651,7 @@ summary { cursor: pointer; padding: 10px 16px; } details pre { border-width: 1px
             c.circle(at.x, at.y, <span class="n">3</span>, <span class="t">White</span>);
         }
         c.roundRect(<span class="n">20</span>, <span class="n">660</span>, c.width - <span class="n">40</span>, <span class="n">42</span>, <span class="n">12</span>, <span class="t">Color</span>(<span class="n">0</span>, <span class="n">0</span>, <span class="n">0</span>, <span class="n">0.45f</span>));
-        c.text(font, <span class="s">&quot;Fire: throw     Alternate: next (&quot;</span> + kinds[kind] + <span class="s">&quot;)     Cancel: build it again&quot;</span>, <span class="n">40</span>, <span class="n">668</span>);
+        c.text(font, <span class="s">&quot;Fire: throw     Alternate: next (&quot;</span> + kinds[kind] + <span class="s">&quot;)     Cancel: build it again     Left trigger, C: shapes&quot;</span>, <span class="n">40</span>, <span class="n">668</span>);
         c.text(font, formatInt(<span class="k">int</span>(<span class="t">Space</span>::contacts)) + <span class="s">&quot; contacts&quot;</span>, c.width - <span class="n">40</span>, <span class="n">668</span>, <span class="t">White</span>, <span class="t">AlignRight</span>);
     }
 }
@@ -12181,7 +12192,7 @@ summary { cursor: pointer; padding: 10px 16px; } details pre { border-width: 1px
 </code></pre></details></div>
 <div data-find="guards take the gem unseen: guards patrol, look, listen and chase guards"><h3 id="demo-guards">Guards</h3><p>Take the gem unseen: guards patrol, look, listen and chase</p>
 <div class="shots"><img loading="lazy" src="screenshots/guards.png" alt="Guards"></div>
-<details><summary><code>guards/main.as</code> <span class="tag">215 lines</span></summary><pre><code><span class="c">// Take the gem without being caught. The scene file says who guards, who patrols which route, who runs away and who</span>
+<details><summary><code>guards/main.as</code> <span class="tag">223 lines</span></summary><pre><code><span class="c">// Take the gem without being caught. The scene file says who guards, who patrols which route, who runs away and who</span>
 <span class="c">// follows; global:ai.as moves them, as the level&#x27;s crowd: they see what is in front of them and not behind a wall, hear running, chase,</span>
 <span class="c">// search where you were last seen, and go back to what they were doing. Ways round the houses come from</span>
 <span class="c">// Space::navigate, which the level works out when it is made.</span>
@@ -12204,7 +12215,7 @@ summary { cursor: pointer; padding: 10px 16px; } details pre { border-width: 1px
     <span class="k">float</span> yaw = <span class="n">0</span>, lean = <span class="n">0.45f</span>;
     <span class="t">Vec3</span> look;
     <span class="t">Vec2</span> mouseWas;
-    <span class="k">bool</span> wasDown = <span class="k">false</span>;
+    <span class="k">bool</span> wasDown = <span class="k">false</span>, wasShow = <span class="k">false</span>;
 
     <span class="k">void</span> onEnter()
     {
@@ -12314,6 +12325,14 @@ summary { cursor: pointer; padding: 10px 16px; } details pre { border-width: 1px
         <span class="t">Vec3</span> way = side * stick.x - ahead * stick.y;
         <span class="c">// Held: creep, and make no sound.</span>
         <span class="k">bool</span> sneaking = <span class="t">Input</span>::held(<span class="s">&quot;alternate&quot;</span>);
+        <span class="c">// How the guards find their way: the left trigger, or C.</span>
+        <span class="k">bool</span> show = <span class="t">Input</span>::padTriggers(<span class="n">0</span>).x &gt; <span class="n">0.5f</span> || <span class="t">Input</span>::key(<span class="s">&quot;C&quot;</span>);
+        <span class="k">if</span> (show &amp;&amp; !wasShow)
+        {
+            <span class="t">Space</span>::showNavigation = !<span class="t">Space</span>::showNavigation;
+            <span class="t">Space</span>::showShapes = <span class="t">Space</span>::showNavigation;
+        }
+        wasShow = show;
         <span class="t">Vec3</span> wanted = way * (sneaking ? <span class="n">2.2f</span> : <span class="n">5.5f</span>);
         <span class="t">Vec3</span> motion = hero.motion;
         <span class="k">float</span> grip = clamp((hero.onGround ? <span class="n">12</span> : <span class="n">3</span>) * dt, <span class="n">0</span>, <span class="n">1</span>);
@@ -12389,7 +12408,7 @@ summary { cursor: pointer; padding: 10px 16px; } details pre { border-width: 1px
             c.alpha = help;
             c.roundRect(c.width * <span class="n">0.5f</span> - <span class="n">460</span>, <span class="n">600</span>, <span class="n">920</span>, <span class="n">88</span>, <span class="n">14</span>, <span class="t">Color</span>(<span class="n">0</span>, <span class="n">0</span>, <span class="n">0</span>, <span class="n">0.5f</span>));
             c.text(font, <span class="s">&quot;Take the gem from behind the walls, and bring it back here&quot;</span>, c.width * <span class="n">0.5f</span>, <span class="n">610</span>, <span class="t">Color</span>(<span class="n">1</span>, <span class="n">0.9f</span>, <span class="n">0.6f</span>), <span class="t">AlignCenter</span>);
-            c.text(font, <span class="t">Input</span>::usingPad ? <span class="s">&quot;Left stick: walk    Hold B: creep quietly    Right stick: look&quot;</span> : <span class="s">&quot;Arrows: walk    Hold Shift: creep quietly    Right button: look&quot;</span>, c.width * <span class="n">0.5f</span>, <span class="n">648</span>, <span class="t">White</span>, <span class="t">AlignCenter</span>);
+            c.text(font, <span class="t">Input</span>::usingPad ? <span class="s">&quot;Left stick: walk    Hold B: creep quietly    Right stick: look    Left trigger: how they find their way&quot;</span> : <span class="s">&quot;Arrows: walk    Hold Shift: creep quietly    Right button: look    C: how they find their way&quot;</span>, c.width * <span class="n">0.5f</span>, <span class="n">648</span>, <span class="t">White</span>, <span class="t">AlignCenter</span>);
             c.alpha = <span class="n">1</span>;
         }
         <span class="k">if</span> (fade &gt; <span class="n">0</span>)
@@ -12964,8 +12983,9 @@ summary { cursor: pointer; padding: 10px 16px; } details pre { border-width: 1px
 }
 </code></pre></details></div>
 <div data-find="moves animations mixed by speed, root motion, layers and heads that look moves"><h3 id="demo-moves">Moves</h3><p>Animations mixed by speed, root motion, layers and heads that look</p>
-<details><summary><code>moves/main.as</code> <span class="tag">142 lines</span></summary><pre><code><span class="c">// Animation beyond one at a time: idle, walk and run mixed by speed, a stride that carries the robot along,</span>
-<span class="c">// a wave over the top half while walking on, and heads that follow a ball.</span>
+<details><summary><code>moves/main.as</code> <span class="tag">151 lines</span></summary><pre><code><span class="c">// Animation beyond one at a time: idle, walk and run mixed by speed, a stride that carries the robot along,</span>
+<span class="c">// a wave over the top half while walking on, heads that follow a buzzing drone and hands that reach for it. The drone</span>
+<span class="c">// is heard higher coming and lower going: Doppler.</span>
 
 <span class="k">class</span> <span class="t">MovesScreen</span> : <span class="t">Screen</span>
 {
@@ -12981,6 +13001,7 @@ summary { cursor: pointer; padding: 10px 16px; } details pre { border-width: 1px
     <span class="k">float</span> waverAround = <span class="n">0</span>;
     <span class="k">bool</span> waving = <span class="k">true</span>;
     <span class="k">bool</span> looking = <span class="k">true</span>;
+    <span class="k">bool</span> reaching = <span class="k">false</span>;
     <span class="k">array</span>&lt;<span class="k">string</span>&gt; names = { <span class="s">&quot;idle&quot;</span>, <span class="s">&quot;walk&quot;</span>, <span class="s">&quot;run&quot;</span> };
     <span class="k">array</span>&lt;<span class="k">float</span>&gt; points = { <span class="n">0</span>, <span class="n">1.5f</span>, <span class="n">4</span> };
 
@@ -13012,6 +13033,9 @@ summary { cursor: pointer; padding: 10px 16px; } details pre { border-width: 1px
         ball.glowing = <span class="n">1</span>;
         ball.shadow = <span class="k">false</span>;
         ball.light(<span class="t">Color</span>(<span class="n">1</span>, <span class="n">0.6f</span>, <span class="n">0.3f</span>), <span class="n">5</span>);
+        <span class="c">// Heard from where it is, and bent by how fast it comes and goes: a little more than life, to be plain.</span>
+        ball.sound(<span class="t">Assets</span>::sound(<span class="s">&quot;global:sound/engine.wav&quot;</span>), <span class="n">0.6f</span>, <span class="n">30</span>, <span class="k">true</span>);
+        <span class="t">Space</span>::doppler = <span class="n">2.5f</span>;
     }
 
     <span class="t">Entity</span>@ robotAt(<span class="k">const</span> <span class="t">Vec3</span> &amp;<span class="k">in</span> at)
@@ -13054,10 +13078,12 @@ summary { cursor: pointer; padding: 10px 16px; } details pre { border-width: 1px
         <span class="c">// The ball wanders; the heads follow it, or the stick moves it.</span>
         <span class="k">if</span> (<span class="t">Input</span>::pressed(<span class="s">&quot;alternate&quot;</span>))
             looking = !looking;
-        <span class="t">Vec3</span> at = <span class="t">Vec3</span>(sin(<span class="t">App</span>::time * <span class="n">0.5f</span>) * <span class="n">9</span>, <span class="n">1.4f</span> + sin(<span class="t">App</span>::time * <span class="n">1.3f</span>) * <span class="n">0.8f</span>, <span class="n">2</span> + cos(<span class="t">App</span>::time * <span class="n">0.37f</span>) * <span class="n">3</span>);
+        <span class="t">Vec3</span> at = <span class="t">Vec3</span>(sin(<span class="t">App</span>::time * <span class="n">1.1f</span>) * <span class="n">10</span>, <span class="n">1.4f</span> + sin(<span class="t">App</span>::time * <span class="n">1.3f</span>) * <span class="n">0.8f</span>, <span class="n">3</span> + cos(<span class="t">App</span>::time * <span class="n">0.55f</span>) * <span class="n">4</span>);
         <span class="k">if</span> (abs(<span class="t">Input</span>::move.x) &gt; <span class="n">0.3f</span>)
             at.x = ball.place.x + <span class="t">Input</span>::move.x * <span class="n">6</span> * dt;
         ball.place = at;
+        <span class="k">if</span> (<span class="t">Input</span>::pressed(<span class="s">&quot;fire&quot;</span>))
+            reaching = !reaching;
         <span class="k">array</span>&lt;<span class="t">Entity</span>@&gt; heads = { mixer, strider, waver };
         <span class="k">for</span> (<span class="k">uint</span> i = <span class="n">0</span>; i &lt; heads.length(); i++)
         {
@@ -13065,6 +13091,8 @@ summary { cursor: pointer; padding: 10px 16px; } details pre { border-width: 1px
                 heads[i].lookAt(<span class="s">&quot;head&quot;</span>, ball.place);
             <span class="k">else</span>
                 heads[i].lookAway();
+            <span class="c">// The right hand toward it, as far as the arm goes, over whatever it is doing.</span>
+            heads[i].reach(<span class="s">&quot;hand.r&quot;</span>, ball.place, reaching ? <span class="n">1.0f</span> : <span class="n">0.0f</span>);
         }
     }
 
@@ -13096,7 +13124,7 @@ summary { cursor: pointer; padding: 10px 16px; } details pre { border-width: 1px
         <span class="k">if</span> (<span class="t">Space</span>::toScreen(waver.worldPlace + <span class="t">Vec3</span>(<span class="n">0</span>, <span class="n">2.4f</span>, <span class="n">0</span>), p))
             label(c, waving ? <span class="s">&quot;waving over walking&quot;</span> : <span class="s">&quot;walking&quot;</span>, p);
         c.roundRect(<span class="n">20</span>, <span class="n">660</span>, c.width - <span class="n">40</span>, <span class="n">42</span>, <span class="n">12</span>, <span class="t">Color</span>(<span class="n">0</span>, <span class="n">0</span>, <span class="n">0</span>, <span class="n">0.45f</span>));
-        c.text(font, <span class="s">&quot;Up, down: faster, slower     Accept: &quot;</span> + (waving ? <span class="s">&quot;stop waving&quot;</span> : <span class="s">&quot;wave&quot;</span>) + <span class="s">&quot;     Alternate: &quot;</span> + (looking ? <span class="s">&quot;stop looking&quot;</span> : <span class="s">&quot;look at the ball&quot;</span>), <span class="n">40</span>, <span class="n">668</span>);
+        c.text(font, <span class="s">&quot;Up, down: speed   Accept: &quot;</span> + (waving ? <span class="s">&quot;stop waving&quot;</span> : <span class="s">&quot;wave&quot;</span>) + <span class="s">&quot;   Alternate: &quot;</span> + (looking ? <span class="s">&quot;stop looking&quot;</span> : <span class="s">&quot;look&quot;</span>) + <span class="s">&quot;   Fire: &quot;</span> + (reaching ? <span class="s">&quot;stop reaching&quot;</span> : <span class="s">&quot;reach for it&quot;</span>), <span class="n">40</span>, <span class="n">668</span>);
     }
 
     <span class="k">void</span> label(<span class="t">Canvas</span>@ c, <span class="k">const</span> <span class="k">string</span> &amp;<span class="k">in</span> text, <span class="k">const</span> <span class="t">Vec2</span> &amp;<span class="k">in</span> at)
@@ -13108,7 +13136,7 @@ summary { cursor: pointer; padding: 10px 16px; } details pre { border-width: 1px
 }
 </code></pre></details></div>
 <div data-find="topple ragdolls: knocked over, thrown about, and getting up again topple"><h3 id="demo-topple">Topple</h3><p>Ragdolls: knocked over, thrown about, and getting up again</p>
-<details><summary><code>topple/main.as</code> <span class="tag">135 lines</span></summary><pre><code><span class="c">// Ragdolls: robots knocked over go limp, a body for each limb pinned where they meet, and fall off what they stand</span>
+<details><summary><code>topple/main.as</code> <span class="tag">139 lines</span></summary><pre><code><span class="c">// Ragdolls: robots knocked over go limp, a body for each limb pinned where they meet, and fall off what they stand</span>
 <span class="c">// on; a few seconds later they get up again from wherever they lie.</span>
 
 <span class="k">class</span> <span class="t">ToppleScreen</span> : <span class="t">Screen</span>
@@ -13120,6 +13148,7 @@ summary { cursor: pointer; padding: 10px 16px; } details pre { border-width: 1px
     <span class="k">array</span>&lt;<span class="k">string</span>&gt; doing = { <span class="s">&quot;idle&quot;</span>, <span class="s">&quot;wave&quot;</span>, <span class="s">&quot;dance&quot;</span>, <span class="s">&quot;idle&quot;</span>, <span class="s">&quot;run&quot;</span> };
     <span class="k">uint</span> next = <span class="n">0</span>;
     <span class="k">uint</span> thrown = <span class="n">3</span>;
+    <span class="k">bool</span> wasShapes = <span class="k">false</span>;
     <span class="t">Vec3</span> eye(<span class="n">0</span>, <span class="n">7</span>, <span class="n">11</span>);
 
     <span class="k">void</span> onEnter()
@@ -13200,6 +13229,9 @@ summary { cursor: pointer; padding: 10px 16px; } details pre { border-width: 1px
             toss(thrown);
         <span class="k">if</span> (<span class="t">Input</span>::pressed(<span class="s">&quot;right&quot;</span>))
             thrown = (thrown + <span class="n">1</span>) % robots.length();
+        <span class="k">bool</span> shapes = <span class="t">Input</span>::padTriggers(<span class="n">0</span>).x &gt; <span class="n">0.5f</span> || <span class="t">Input</span>::key(<span class="s">&quot;C&quot;</span>);
+        <span class="k">if</span> (shapes &amp;&amp; !wasShapes) <span class="t">Space</span>::showShapes = !<span class="t">Space</span>::showShapes;
+        wasShapes = shapes;
         <span class="k">if</span> (<span class="t">Input</span>::pressed(<span class="s">&quot;accept&quot;</span>))
         {
             knock(next);
@@ -13240,7 +13272,7 @@ summary { cursor: pointer; padding: 10px 16px; } details pre { border-width: 1px
         c.roundRect(<span class="n">24</span>, <span class="n">22</span>, <span class="n">300</span>, <span class="n">44</span>, <span class="n">14</span>, <span class="t">Color</span>(<span class="n">0</span>, <span class="n">0</span>, <span class="n">0</span>, <span class="n">0.45f</span>));
         c.text(font, formatInt(<span class="k">int</span>(lying)) + <span class="s">&quot; of &quot;</span> + formatInt(<span class="k">int</span>(robots.length())) + <span class="s">&quot; lying down&quot;</span>, <span class="n">44</span>, <span class="n">31</span>);
         c.roundRect(<span class="n">20</span>, <span class="n">660</span>, c.width - <span class="n">40</span>, <span class="n">42</span>, <span class="n">12</span>, <span class="t">Color</span>(<span class="n">0</span>, <span class="n">0</span>, <span class="n">0</span>, <span class="n">0.45f</span>));
-        c.text(font, <span class="s">&quot;Accept: knock one over     Alternate: all of them     Fire: throw one about     Right: another to throw&quot;</span>, <span class="n">40</span>, <span class="n">668</span>);
+        c.text(font, <span class="s">&quot;Accept: knock one over   Alternate: all of them   Fire: throw one about   Right: another   Left trigger, C: shapes&quot;</span>, <span class="n">40</span>, <span class="n">668</span>);
     }
 }
 </code></pre></details></div>
