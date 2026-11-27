@@ -102,6 +102,24 @@ summary { cursor: pointer; padding: 10px 16px; } details pre { border-width: 1px
 <p><code>rich</code> draws a paragraph with some of it marked: <code>[color=orange]</code>, <code>[b]</code>, <code>[u]</code> and <code>[s]</code>, each ended with <code>[/color]</code>, <code>[/b]</code>,</p>
 <p><code>[/u]</code> or <code>[/s]</code>, and <code>[[</code> for a bracket itself. Colours are names (white, black, red, green, blue, yellow, orange, pink, purple,</p>
 <p>cyan, gray) or <code>#rrggbb</code>. It wraps as <code>paragraph</code> does, and <code>richHeight</code> says how tall it will be.</p>
+<h3 id="pictures-to-draw-into">Pictures to draw into</h3>
+<p><code>Assets::picture(width, height)</code> makes a blank picture of its own. Between <code>c.beginPicture(picture)</code> and <code>c.endPicture()</code>,</p>
+<p>everything drawn goes into it rather than onto the screen, 3D included; then it is drawn like any other picture:</p>
+<pre><code><span class="t">Texture</span>@ map = <span class="t">Assets</span>::picture(<span class="n">320</span>, <span class="n">320</span>);
+
+<span class="k">void</span> draw(<span class="t">Canvas</span>@ c)
+{
+    <span class="k">if</span> (c.beginPicture(map, <span class="t">Color</span>(<span class="n">0</span>, <span class="n">0</span>, <span class="n">0</span>, <span class="n">1</span>)))     <span class="c">// cleared to a colour first, and its own pixels are the design</span>
+    {
+        <span class="t">Space</span>::camera(<span class="t">Vec3</span>(<span class="n">0</span>, <span class="n">20</span>, <span class="n">0.01f</span>), <span class="t">Vec3</span>(<span class="n">0</span>, <span class="n">0</span>, <span class="n">0</span>));
+        <span class="t">Space</span>::draw(c);                              <span class="c">// the world from above</span>
+        c.endPicture();
+    }
+    <span class="t">Space</span>::camera(eye, look);
+    <span class="t">Space</span>::draw(c);
+    c.image(map, c.width - <span class="n">340</span>, <span class="n">20</span>, <span class="n">320</span>, <span class="n">320</span>);       <span class="c">// a minimap</span>
+}</code></pre>
+<p>A minimap, a screen in a room, a mirror, or something drawn once and shown many times. One is drawn into at a time; effects, bloom and grading are for the screen. Up to 2048 pixels a side, and 1024 on the original Xbox; the Pictures demo has one.</p>
 <h2 id="scenes">Scenes</h2>
 <p><code>Canvas</code> draws whatever you tell it to each frame. For things that move, collide and come and go, let the engine keep them:</p>
 <pre><code><span class="t">Entity</span>@ rock = <span class="t">Scene</span>::spawn(<span class="t">Vec2</span>(<span class="n">640</span>, <span class="n">100</span>));

@@ -262,7 +262,7 @@ summary { cursor: pointer; padding: 10px 16px; } details pre { border-width: 1px
     }
 }
 </code></pre></details></div>
-<div data-find="text scalable fonts, alignment, wrapping, rich text and per-letter effects text"><h3 id="demo-text">Text</h3><p>Scalable fonts, alignment, wrapping, rich text and per-letter effects</p>
+<div data-find="text scalable fonts, wrapping, rich text and letter effects text"><h3 id="demo-text">Text</h3><p>Scalable fonts, wrapping, rich text and letter effects</p>
 <div class="shots"><img loading="lazy" src="screenshots/text.png" alt="Text"></div>
 <details><summary><code>text/main.as</code> <span class="tag">100 lines</span></summary><pre><code><span class="c">// Text: one scalable font at several sizes, alignment, wrapping, marked-up text and effects letter by letter.</span>
 
@@ -1306,6 +1306,134 @@ summary { cursor: pointer; padding: 10px 16px; } details pre { border-width: 1px
             c.text(big, formatInt(i + <span class="n">1</span>), <span class="n">0</span>, -<span class="n">20</span>, <span class="t">Color</span>(<span class="n">0.1f</span>, <span class="n">0.1f</span>, <span class="n">0.2f</span>), <span class="t">AlignCenter</span>);
             c.pop();
         }
+    }
+}
+</code></pre></details></div>
+<div data-find="ways paths to follow, ways round a maze, and smooth noise ways"><h3 id="demo-ways">Ways</h3><p>Paths to follow, ways round a maze, and smooth noise</p>
+<details><summary><code>ways/main.as</code> <span class="tag">126 lines</span></summary><pre><code><span class="c">// Ways: a ship that follows a looping Path at a steady speed, its points drifting with noise; clouds of noise behind it;</span>
+<span class="c">// and a seeker that finds its way round a maze with Scene::path, to wherever it is sent.</span>
+
+<span class="k">class</span> <span class="t">WaysScreen</span> : <span class="t">Screen</span>
+{
+    <span class="t">Font</span>@ font = <span class="t">Assets</span>::font(<span class="s">&quot;global:freesans.sfn&quot;</span>, <span class="n">22</span>);
+    <span class="t">Font</span>@ small = <span class="t">Assets</span>::font(<span class="s">&quot;global:freesans.sfn&quot;</span>, <span class="n">18</span>);
+    <span class="k">float</span> t = <span class="n">0</span>;
+
+    <span class="c">// The loop the ship flies, and where its points are when still.</span>
+    <span class="t">Path</span>@ track = <span class="t">Path</span>();
+    <span class="k">array</span>&lt;<span class="t">Vec2</span>&gt; home = { <span class="t">Vec2</span>(<span class="n">120</span>, <span class="n">220</span>), <span class="t">Vec2</span>(<span class="n">330</span>, <span class="n">130</span>), <span class="t">Vec2</span>(<span class="n">540</span>, <span class="n">230</span>), <span class="t">Vec2</span>(<span class="n">500</span>, <span class="n">470</span>), <span class="t">Vec2</span>(<span class="n">300</span>, <span class="n">600</span>), <span class="t">Vec2</span>(<span class="n">110</span>, <span class="n">470</span>) };
+    <span class="k">float</span> along = <span class="n">0</span>;
+
+    <span class="c">// The maze is a map in the scene, drawn where its corner is here on the screen.</span>
+    <span class="t">Vec2</span> corner(<span class="n">680</span>, <span class="n">120</span>);
+    <span class="t">Vec2</span> seeker(<span class="n">60</span>, <span class="n">60</span>);
+    <span class="t">Vec2</span> target;
+    <span class="k">array</span>&lt;<span class="t">Vec2</span>&gt; way;
+    <span class="k">uint</span> next = <span class="n">0</span>;
+    <span class="k">float</span> sendAgain = <span class="n">0</span>;
+
+    <span class="k">void</span> onEnter()
+    {
+        <span class="t">Scene</span>::load(<span class="s">&quot;asset:scene.json&quot;</span>);
+        <span class="k">for</span> (<span class="k">uint</span> i = <span class="n">0</span>; i &lt; home.length(); i++)
+            track.add(home[i]);
+        track.loop = <span class="k">true</span>;
+        send();
+    }
+
+    <span class="c">// Somewhere open in the maze, and the way there.</span>
+    <span class="k">void</span> send()
+    {
+        <span class="k">for</span> (<span class="k">int</span> tries = <span class="n">0</span>; tries &lt; <span class="n">50</span>; tries++)
+        {
+            <span class="t">Vec2</span> to(<span class="k">float</span>(randomInt(<span class="n">0</span>, <span class="n">13</span>)) * <span class="n">40</span> + <span class="n">20</span>, <span class="k">float</span>(randomInt(<span class="n">0</span>, <span class="n">11</span>)) * <span class="n">40</span> + <span class="n">20</span>);
+            <span class="k">if</span> (!<span class="t">Scene</span>::blocked(to) &amp;&amp; (to - seeker).length() &gt; <span class="n">160</span> &amp;&amp; <span class="t">Scene</span>::path(seeker, to, way))
+            {
+                target = to;
+                next = <span class="n">0</span>;
+                sendAgain = <span class="n">5</span>;
+                <span class="k">return</span>;
+            }
+        }
+    }
+
+    <span class="k">void</span> update(<span class="k">float</span> dt)
+    {
+        t += dt;
+
+        <span class="c">// The points wander a little, each with its own noise: the curve through them stays smooth.</span>
+        <span class="k">for</span> (<span class="k">uint</span> i = <span class="n">0</span>; i &lt; home.length(); i++)
+        {
+            <span class="k">float</span> k = <span class="k">float</span>(i) * <span class="n">3.7f</span>;
+            track.setPoint(i, <span class="t">Vec3</span>(home[i].x + noise(t * <span class="n">0.3f</span>, k) * <span class="n">50</span>, home[i].y + noise(t * <span class="n">0.3f</span>, k + <span class="n">50</span>) * <span class="n">50</span>, <span class="n">0</span>));
+        }
+        along += <span class="n">260</span> * dt;    <span class="c">// pixels a second, however far apart the points are</span>
+
+        <span class="c">// Along the way, corner by corner.</span>
+        <span class="k">float</span> step = <span class="n">170</span> * dt;
+        <span class="k">while</span> (next &lt; way.length() &amp;&amp; step &gt; <span class="n">0</span>)
+        {
+            <span class="t">Vec2</span> to = way[next] - seeker;
+            <span class="k">float</span> far = to.length();
+            <span class="k">if</span> (far &lt;= step)
+            {
+                seeker = way[next];
+                next++;
+                step -= far;
+            }
+            <span class="k">else</span>
+            {
+                seeker += to * (step / far);
+                step = <span class="n">0</span>;
+            }
+        }
+        sendAgain -= dt;
+        <span class="k">if</span> (<span class="t">Input</span>::pressed(<span class="s">&quot;accept&quot;</span>) || (next &gt;= way.length() &amp;&amp; sendAgain &lt; <span class="n">3.5f</span>) || sendAgain &lt; <span class="n">0</span>)
+            send();
+    }
+
+    <span class="k">void</span> draw(<span class="t">Canvas</span>@ c)
+    {
+        c.design(<span class="n">1280</span>, <span class="n">720</span>);
+        c.rect(<span class="n">0</span>, <span class="n">0</span>, <span class="n">1280</span>, <span class="n">720</span>, <span class="t">Color</span>(<span class="n">0.05f</span>, <span class="n">0.07f</span>, <span class="n">0.12f</span>));
+
+        <span class="c">// Clouds: layers of noise, moving slowly through the third dimension.</span>
+        <span class="k">for</span> (<span class="k">int</span> y = <span class="n">0</span>; y &lt; <span class="n">23</span>; y++)
+            <span class="k">for</span> (<span class="k">int</span> x = <span class="n">0</span>; x &lt; <span class="n">40</span>; x++)
+            {
+                <span class="k">float</span> n = fractalNoise(<span class="k">float</span>(x) * <span class="n">0.09f</span> + t * <span class="n">0.05f</span>, <span class="k">float</span>(y) * <span class="n">0.09f</span>, t * <span class="n">0.08f</span>, <span class="n">4</span>, <span class="n">0.55f</span>);
+                <span class="k">if</span> (n &gt; <span class="n">0</span>)
+                    c.rect(<span class="k">float</span>(x) * <span class="n">32</span>, <span class="k">float</span>(y) * <span class="n">32</span>, <span class="n">32</span>, <span class="n">32</span>, <span class="t">Color</span>(<span class="n">0.45f</span>, <span class="n">0.6f</span>, <span class="n">0.95f</span>, n * <span class="n">0.45f</span>));
+            }
+
+        <span class="c">// The path, the points it passes through, and the ship on it.</span>
+        <span class="t">Vec2</span> was = track.at2(<span class="n">0</span>);
+        <span class="k">for</span> (<span class="k">int</span> i = <span class="n">1</span>; i &lt;= <span class="n">160</span>; i++)
+        {
+            <span class="t">Vec2</span> now = track.at2(track.length * <span class="k">float</span>(i) / <span class="n">160</span>);
+            c.line(was.x, was.y, now.x, now.y, <span class="n">3</span>, <span class="t">Color</span>(<span class="n">0.4f</span>, <span class="n">0.75f</span>, <span class="n">1</span>, <span class="n">0.7f</span>));
+            was = now;
+        }
+        <span class="k">for</span> (<span class="k">uint</span> i = <span class="n">0</span>; i &lt; track.count; i++)
+            c.circle(track.point(i).x, track.point(i).y, <span class="n">6</span>, <span class="t">Yellow</span>);
+        <span class="t">Vec2</span> at = track.at2(along), ahead = track.direction2(along);
+        <span class="t">Vec2</span> side(-ahead.y, ahead.x);
+        c.triangle(at + ahead * <span class="n">22</span>, at - ahead * <span class="n">12</span> + side * <span class="n">13</span>, at - ahead * <span class="n">12</span> - side * <span class="n">13</span>, <span class="t">Orange</span>, <span class="t">Color</span>(<span class="n">1</span>, <span class="n">0.4f</span>, <span class="n">0.2f</span>), <span class="t">Color</span>(<span class="n">1</span>, <span class="n">0.4f</span>, <span class="n">0.2f</span>));
+        c.text(font, <span class="s">&quot;A Path through six points, which drift with noise&quot;</span>, <span class="n">40</span>, <span class="n">650</span>, <span class="t">White</span>);
+
+        <span class="c">// The maze, the way round it, and the seeker going along it.</span>
+        <span class="t">Scene</span>::camera(<span class="t">Vec2</span>(<span class="n">640</span>, <span class="n">360</span>) - corner, <span class="n">1</span>);
+        <span class="t">Scene</span>::draw(c);
+        <span class="t">Vec2</span> from = seeker;
+        <span class="k">for</span> (<span class="k">uint</span> i = next; i &lt; way.length(); i++)
+        {
+            c.line(corner.x + from.x, corner.y + from.y, corner.x + way[i].x, corner.y + way[i].y, <span class="n">3</span>, <span class="t">Color</span>(<span class="n">0.5f</span>, <span class="n">1</span>, <span class="n">0.6f</span>, <span class="n">0.8f</span>));
+            from = way[i];
+        }
+        c.ring(corner.x + target.x, corner.y + target.y, <span class="n">12</span> + sin(t * <span class="n">6</span>) * <span class="n">2</span>, <span class="n">3</span>, <span class="t">Green</span>);
+        c.circle(corner.x + seeker.x, corner.y + seeker.y, <span class="n">12</span>, <span class="t">Color</span>(<span class="n">1</span>, <span class="n">0.85f</span>, <span class="n">0.3f</span>));
+        c.text(font, <span class="s">&quot;Scene::path finds the way round&quot;</span>, <span class="n">680</span>, <span class="n">620</span>, <span class="t">White</span>);
+        c.text(small, <span class="t">Input</span>::buttons(<span class="s">&quot;accept&quot;</span>) + <span class="s">&quot; or &quot;</span> + <span class="t">Input</span>::keys(<span class="s">&quot;accept&quot;</span>) + <span class="s">&quot;: somewhere else&quot;</span>, <span class="n">680</span>, <span class="n">652</span>, <span class="t">Yellow</span>);
     }
 }
 </code></pre></details></div>
@@ -5829,7 +5957,7 @@ summary { cursor: pointer; padding: 10px 16px; } details pre { border-width: 1px
 </code></pre></details></div>
 </section>
 <section id="sound" data-title="sound"><h2>Sound</h2>
-<div data-find="sounds pads, pitch, panning, many voices, and rooms, echoes and filters sounds"><h3 id="demo-sounds">Sounds</h3><p>Pads, pitch, panning, many voices, and rooms, echoes and filters</p>
+<div data-find="sounds pads, pitch and panning, in rooms, halls and caves sounds"><h3 id="demo-sounds">Sounds</h3><p>Pads, pitch and panning, in rooms, halls and caves</p>
 <div class="shots"><img loading="lazy" src="screenshots/sounds.png" alt="Sounds"></div>
 <details><summary><code>sounds/main.as</code> <span class="tag">126 lines</span></summary><pre><code><span class="c">// Sixteen pads. Where a pad is decides its panning, and holding the second button lowers its pitch. The right trigger, or</span>
 <span class="c">// R, changes where they are heard: a room, a hall, a canyon, under water or on the radio, by the effects every sound on a</span>
@@ -7075,7 +7203,7 @@ summary { cursor: pointer; padding: 10px 16px; } details pre { border-width: 1px
     }
 }
 </code></pre></details></div>
-<div data-find="tumble rigid bodies in space: throw balls at things, and at what hangs on chains, ropes, springs and hinges tumble"><h3 id="demo-tumble">Tumble</h3><p>Rigid bodies in space: throw balls at things, and at what hangs on chains, ropes, springs and hinges</p>
+<div data-find="tumble rigid bodies and joints: throw balls at things tumble"><h3 id="demo-tumble">Tumble</h3><p>Rigid bodies and joints: throw balls at things</p>
 <div class="shots"><img loading="lazy" src="screenshots/tumble.png" alt="Tumble"></div>
 <details><summary><code>tumble/main.as</code> <span class="tag">254 lines</span></summary><pre><code><span class="c">// Rigid bodies: give a collider some mass, and the engine does the rest. Joints hold them to each other, or to the</span>
 <span class="c">// world: pinned, hinged, on a rope or on a spring.</span>
@@ -7674,6 +7802,101 @@ summary { cursor: pointer; padding: 10px 16px; } details pre { border-width: 1px
         }
         c.roundRect(<span class="n">20</span>, <span class="n">660</span>, c.width - <span class="n">40</span>, <span class="n">42</span>, <span class="n">12</span>, <span class="t">Color</span>(<span class="n">0</span>, <span class="n">0</span>, <span class="n">0</span>, <span class="n">0.45f</span>));
         c.text(font, <span class="s">&quot;Left, right: turn     Up, down: faster, slower     Accept: &quot;</span> + (above ? <span class="s">&quot;fly low&quot;</span> : <span class="s">&quot;fly high&quot;</span>), <span class="n">40</span>, <span class="n">668</span>);
+    }
+}
+</code></pre></details></div>
+<div data-find="pictures drawing into a picture, then showing it pictures"><h3 id="demo-pictures">Pictures</h3><p>Drawing into a picture, then showing it</p>
+<details><summary><code>pictures/main.as</code> <span class="tag">93 lines</span></summary><pre><code><span class="c">// Pictures to draw into: the same scene seen from above, drawn into a picture each frame, then shown as a map in the</span>
+<span class="c">// corner and on cards that turn, as any other picture would be.</span>
+
+<span class="k">class</span> <span class="t">PicturesScreen</span> : <span class="t">Screen</span>
+{
+    <span class="t">Font</span>@ font = <span class="t">Assets</span>::font(<span class="s">&quot;global:freesans.sfn&quot;</span>, <span class="n">22</span>);
+    <span class="t">Font</span>@ big = <span class="t">Assets</span>::font(<span class="s">&quot;global:freesans.sfn&quot;</span>, <span class="n">34</span>);
+    <span class="t">Model</span>@ robot = <span class="t">Assets</span>::model(<span class="s">&quot;global:model/robot.glb&quot;</span>);
+    <span class="t">Texture</span>@ map = <span class="t">Assets</span>::picture(<span class="n">320</span>, <span class="n">320</span>);
+    <span class="t">Entity</span>@ dancer;
+    <span class="k">array</span>&lt;<span class="t">Entity</span>@&gt; walkers;
+    <span class="k">float</span> t = <span class="n">0</span>;
+
+    <span class="k">void</span> onEnter()
+    {
+        <span class="t">Space</span>::ground(<span class="n">0</span>);
+        <span class="t">Space</span>::sky(<span class="t">Color</span>(<span class="n">0.2f</span>, <span class="n">0.32f</span>, <span class="n">0.55f</span>), <span class="t">Color</span>(<span class="n">0.62f</span>, <span class="n">0.7f</span>, <span class="n">0.8f</span>));
+        <span class="t">Space</span>::sun(<span class="t">Vec3</span>(<span class="n">0.4f</span>, <span class="n">0.85f</span>, <span class="n">0.5f</span>), <span class="t">Color</span>(<span class="n">0.95f</span>, <span class="n">0.92f</span>, <span class="n">0.86f</span>));
+        <span class="t">Space</span>::ambient(<span class="t">Color</span>(<span class="n">0.4f</span>, <span class="n">0.45f</span>, <span class="n">0.55f</span>), <span class="t">Color</span>(<span class="n">0.25f</span>, <span class="n">0.22f</span>, <span class="n">0.2f</span>));
+        <span class="t">Space</span>::shadows(<span class="n">0.6f</span>, <span class="n">14</span>);
+        <span class="t">Entity</span>@ floor = <span class="t">Space</span>::spawn(<span class="t">Vec3</span>(<span class="n">0</span>, -<span class="n">0.05f</span>, <span class="n">0</span>));
+        floor.shape(<span class="t">SolidCylinder</span>, <span class="t">Color</span>(<span class="n">0.32f</span>, <span class="n">0.4f</span>, <span class="n">0.36f</span>));
+        floor.size = <span class="t">Vec3</span>(<span class="n">14</span>, <span class="n">0.1f</span>, <span class="n">14</span>);
+        <span class="k">for</span> (<span class="k">int</span> i = <span class="n">0</span>; i &lt; <span class="n">8</span>; i++)
+        {
+            <span class="k">float</span> a = <span class="k">float</span>(i) * <span class="n">0.785f</span>;
+            <span class="t">Entity</span>@ post = <span class="t">Space</span>::spawn(<span class="t">Vec3</span>(sin(a) * <span class="n">6</span>, <span class="n">0.6f</span>, cos(a) * <span class="n">6</span>));
+            post.shape(<span class="t">SolidBox</span>, hsv(<span class="k">float</span>(i) / <span class="n">8</span>, <span class="n">0.6f</span>, <span class="n">0.9f</span>));
+            post.size = <span class="t">Vec3</span>(<span class="n">0.5f</span>, <span class="n">1.2f</span>, <span class="n">0.5f</span>);
+        }
+        @dancer = <span class="t">Space</span>::spawn(<span class="t">Vec3</span>(<span class="n">0</span>, <span class="n">0</span>, <span class="n">0</span>));
+        dancer.model(robot);
+        dancer.animate(<span class="s">&quot;dance&quot;</span>);
+        <span class="k">for</span> (<span class="k">int</span> i = <span class="n">0</span>; i &lt; <span class="n">3</span>; i++)
+        {
+            <span class="t">Entity</span>@ w = <span class="t">Space</span>::spawn(<span class="t">Vec3</span>(<span class="n">4</span>, <span class="n">0</span>, <span class="n">0</span>));
+            w.model(robot);
+            w.animate(<span class="s">&quot;walk&quot;</span>);
+            w.size = <span class="t">Vec3</span>(<span class="n">0.7f</span>, <span class="n">0.7f</span>, <span class="n">0.7f</span>);
+            walkers.insertLast(w);
+        }
+    }
+
+    <span class="k">void</span> update(<span class="k">float</span> dt)
+    {
+        t += dt;
+        <span class="k">for</span> (<span class="k">uint</span> i = <span class="n">0</span>; i &lt; walkers.length(); i++)
+        {
+            <span class="k">float</span> a = t * <span class="n">0.5f</span> + <span class="k">float</span>(i) * <span class="n">2.09f</span>;
+            walkers[i].place = <span class="t">Vec3</span>(sin(a) * <span class="n">4</span>, <span class="n">0</span>, cos(a) * <span class="n">4</span>);
+            walkers[i].angles = <span class="t">Vec3</span>(<span class="n">0</span>, a * <span class="n">57.3f</span> + <span class="n">90</span>, <span class="n">0</span>);
+        }
+    }
+
+    <span class="k">void</span> draw(<span class="t">Canvas</span>@ c)
+    {
+        c.designHeight(<span class="n">720</span>);
+
+        <span class="c">// First the picture: the same scene, from straight above, into its own pixels.</span>
+        <span class="k">if</span> (map !<span class="k">is</span> <span class="k">null</span> &amp;&amp; c.beginPicture(map, <span class="t">Color</span>(<span class="n">0.05f</span>, <span class="n">0.06f</span>, <span class="n">0.1f</span>, <span class="n">1</span>)))
+        {
+            <span class="t">Space</span>::camera(<span class="t">Vec3</span>(<span class="n">0.01f</span>, <span class="n">18</span>, <span class="n">0</span>), <span class="t">Vec3</span>(<span class="n">0</span>, <span class="n">0</span>, <span class="n">0</span>), <span class="n">50</span>);
+            <span class="t">Space</span>::draw(c);
+            c.ring(<span class="n">160</span>, <span class="n">160</span>, <span class="n">150</span>, <span class="n">4</span>, <span class="t">Color</span>(<span class="n">1</span>, <span class="n">1</span>, <span class="n">1</span>, <span class="n">0.5f</span>));
+            c.text(font, <span class="s">&quot;from above&quot;</span>, <span class="n">160</span>, <span class="n">10</span>, <span class="t">White</span>, <span class="t">AlignCenter</span>);
+            c.endPicture();
+        }
+
+        <span class="c">// Then the screen, from the side, with the picture on it.</span>
+        <span class="k">float</span> a = t * <span class="n">0.15f</span>;
+        <span class="t">Space</span>::camera(<span class="t">Vec3</span>(sin(a) * <span class="n">11</span>, <span class="n">4.5f</span>, cos(a) * <span class="n">11</span>), <span class="t">Vec3</span>(<span class="n">0</span>, <span class="n">1</span>, <span class="n">0</span>), <span class="n">50</span>);
+        <span class="t">Space</span>::draw(c);
+        <span class="k">if</span> (map <span class="k">is</span> <span class="k">null</span>)
+        {
+            c.text(big, <span class="s">&quot;No pictures to draw into here&quot;</span>, <span class="n">40</span>, <span class="n">40</span>, <span class="t">Red</span>);
+            <span class="k">return</span>;
+        }
+        c.rect(c.width - <span class="n">356</span>, <span class="n">16</span>, <span class="n">340</span>, <span class="n">340</span>, <span class="t">Color</span>(<span class="n">0</span>, <span class="n">0</span>, <span class="n">0</span>, <span class="n">0.5f</span>));
+        c.image(map, c.width - <span class="n">346</span>, <span class="n">26</span>, <span class="n">320</span>, <span class="n">320</span>);
+        <span class="k">for</span> (<span class="k">int</span> i = <span class="n">0</span>; i &lt; <span class="n">3</span>; i++)
+        {
+            c.push();
+            c.translate(<span class="n">140</span> + <span class="k">float</span>(i) * <span class="n">170</span>, <span class="n">600</span>);
+            c.rotate(sin(t * <span class="n">1.3f</span> + <span class="k">float</span>(i)) * <span class="n">12</span>);
+            <span class="k">float</span> s = <span class="n">0.9f</span> + <span class="n">0.1f</span> * sin(t * <span class="n">2</span> + <span class="k">float</span>(i));
+            c.scale(s, s);
+            c.image(map, -<span class="n">70</span>, -<span class="n">70</span>, <span class="n">140</span>, <span class="n">140</span>, hsv(<span class="k">float</span>(i) * <span class="n">0.3f</span>, <span class="n">0.25f</span>, <span class="n">1</span>));
+            c.pop();
+        }
+        c.text(big, <span class="s">&quot;Pictures drawn into&quot;</span>, <span class="n">40</span>, <span class="n">30</span>);
+        c.text(font, <span class="s">&quot;One picture, drawn into each frame&quot;</span>, <span class="n">40</span>, <span class="n">74</span>, <span class="t">Color</span>(<span class="n">0.85f</span>, <span class="n">0.9f</span>, <span class="n">1</span>));
     }
 }
 </code></pre></details></div>
