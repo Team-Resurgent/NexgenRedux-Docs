@@ -3600,6 +3600,85 @@ summary { cursor: pointer; padding: 10px 16px; } details pre { border-width: 1px
     }
 }
 </code></pre></details></div>
+<div data-find="system the window, the clipboard, and what a machine says of itself system"><h3 id="demo-system">System</h3><p>The window, the clipboard, and what a machine says of itself</p>
+<div class="shots"><img loading="lazy" src="screenshots/system.png" alt="System"></div>
+<details><summary><code>system/main.as</code> <span class="tag">76 lines</span></summary><pre><code><span class="c">// What a machine says about itself, and the window: full-screen, its title, waiting for the refresh, the pointer, the</span>
+<span class="c">// clipboard, the system&#x27;s own messages, and opening a web page. On a console there is only the screen.</span>
+
+<span class="k">class</span> <span class="t">SystemScreen</span> : <span class="t">Screen</span>
+{
+    <span class="t">Font</span>@ font = <span class="t">Assets</span>::font(<span class="s">&quot;global:freesans.sfn&quot;</span>, <span class="n">22</span>);
+    <span class="t">Font</span>@ big = <span class="t">Assets</span>::font(<span class="s">&quot;global:freesans.sfn&quot;</span>, <span class="n">34</span>);
+    <span class="k">array</span>&lt;<span class="k">string</span>&gt; actions = { <span class="s">&quot;Full-screen&quot;</span>, <span class="s">&quot;Wait for the refresh&quot;</span>, <span class="s">&quot;Copy the time&quot;</span>, <span class="s">&quot;Paste&quot;</span>, <span class="s">&quot;A message&quot;</span>, <span class="s">&quot;A question&quot;</span>, <span class="s">&quot;Open the docs&quot;</span>, <span class="s">&quot;Change the title&quot;</span> };
+    <span class="k">uint</span> chosen = <span class="n">0</span>;
+    <span class="k">string</span> pasted = <span class="s">&quot;(nothing yet)&quot;</span>;
+    <span class="k">string</span> answer = <span class="s">&quot;&quot;</span>;
+    <span class="k">uint</span> titles = <span class="n">0</span>;
+    <span class="k">float</span> fps = <span class="n">0</span>;
+
+    <span class="k">void</span> update(<span class="k">float</span> dt)
+    {
+        fps += (<span class="t">App</span>::fps - fps) * <span class="n">0.05f</span>;
+        <span class="k">if</span> (<span class="t">Input</span>::repeated(<span class="s">&quot;down&quot;</span>)) chosen = (chosen + <span class="n">1</span>) % actions.length();
+        <span class="k">if</span> (<span class="t">Input</span>::repeated(<span class="s">&quot;up&quot;</span>)) chosen = (chosen + actions.length() - <span class="n">1</span>) % actions.length();
+        <span class="c">// The pointer is a hand over the list, a cross elsewhere.</span>
+        <span class="t">Vec2</span> m = <span class="t">Input</span>::mouse;
+        <span class="k">bool</span> overList = m.x &gt; <span class="n">760</span> &amp;&amp; m.x &lt; <span class="n">1220</span> &amp;&amp; m.y &gt; <span class="n">150</span> &amp;&amp; m.y &lt; <span class="n">150</span> + <span class="n">56</span> * <span class="k">float</span>(actions.length());
+        <span class="k">if</span> (<span class="t">Input</span>::hasMouse &amp;&amp; overList) chosen = <span class="k">uint</span>((m.y - <span class="n">150</span>) / <span class="n">56</span>);
+        <span class="t">Window</span>::pointer = overList ? <span class="t">PointerHand</span> : <span class="t">PointerCrosshair</span>;
+        <span class="k">if</span> (<span class="t">Input</span>::pressed(<span class="s">&quot;accept&quot;</span>) || (overList &amp;&amp; <span class="t">Input</span>::mouseDown(<span class="n">0</span>) &amp;&amp; !wasDown)) act(chosen);
+        wasDown = <span class="t">Input</span>::mouseDown(<span class="n">0</span>);
+        <span class="k">if</span> (<span class="t">Input</span>::pressed(<span class="s">&quot;cancel&quot;</span>)) <span class="t">Screens</span>::pop();
+    }
+    <span class="k">bool</span> wasDown = <span class="k">false</span>;
+
+    <span class="k">void</span> act(<span class="k">uint</span> which)
+    {
+        <span class="k">if</span> (which == <span class="n">0</span>) <span class="t">Window</span>::fullscreen = !<span class="t">Window</span>::fullscreen;
+        <span class="k">else</span> <span class="k">if</span> (which == <span class="n">1</span>) <span class="t">Window</span>::vsync = !<span class="t">Window</span>::vsync;
+        <span class="k">else</span> <span class="k">if</span> (which == <span class="n">2</span>) <span class="t">System</span>::clipboard = <span class="s">&quot;Nexgen at &quot;</span> + formatFloat(<span class="t">App</span>::time, <span class="s">&quot;&quot;</span>, <span class="n">0</span>, <span class="n">1</span>) + <span class="s">&quot; seconds&quot;</span>;
+        <span class="k">else</span> <span class="k">if</span> (which == <span class="n">3</span>) pasted = <span class="t">System</span>::clipboard;
+        <span class="k">else</span> <span class="k">if</span> (which == <span class="n">4</span>) answer = <span class="t">Window</span>::message(<span class="s">&quot;Nexgen&quot;</span>, <span class="s">&quot;A message from a script, in the system&#x27;s own box.&quot;</span>) ? <span class="s">&quot;OK&quot;</span> : <span class="s">&quot;(no boxes here)&quot;</span>;
+        <span class="k">else</span> <span class="k">if</span> (which == <span class="n">5</span>) answer = <span class="t">Window</span>::ask(<span class="s">&quot;Nexgen&quot;</span>, <span class="s">&quot;Is this the system&#x27;s own box?&quot;</span>) ? <span class="s">&quot;Yes&quot;</span> : <span class="s">&quot;No, or none here&quot;</span>;
+        <span class="k">else</span> <span class="k">if</span> (which == <span class="n">6</span>) answer = <span class="t">System</span>::open(<span class="s">&quot;https://github.com/Team-Resurgent/NexgenRedux&quot;</span>) ? <span class="s">&quot;Opened&quot;</span> : <span class="s">&quot;(nothing opens here)&quot;</span>;
+        <span class="k">else</span> <span class="k">if</span> (which == <span class="n">7</span>) <span class="t">Window</span>::title = <span class="s">&quot;Nexgen, title &quot;</span> + formatInt(++titles);
+    }
+
+    <span class="k">void</span> line(<span class="t">Canvas</span>@ c, <span class="k">float</span> y, <span class="k">const</span> <span class="k">string</span> &amp;<span class="k">in</span> name, <span class="k">const</span> <span class="k">string</span> &amp;<span class="k">in</span> value)
+    {
+        c.text(font, name, <span class="n">60</span>, y, <span class="t">Gray</span>);
+        c.text(font, value, <span class="n">330</span>, y, <span class="t">White</span>);
+    }
+
+    <span class="k">void</span> draw(<span class="t">Canvas</span>@ c)
+    {
+        c.design(<span class="n">1280</span>, <span class="n">720</span>);
+        c.gradient(<span class="n">0</span>, <span class="n">0</span>, <span class="n">1280</span>, <span class="n">720</span>, <span class="t">Color</span>(<span class="n">0.07f</span>, <span class="n">0.09f</span>, <span class="n">0.14f</span>), <span class="t">Color</span>(<span class="n">0.03f</span>, <span class="n">0.04f</span>, <span class="n">0.07f</span>));
+        c.text(big, <span class="s">&quot;System&quot;</span>, <span class="n">60</span>, <span class="n">50</span>, <span class="t">White</span>);
+        line(c, <span class="n">130</span>, <span class="s">&quot;Running on&quot;</span>, <span class="t">App</span>::platform + <span class="s">&quot;, &quot;</span> + <span class="t">App</span>::gpu);
+        line(c, <span class="n">170</span>, <span class="s">&quot;Locale&quot;</span>, <span class="t">System</span>::locale + <span class="s">&quot; (&quot;</span> + <span class="t">System</span>::language + <span class="s">&quot;)&quot;</span>);
+        line(c, <span class="n">210</span>, <span class="s">&quot;Processors&quot;</span>, formatInt(<span class="t">System</span>::processors));
+        <span class="k">int</span> battery = <span class="t">System</span>::battery;
+        line(c, <span class="n">250</span>, <span class="s">&quot;Battery&quot;</span>, battery &lt; <span class="n">0</span> ? <span class="s">&quot;none&quot;</span> : formatInt(battery) + <span class="s">&quot;%&quot;</span> + (<span class="t">System</span>::charging ? <span class="s">&quot;, charging&quot;</span> : <span class="s">&quot;&quot;</span>));
+        line(c, <span class="n">290</span>, <span class="s">&quot;Drawn at&quot;</span>, formatInt(<span class="t">Window</span>::width) + <span class="s">&quot; x &quot;</span> + formatInt(<span class="t">Window</span>::height) + <span class="s">&quot; pixels&quot;</span>);
+        line(c, <span class="n">330</span>, <span class="s">&quot;Window&quot;</span>, !<span class="t">Window</span>::available ? <span class="s">&quot;the whole screen&quot;</span> : <span class="t">Window</span>::fullscreen ? <span class="s">&quot;full-screen&quot;</span> : <span class="s">&quot;a window&quot;</span>);
+        line(c, <span class="n">370</span>, <span class="s">&quot;Waits for refresh&quot;</span>, <span class="t">Window</span>::vsync ? <span class="s">&quot;yes&quot;</span> : <span class="s">&quot;no&quot;</span>);
+        line(c, <span class="n">410</span>, <span class="s">&quot;Frames a second&quot;</span>, formatInt(<span class="k">int</span>(fps + <span class="n">0.5f</span>)));
+        line(c, <span class="n">450</span>, <span class="s">&quot;Focused&quot;</span>, <span class="t">Window</span>::focused ? <span class="s">&quot;yes&quot;</span> : <span class="s">&quot;no&quot;</span>);
+        line(c, <span class="n">490</span>, <span class="s">&quot;Pasted&quot;</span>, pasted);
+        line(c, <span class="n">530</span>, <span class="s">&quot;Answer&quot;</span>, answer);
+
+        <span class="k">for</span> (<span class="k">uint</span> i = <span class="n">0</span>; i &lt; actions.length(); i++)
+        {
+            <span class="k">float</span> y = <span class="n">150</span> + <span class="k">float</span>(i) * <span class="n">56</span>;
+            <span class="k">bool</span> here = i == chosen;
+            c.roundRect(<span class="n">760</span>, y, <span class="n">460</span>, <span class="n">46</span>, <span class="n">10</span>, here ? <span class="t">Color</span>(<span class="n">0.25f</span>, <span class="n">0.32f</span>, <span class="n">0.52f</span>) : <span class="t">Color</span>(<span class="n">0.13f</span>, <span class="n">0.15f</span>, <span class="n">0.22f</span>));
+            c.text(font, actions[i], <span class="n">780</span>, y + <span class="n">11</span>, here ? <span class="t">White</span> : <span class="t">Color</span>(<span class="n">0.75f</span>, <span class="n">0.78f</span>, <span class="n">0.88f</span>));
+        }
+        c.text(font, <span class="s">&quot;Up, down: choose    Accept or click: do it    Cancel: back&quot;</span>, <span class="n">640</span>, <span class="n">670</span>, <span class="t">Yellow</span>, <span class="t">AlignCenter</span>);
+    }
+}
+</code></pre></details></div>
 </section>
 <section id="engine" data-title="engine"><h2>Engine</h2>
 <div data-find="asset cache what is loaded, kept warm and reused cache"><h3 id="demo-cache">Asset cache</h3><p>What is loaded, kept warm and reused</p>

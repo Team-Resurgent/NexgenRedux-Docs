@@ -54,7 +54,7 @@ summary { cursor: pointer; padding: 10px 16px; } details pre { border-width: 1px
 </head>
 <body>
 <header><a class="name" href="index.html">Nexgen Redux</a> <a href="index.html">Home</a> <a class="here" href="guide.html">Guide</a> <a href="reference.html">Script reference</a> <a href="demos.html">Demos</a> <a href="https://github.com/Team-Resurgent/NexgenRedux">GitHub</a> </header>
-<div class="page"><nav><a href="#your-first-screen">Your first screen</a><a href="#screens">Screens</a><a href="#drawing">Drawing</a><a href="#scenes">Scenes</a><a href="#three-dimensions">Three dimensions</a><a href="#interfaces">Interfaces</a><a href="#shaders-bloom-and-grading">Shaders, bloom and grading</a><a href="#assets">Assets</a><a href="#sound">Sound</a><a href="#input">Input</a><a href="#paths-and-noise">Paths and noise</a><a href="#coroutines-and-tweens">Coroutines and tweens</a><a href="#networking">Networking</a><a href="#what-only-an-xbox-can-do">What only an Xbox can do</a><a href="#saving">Saving</a><a href="#files-and-json">Files and JSON</a><a href="#on-the-original-xbox">On the original Xbox</a></nav><main><h1 id="guide">Guide</h1>
+<div class="page"><nav><a href="#your-first-screen">Your first screen</a><a href="#screens">Screens</a><a href="#drawing">Drawing</a><a href="#scenes">Scenes</a><a href="#three-dimensions">Three dimensions</a><a href="#interfaces">Interfaces</a><a href="#shaders-bloom-and-grading">Shaders, bloom and grading</a><a href="#assets">Assets</a><a href="#sound">Sound</a><a href="#input">Input</a><a href="#paths-and-noise">Paths and noise</a><a href="#coroutines-and-tweens">Coroutines and tweens</a><a href="#networking">Networking</a><a href="#the-window-and-the-system">The window and the system</a><a href="#what-only-an-xbox-can-do">What only an Xbox can do</a><a href="#saving">Saving</a><a href="#files-and-json">Files and JSON</a><a href="#on-the-original-xbox">On the original Xbox</a></nav><main><h1 id="guide">Guide</h1>
 <h2 id="your-first-screen">Your first screen</h2>
 <p>Download the showcase for your machine, or build it, and look in its <code>media/showcase</code> folder. Each folder there is a screen. Make a new one called <code>hello</code> with two files.</p>
 <p><code>screen.json</code> says how it appears in the menu:</p>
@@ -747,6 +747,22 @@ room.host(<span class="s">&quot;my game&quot;</span>, <span class="s">&quot;Sam&
 <p>It connects, sends and reads on a thread of its own, so nothing waits; <code>wss://</code> is over TLS, its certificate checked as for <code>Net::get</code>. Messages may be up to 4 MB, and pings are answered for you.</p>
 <h3 id="anything-else">Anything else</h3>
 <p><code>Connection</code> is a stream of text over TCP, to a server or from those who connect to you; <code>Datagrams</code> sends short texts over UDP.</p>
+<h2 id="the-window-and-the-system">The window and the system</h2>
+<p>On a computer, <code>Window</code> changes the window; on a console there is only the screen, <code>Window::available</code> is false, and changing it does nothing:</p>
+<pre><code><span class="t">Window</span>::fullscreen = <span class="k">true</span>;                 <span class="c">// over the whole screen, without a border; Alt and Enter too, on Windows</span>
+<span class="t">Window</span>::title = <span class="s">&quot;Level 3&quot;</span>;
+<span class="t">Window</span>::resize(<span class="n">1600</span>, <span class="n">900</span>);                 <span class="c">// its inside, in pixels, while it isn&#x27;t full-screen</span>
+<span class="t">Window</span>::vsync = <span class="k">false</span>;                     <span class="c">// as many frames as it can make; consoles always wait for the refresh</span>
+<span class="t">Window</span>::pointer = <span class="t">PointerHand</span>;             <span class="c">// over a button; PointerText over a field, PointerCrosshair to aim</span>
+<span class="k">if</span> (!<span class="t">Window</span>::focused) pause();             <span class="c">// the player is in another window</span>
+<span class="k">if</span> (<span class="t">Window</span>::ask(<span class="s">&quot;Quit&quot;</span>, <span class="s">&quot;Leave without saving?&quot;</span>)) <span class="t">Screens</span>::home();   <span class="c">// the system&#x27;s own box, waited for</span></code></pre>
+<p><code>System</code> is the same on every machine:</p>
+<pre><code><span class="t">System</span>::clipboard = code;                  <span class="c">// copied, to paste elsewhere; a console keeps one of the game&#x27;s own</span>
+<span class="k">string</span> words = <span class="t">System</span>::language;           <span class="c">// &quot;en&quot;, &quot;ja&quot;: which words to show; System::locale is &quot;en-GB&quot;</span>
+<span class="k">uint</span> threads = <span class="t">System</span>::processors;
+<span class="t">System</span>::open(<span class="s">&quot;https://example.com&quot;</span>);       <span class="c">// in the browser, or a file in what opens it</span>
+<span class="k">int</span> left = <span class="t">System</span>::battery;                <span class="c">// 0 to 100, or -1 without one; System::charging</span></code></pre>
+<p>On Linux the clipboard needs wl-copy, xclip or xsel, and messages zenity, kdialog or xmessage. The System demo has them all.</p>
 <h2 id="what-only-an-xbox-can-do">What only an Xbox can do</h2>
 <p><code>Xbox::available</code> is true on an original Xbox. Its temperatures, fan, light, tray, drives and files are there, as are ways out:</p>
 <pre><code><span class="k">if</span> (<span class="t">Xbox</span>::available)
