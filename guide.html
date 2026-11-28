@@ -54,7 +54,7 @@ summary { cursor: pointer; padding: 10px 16px; } details pre { border-width: 1px
 </head>
 <body>
 <header><a class="name" href="index.html">Nexgen Redux</a> <a href="index.html">Home</a> <a class="here" href="guide.html">Guide</a> <a href="reference.html">Script reference</a> <a href="demos.html">Demos</a> <a href="https://github.com/Team-Resurgent/NexgenRedux">GitHub</a> </header>
-<div class="page"><nav><a href="#your-first-screen">Your first screen</a><a href="#screens">Screens</a><a href="#drawing">Drawing</a><a href="#scenes">Scenes</a><a href="#three-dimensions">Three dimensions</a><a href="#interfaces">Interfaces</a><a href="#shaders-bloom-and-grading">Shaders, bloom and grading</a><a href="#assets">Assets</a><a href="#sound">Sound</a><a href="#input">Input</a><a href="#paths-and-noise">Paths and noise</a><a href="#coroutines-and-tweens">Coroutines and tweens</a><a href="#networking">Networking</a><a href="#the-window-and-the-system">The window and the system</a><a href="#what-only-an-xbox-can-do">What only an Xbox can do</a><a href="#saving">Saving</a><a href="#files-and-json">Files and JSON</a><a href="#on-the-original-xbox">On the original Xbox</a></nav><main><h1 id="guide">Guide</h1>
+<div class="page"><nav><a href="#your-first-screen">Your first screen</a><a href="#screens">Screens</a><a href="#drawing">Drawing</a><a href="#scenes">Scenes</a><a href="#three-dimensions">Three dimensions</a><a href="#interfaces">Interfaces</a><a href="#shaders-bloom-and-grading">Shaders, bloom and grading</a><a href="#assets">Assets</a><a href="#sound">Sound</a><a href="#input">Input</a><a href="#paths-and-noise">Paths and noise</a><a href="#coroutines-and-tweens">Coroutines and tweens</a><a href="#threads">Threads</a><a href="#networking">Networking</a><a href="#the-window-and-the-system">The window and the system</a><a href="#what-only-an-xbox-can-do">What only an Xbox can do</a><a href="#saving">Saving</a><a href="#files-and-json">Files and JSON</a><a href="#on-the-original-xbox">On the original Xbox</a></nav><main><h1 id="guide">Guide</h1>
 <h2 id="your-first-screen">Your first screen</h2>
 <p>Download the showcase for your machine, or build it, and look in its <code>media/showcase</code> folder. Each folder there is a screen. Make a new one called <code>hello</code> with two files.</p>
 <p><code>screen.json</code> says how it appears in the menu:</p>
@@ -684,6 +684,30 @@ film.play();
     <span class="t">Screens</span>::replace(<span class="s">&quot;game&quot;</span>);
 }</code></pre>
 <p>A <code>Tween</code> is a number that moves by itself. There is nothing to update: read <code>value</code> when drawing. <code>go()</code> starts from wherever it is, so changing course never jumps.</p>
+<h2 id="threads">Threads</h2>
+<p>A coroutine shares the frame; a <code>Thread</code> doesn&#x27;t. It runs a script file of its own, from its <code>void main()</code>, on a thread of its own, in an engine of its own: strings, arrays, maths, Json, Data and Random, and nothing that draws, plays or loads. It shares nothing with the screen but <code>Channel</code>s: text passed one way or the other, first in, first out. Channels of the same name are the same, in every thread.</p>
+<pre><code><span class="c">// asset:worker.as</span>
+<span class="k">void</span> main()
+{
+    <span class="t">Channel</span> jobs(<span class="s">&quot;jobs&quot;</span>), results(<span class="s">&quot;results&quot;</span>);
+    <span class="k">while</span> (!<span class="t">Worker</span>::stopping)                    <span class="c">// true as the screen closes</span>
+    {
+        <span class="k">string</span> job = jobs.demand(<span class="n">0.5f</span>);          <span class="c">// waits for one, here only</span>
+        <span class="k">if</span> (!job.isEmpty()) results.push(work(job));
+    }
+}</code></pre>
+<pre><code><span class="t">Thread</span>@ worker = <span class="t">Thread</span>(<span class="s">&quot;asset:worker.as&quot;</span>);
+<span class="t">Channel</span> jobs(<span class="s">&quot;jobs&quot;</span>), results(<span class="s">&quot;results&quot;</span>);
+
+<span class="k">void</span> onEnter() { worker.start(); jobs.push(<span class="s">&quot;level 3&quot;</span>); }
+
+<span class="k">void</span> update(<span class="k">float</span> dt)
+{
+    <span class="k">string</span> done;
+    <span class="k">while</span> (results.pop(done)) use(done);         <span class="c">// never waits</span>
+    <span class="k">if</span> (!worker.error.isEmpty()) print(worker.error);
+}</code></pre>
+<p>Numbers go as text and anything with parts as Json&#x27;s. A thread is asked to stop, and waited for, when nothing holds it any more, as its screen closes: its <code>demand</code> and <code>Worker::sleep</code> end at once, and long loops should look at <code>Worker::stopping</code>. Up to 8 at once. <code>System::processors</code> says how many can truly run together: on the original Xbox one, so a thread there gets the time the screen leaves. The Threads demo draws the Mandelbrot set this way while the screen turns smoothly.</p>
 <h2 id="networking">Networking</h2>
 <p>Nothing here waits: ask, and look each update at what has come. Who sends what is up to you, so never trust what arrives.</p>
 <h3 id="playing-together">Playing together</h3>

@@ -4193,6 +4193,115 @@ summary { cursor: pointer; padding: 10px 16px; } details pre { border-width: 1px
     }
 }
 </code></pre></details></div>
+<div data-find="threads scripts on threads of their own, and channels between them threads"><h3 id="demo-threads">Threads</h3><p>Scripts on threads of their own, and channels between them</p>
+<div class="shots"><img loading="lazy" src="screenshots/threads.png" alt="Threads"></div>
+<details><summary><code>threads/main.as</code> <span class="tag">106 lines</span></summary><pre><code><span class="c">// Threads: the Mandelbrot set worked out by scripts on threads of their own, a row at a time, and drawn here as the</span>
+<span class="c">// rows come back through a channel. The screen goes on turning smoothly however long they take.</span>
+
+<span class="k">const</span> <span class="k">uint</span> across = <span class="n">320</span>;
+<span class="k">const</span> <span class="k">uint</span> down = <span class="n">180</span>;
+
+<span class="k">class</span> <span class="t">ThreadsScreen</span> : <span class="t">Screen</span>
+{
+    <span class="t">Font</span>@ font = <span class="t">Assets</span>::font(<span class="s">&quot;global:freesans.sfn&quot;</span>, <span class="n">22</span>);
+    <span class="t">Font</span>@ big = <span class="t">Assets</span>::font(<span class="s">&quot;global:freesans.sfn&quot;</span>, <span class="n">34</span>);
+    <span class="k">array</span>&lt;<span class="t">Thread</span>@&gt; workers;
+    <span class="t">Channel</span> rows(<span class="s">&quot;rows&quot;</span>), done(<span class="s">&quot;done&quot;</span>);
+    <span class="t">Pixels</span>@ picture = <span class="t">Pixels</span>(across, down, <span class="t">Black</span>);
+    <span class="k">array</span>&lt;<span class="t">Color</span>&gt; palette(<span class="n">256</span>);
+    double zoom = <span class="n">3.2</span>;
+    double cx = -<span class="n">0.743643887</span>, cy = <span class="n">0.131825904</span>;   <span class="c">// deep in the seahorse valley</span>
+    <span class="k">uint</span> waiting = <span class="n">0</span>;
+    <span class="k">uint</span> made = <span class="n">0</span>;
+    <span class="k">float</span> turned = <span class="n">0</span>;
+    <span class="k">float</span> rowsLately = <span class="n">0</span>;
+    <span class="k">uint</span> frameRows = <span class="n">0</span>;
+
+    <span class="k">void</span> onEnter()
+    {
+        <span class="k">for</span> (<span class="k">uint</span> i = <span class="n">0</span>; i &lt; <span class="n">255</span>; i++)
+        {
+            <span class="k">float</span> t = <span class="k">float</span>(i) / <span class="n">64</span>;
+            palette[i] = hsv(<span class="n">0.6f</span> + t * <span class="n">0.35f</span>, <span class="n">0.75f</span>, <span class="n">0.25f</span> + <span class="n">0.75f</span> * min(<span class="n">1</span>, t * <span class="n">2</span>));
+        }
+        palette[<span class="n">255</span>] = <span class="t">Black</span>;
+        <span class="k">uint</span> count = <span class="t">System</span>::processors &gt; <span class="n">4</span> ? <span class="n">4</span> : <span class="t">System</span>::processors;
+        <span class="k">for</span> (<span class="k">uint</span> i = <span class="n">0</span>; i &lt; count; i++)
+        {
+            <span class="t">Thread</span>@ t = <span class="t">Thread</span>(<span class="s">&quot;asset:rows.as&quot;</span>);
+            t.start();
+            workers.insertLast(t);
+        }
+        ask();
+    }
+
+    <span class="c">// Every row of the next picture, for whichever thread is free.</span>
+    <span class="k">void</span> ask()
+    {
+        rows.clear();
+        <span class="k">for</span> (<span class="k">uint</span> y = <span class="n">0</span>; y &lt; down; y++)
+            rows.push(formatUInt(made) + <span class="s">&quot; &quot;</span> + formatUInt(y) + <span class="s">&quot; &quot;</span> + formatUInt(across) + <span class="s">&quot; &quot;</span> + formatUInt(down) + <span class="s">&quot; &quot;</span> + formatFloat(zoom, <span class="s">&quot;&quot;</span>, <span class="n">0</span>, <span class="n">17</span>) + <span class="s">&quot; &quot;</span> + formatFloat(cx, <span class="s">&quot;&quot;</span>, <span class="n">0</span>, <span class="n">17</span>) + <span class="s">&quot; &quot;</span> + formatFloat(cy, <span class="s">&quot;&quot;</span>, <span class="n">0</span>, <span class="n">17</span>));
+        waiting = down;
+    }
+
+    <span class="k">void</span> update(<span class="k">float</span> dt)
+    {
+        turned += dt * <span class="n">90</span>;
+        <span class="k">string</span> row;
+        frameRows = <span class="n">0</span>;
+        <span class="k">while</span> (done.pop(row))
+        {
+            <span class="k">int</span> first = row.findFirst(<span class="s">&quot; &quot;</span>);
+            <span class="k">int</span> space = row.findFirst(<span class="s">&quot; &quot;</span>, first + <span class="n">1</span>);
+            <span class="k">if</span> (parseUInt(row.substr(<span class="n">0</span>, first)) != made) <span class="k">continue</span>;   <span class="c">// from a picture already left behind</span>
+            <span class="k">uint</span> y = parseUInt(row.substr(first + <span class="n">1</span>, space - first - <span class="n">1</span>));
+            <span class="k">for</span> (<span class="k">uint</span> x = <span class="n">0</span>; x &lt; across; x++)
+                picture.<span class="k">set</span>(x, y, palette[uint8(row[space + <span class="n">1</span> + x])]);
+            frameRows++;
+            <span class="k">if</span> (waiting &gt; <span class="n">0</span> &amp;&amp; --waiting == <span class="n">0</span>)
+            {
+                made++;
+                zoom *= <span class="n">0.82</span>;
+                <span class="k">if</span> (zoom &lt; 1e-<span class="n">11</span>) zoom = <span class="n">3.2</span>;
+                ask();
+            }
+        }
+        rowsLately += (<span class="k">float</span>(frameRows) / dt - rowsLately) * <span class="n">0.05f</span>;
+        <span class="k">if</span> (<span class="t">Input</span>::pressed(<span class="s">&quot;cancel&quot;</span>)) <span class="t">Screens</span>::pop();
+    }
+
+    <span class="k">void</span> draw(<span class="t">Canvas</span>@ c)
+    {
+        c.design(<span class="n">1280</span>, <span class="n">720</span>);
+        c.rect(<span class="n">0</span>, <span class="n">0</span>, <span class="n">1280</span>, <span class="n">720</span>, <span class="t">Color</span>(<span class="n">0.04f</span>, <span class="n">0.05f</span>, <span class="n">0.08f</span>));
+        c.push();
+        c.filter = <span class="t">FilterNearest</span>;
+        c.image(picture.texture, <span class="n">40</span>, <span class="n">90</span>, <span class="n">960</span>, <span class="n">540</span>);
+        c.pop();
+        c.text(big, <span class="s">&quot;Threads&quot;</span>, <span class="n">40</span>, <span class="n">30</span>, <span class="t">White</span>);
+
+        <span class="k">float</span> x = <span class="n">1030</span>;
+        c.text(font, formatUInt(workers.length()) + <span class="s">&quot; threads&quot;</span>, x, <span class="n">100</span>, <span class="t">White</span>);
+        c.text(font, <span class="s">&quot;of &quot;</span> + formatUInt(<span class="t">System</span>::processors) + <span class="s">&quot; processors&quot;</span>, x, <span class="n">130</span>, <span class="t">Gray</span>);
+        c.text(font, formatInt(<span class="k">int</span>(rowsLately)) + <span class="s">&quot; rows a second&quot;</span>, x, <span class="n">180</span>, <span class="t">Yellow</span>);
+        c.text(font, formatUInt(made) + <span class="s">&quot; pictures&quot;</span>, x, <span class="n">210</span>, <span class="t">Yellow</span>);
+        c.text(font, formatInt(<span class="k">int</span>(<span class="t">App</span>::fps + <span class="n">0.5f</span>)) + <span class="s">&quot; frames a second&quot;</span>, x, <span class="n">260</span>, <span class="t">Color</span>(<span class="n">0.5f</span>, <span class="n">0.9f</span>, <span class="n">0.6f</span>));
+
+        <span class="c">// Something that would stutter if the work were done here.</span>
+        c.push();
+        c.translate(<span class="n">1130</span>, <span class="n">420</span>);
+        c.rotate(turned);
+        <span class="k">for</span> (<span class="k">int</span> i = <span class="n">0</span>; i &lt; <span class="n">8</span>; i++)
+        {
+            c.rotate(<span class="n">45</span>);
+            c.roundRect(<span class="n">40</span>, -<span class="n">8</span>, <span class="n">50</span>, <span class="n">16</span>, <span class="n">8</span>, hsv(<span class="k">float</span>(i) / <span class="n">8</span>, <span class="n">0.6f</span>, <span class="n">1</span>));
+        }
+        c.pop();
+        c.text(font, <span class="s">&quot;Turned here, smoothly,&quot;</span>, <span class="n">1130</span>, <span class="n">540</span>, <span class="t">Gray</span>, <span class="t">AlignCenter</span>);
+        c.text(font, <span class="s">&quot;while threads work&quot;</span>, <span class="n">1130</span>, <span class="n">566</span>, <span class="t">Gray</span>, <span class="t">AlignCenter</span>);
+    }
+}
+</code></pre></details></div>
 </section>
 <section id="games" data-title="games"><h2>Games</h2>
 <div data-find="sky patrol a small complete game: move, fire, dodge patrol"><h3 id="demo-patrol">Sky Patrol</h3><p>A small complete game: move, fire, dodge</p>
