@@ -3737,6 +3737,491 @@ summary { cursor: pointer; padding: 10px 16px; } details pre { border-width: 1px
     }
 }
 </code></pre></details></div>
+<div data-find="home a modern console home: tiles, cards, ribbons and a guide home"><h3 id="demo-home">Home</h3><p>A modern console home: tiles, cards, ribbons and a guide</p>
+<div class="shots"><img loading="lazy" src="screenshots/home.png" alt="Home"></div>
+<details><summary><code>home/main.as</code> <span class="tag">482 lines</span></summary><pre><code><span class="c">// A console&#x27;s home in the modern style. Ribbons of light drift behind everything; a row of square tiles, the one in focus grown large with its name, and cards below; round buttons at the</span>
+<span class="c">// top, a clock, and a guide that slides in from the side. The tiles are this showcase&#x27;s own demos, and choosing one</span>
+<span class="c">// opens it, growing to fill the screen as it goes.</span>
+
+<span class="k">class</span> <span class="t">Tile</span>
+{
+    <span class="k">string</span> id, title, about, kind;
+    <span class="t">Texture</span>@ art;
+    <span class="k">float</span> lift = <span class="n">0</span>;     <span class="c">// 0 to 1, as it takes the focus</span>
+}
+
+<span class="k">class</span> <span class="t">Card</span>
+{
+    <span class="k">string</span> title, about, open;
+    <span class="k">array</span>&lt;<span class="t">Texture</span>@&gt; art;
+    <span class="k">float</span> lift = <span class="n">0</span>;
+}
+
+<span class="k">class</span> <span class="t">Ribbon</span>
+{
+    <span class="k">float</span> base, spread, speed, phase, thickness;
+    <span class="t">Color</span> color;
+}
+
+<span class="k">const</span> <span class="k">float</span> <span class="t">Small</span> = <span class="n">128</span>;      <span class="c">// a tile, as it rests</span>
+<span class="k">const</span> <span class="k">float</span> <span class="t">Large</span> = <span class="n">214</span>;      <span class="c">// the one in focus</span>
+<span class="k">const</span> <span class="k">float</span> <span class="t">Gap</span> = <span class="n">18</span>;
+<span class="k">const</span> <span class="k">float</span> <span class="t">RowBottom</span> = <span class="n">470</span>;  <span class="c">// tiles grow upwards from here</span>
+<span class="k">const</span> <span class="k">float</span> <span class="t">CardTop</span> = <span class="n">494</span>;
+<span class="k">const</span> <span class="k">float</span> <span class="t">CardWide</span> = <span class="n">274</span>;
+<span class="k">const</span> <span class="k">float</span> <span class="t">CardHigh</span> = <span class="n">150</span>;
+
+<span class="k">class</span> <span class="t">HomeScreen</span> : <span class="t">Screen</span>
+{
+    <span class="t">Font</span>@ huge = <span class="t">Assets</span>::font(<span class="s">&quot;global:freesans.sfn&quot;</span>, <span class="n">46</span>);
+    <span class="t">Font</span>@ font = <span class="t">Assets</span>::font(<span class="s">&quot;global:freesans.sfn&quot;</span>, <span class="n">24</span>);
+    <span class="t">Font</span>@ small = <span class="t">Assets</span>::font(<span class="s">&quot;global:freesans.sfn&quot;</span>, <span class="n">19</span>);
+    <span class="t">Font</span>@ tiny = <span class="t">Assets</span>::font(<span class="s">&quot;global:freesans.sfn&quot;</span>, <span class="n">16</span>);
+    <span class="t">Sound</span>@ move = <span class="t">Assets</span>::sound(<span class="s">&quot;global:sound/move.wav&quot;</span>);
+    <span class="t">Sound</span>@ yes = <span class="t">Assets</span>::sound(<span class="s">&quot;global:sound/accept.wav&quot;</span>);
+    <span class="t">Sound</span>@ back = <span class="t">Assets</span>::sound(<span class="s">&quot;global:sound/back.wav&quot;</span>);
+    <span class="t">Sound</span>@ whoosh = <span class="t">Assets</span>::sound(<span class="s">&quot;global:sound/whoosh.wav&quot;</span>);
+    <span class="t">Texture</span>@ avatar = <span class="t">Assets</span>::texture(<span class="s">&quot;asset:avatar.png&quot;</span>);
+    <span class="k">array</span>&lt;<span class="k">string</span>&gt; ids = { <span class="s">&quot;explore&quot;</span>, <span class="s">&quot;lens&quot;</span>, <span class="s">&quot;moves&quot;</span>, <span class="s">&quot;blocks&quot;</span>, <span class="s">&quot;forest&quot;</span>, <span class="s">&quot;water&quot;</span>, <span class="s">&quot;skim&quot;</span>, <span class="s">&quot;topple&quot;</span>, <span class="s">&quot;quest&quot;</span>, <span class="s">&quot;guards&quot;</span>, <span class="s">&quot;machines&quot;</span>, <span class="s">&quot;curves&quot;</span>, <span class="s">&quot;shooter&quot;</span>, <span class="s">&quot;mist&quot;</span>, <span class="s">&quot;lights&quot;</span>, <span class="s">&quot;solids&quot;</span>, <span class="s">&quot;platformer&quot;</span>, <span class="s">&quot;cracktro&quot;</span> };
+    <span class="k">array</span>&lt;<span class="t">Tile</span>@&gt; tiles;
+    <span class="k">array</span>&lt;<span class="t">Card</span>@&gt; cards;
+    <span class="k">array</span>&lt;<span class="t">Ribbon</span>@&gt; ribbons;
+    <span class="k">array</span>&lt;<span class="k">string</span>&gt; buttons = { <span class="s">&quot;My demos&quot;</span>, <span class="s">&quot;New&quot;</span>, <span class="s">&quot;Search&quot;</span>, <span class="s">&quot;Settings&quot;</span> };
+    <span class="k">int</span> row = <span class="n">0</span>;          <span class="c">// -1 the buttons, 0 the tiles, 1 the cards</span>
+    <span class="k">int</span> tile = <span class="n">0</span>, card = <span class="n">0</span>, button = <span class="n">0</span>;
+    <span class="k">float</span> scroll = <span class="n">0</span>;
+    <span class="k">float</span> guide = <span class="n">0</span>;
+    <span class="k">bool</span> guideOpen = <span class="k">false</span>;
+    <span class="k">int</span> guideRow = <span class="n">0</span>;
+    <span class="k">array</span>&lt;<span class="k">string</span>&gt; guideRows = { <span class="s">&quot;Home&quot;</span>, <span class="s">&quot;Every demo&quot;</span>, <span class="s">&quot;Settings&quot;</span>, <span class="s">&quot;Start again&quot;</span> };
+    <span class="k">float</span> launching = -<span class="n">1</span>;
+    <span class="k">float</span> coming = <span class="n">0</span>;
+    <span class="k">string</span> launchId;
+    <span class="t">Texture</span>@ launchArt;
+    <span class="t">Vec2</span> launchFrom, launchSize;
+    <span class="k">float</span> time = <span class="n">0</span>;
+
+    <span class="k">void</span> onEnter()
+    {
+        <span class="k">for</span> (<span class="k">uint</span> i = <span class="n">0</span>; i &lt; ids.length(); i++)
+        {
+            <span class="t">Tile</span> t;
+            t.id = ids[i];
+            <span class="c">// Its own name until the demo&#x27;s screen.json says better: a build without that demo still shows one.</span>
+            t.title = ids[i];
+            <span class="k">if</span> (t.title[<span class="n">0</span>] &gt;= <span class="n">97</span> &amp;&amp; t.title[<span class="n">0</span>] &lt;= <span class="n">122</span>) t.title[<span class="n">0</span>] = t.title[<span class="n">0</span>] - <span class="n">32</span>;
+            t.kind = <span class="s">&quot;Demo&quot;</span>;
+            @t.art = <span class="t">Assets</span>::texture(<span class="s">&quot;asset:&quot;</span> + ids[i] + <span class="s">&quot;.jpg&quot;</span>);
+            <span class="k">for</span> (<span class="k">uint</span> s = <span class="n">0</span>; s &lt; <span class="t">Screens</span>::count; s++)
+                <span class="k">if</span> (<span class="t">Screens</span>::id(s) == ids[i])
+                {
+                    t.title = <span class="t">Screens</span>::title(s);
+                    t.about = <span class="t">Screens</span>::description(s);
+                    t.kind = <span class="t">Screens</span>::category(s);
+                }
+            tiles.insertLast(t);
+        }
+        tiles[<span class="n">0</span>].lift = <span class="n">1</span>;
+        addCard(<span class="s">&quot;Every demo&quot;</span>, <span class="t">Screens</span>::count + <span class="s">&quot; of them, of every kind&quot;</span>, <span class="s">&quot;main&quot;</span>, { tiles[<span class="n">0</span>].art, tiles[<span class="n">3</span>].art, tiles[<span class="n">8</span>].art, tiles[<span class="n">12</span>].art });
+        addCard(<span class="s">&quot;Make it yours&quot;</span>, <span class="s">&quot;Sound, controls and how it looks&quot;</span>, <span class="s">&quot;settings&quot;</span>, {});
+        addCard(<span class="s">&quot;New: Machines&quot;</span>, <span class="s">&quot;Wheels, pulleys and gears&quot;</span>, <span class="s">&quot;machines&quot;</span>, { tiles[<span class="n">10</span>].art });
+        addCard(<span class="s">&quot;New: Curves&quot;</span>, <span class="s">&quot;Fifteen hundred sprites at once&quot;</span>, <span class="s">&quot;curves&quot;</span>, { tiles[<span class="n">11</span>].art });
+
+        <span class="c">// The ribbons: wide bands of light that sweep down and across, each its own speed.</span>
+        <span class="k">for</span> (<span class="k">int</span> i = <span class="n">0</span>; i &lt; <span class="n">4</span>; i++)
+        {
+            <span class="t">Ribbon</span> r;
+            r.base = <span class="k">float</span>(i) / <span class="n">3.0f</span>;
+            r.spread = <span class="n">0.8f</span> + <span class="k">float</span>(i) * <span class="n">0.12f</span>;
+            r.speed = <span class="n">0.3f</span> + <span class="k">float</span>(i) * <span class="n">0.06f</span>;
+            r.phase = <span class="k">float</span>(i) * <span class="n">17.3f</span>;
+            r.thickness = <span class="n">150</span> + <span class="k">float</span>(i % <span class="n">2</span>) * <span class="n">90</span>;
+            r.color = hsv(<span class="n">0.33f</span> + <span class="k">float</span>(i) * <span class="n">0.012f</span>, <span class="n">0.75f</span>, <span class="n">0.32f</span> + <span class="k">float</span>(i) * <span class="n">0.06f</span>);
+            ribbons.insertLast(r);
+        }
+        prepareRibbons();
+    }
+
+    <span class="k">void</span> addCard(<span class="k">const</span> <span class="k">string</span> &amp;<span class="k">in</span> title, <span class="k">const</span> <span class="k">string</span> &amp;<span class="k">in</span> about, <span class="k">const</span> <span class="k">string</span> &amp;<span class="k">in</span> open, <span class="k">const</span> <span class="k">array</span>&lt;<span class="t">Texture</span>@&gt; &amp;<span class="k">in</span> art)
+    {
+        <span class="t">Card</span> c;
+        c.title = title;
+        c.about = about;
+        c.open = open;
+        c.art = art;
+        cards.insertLast(c);
+    }
+
+    <span class="k">void</span> onResume()
+    {
+        launching = -<span class="n">1</span>;
+        coming = <span class="n">1</span>;
+    }
+
+    <span class="k">void</span> focusChanged()
+    {
+        move.play(<span class="n">0.4f</span>);
+    }
+
+    <span class="c">// Where a tile&#x27;s left edge is, along the row as the tiles are now.</span>
+    <span class="k">float</span> tileX(<span class="k">int</span> index)
+    {
+        <span class="k">float</span> x = <span class="n">64</span> - scroll;
+        <span class="k">for</span> (<span class="k">int</span> i = <span class="n">0</span>; i &lt; index; i++)
+            x += <span class="t">Small</span> + (<span class="t">Large</span> - <span class="t">Small</span>) * tiles[<span class="k">uint</span>(i)].lift + <span class="t">Gap</span>;
+        <span class="k">return</span> x;
+    }
+
+    <span class="k">void</span> launch(<span class="k">const</span> <span class="k">string</span> &amp;<span class="k">in</span> id, <span class="t">Texture</span>@ art, <span class="k">const</span> <span class="t">Vec2</span> &amp;<span class="k">in</span> at, <span class="k">const</span> <span class="t">Vec2</span> &amp;<span class="k">in</span> size)
+    {
+        yes.play(<span class="n">0.6f</span>);
+        <span class="t">Input</span>::rumble(<span class="n">0.25f</span>, <span class="n">0.12f</span>);
+        launchId = id;
+        @launchArt = art;
+        launchFrom = at;
+        launchSize = size;
+        launching = <span class="n">0</span>;
+    }
+
+    <span class="k">void</span> update(<span class="k">float</span> dt)
+    {
+        time += dt;
+        guide += ((guideOpen ? <span class="n">1.0f</span> : <span class="n">0.0f</span>) - guide) * clamp(dt * <span class="n">12</span>, <span class="n">0</span>, <span class="n">1</span>);
+        coming = max(coming - dt * <span class="n">3</span>, <span class="n">0</span>);
+        <span class="k">for</span> (<span class="k">uint</span> i = <span class="n">0</span>; i &lt; tiles.length(); i++)
+            tiles[i].lift += ((row == <span class="n">0</span> &amp;&amp; <span class="k">int</span>(i) == tile ? <span class="n">1.0f</span> : <span class="n">0.0f</span>) - tiles[i].lift) * clamp(dt * <span class="n">13</span>, <span class="n">0</span>, <span class="n">1</span>);
+        <span class="k">for</span> (<span class="k">uint</span> i = <span class="n">0</span>; i &lt; cards.length(); i++)
+            cards[i].lift += ((row == <span class="n">1</span> &amp;&amp; <span class="k">int</span>(i) == card ? <span class="n">1.0f</span> : <span class="n">0.0f</span>) - cards[i].lift) * clamp(dt * <span class="n">13</span>, <span class="n">0</span>, <span class="n">1</span>);
+        <span class="c">// Keep the one in focus in sight: from the fifth on, the row slides.</span>
+        <span class="k">float</span> want = max(<span class="n">0.0f</span>, <span class="k">float</span>(tile - <span class="n">3</span>) * (<span class="t">Small</span> + <span class="t">Gap</span>));
+        scroll += (want - scroll) * clamp(dt * <span class="n">9</span>, <span class="n">0</span>, <span class="n">1</span>);
+
+        <span class="k">if</span> (launching &gt;= <span class="n">0</span>)
+        {
+            launching += dt * <span class="n">2.6f</span>;
+            <span class="k">if</span> (launching &gt;= <span class="n">1</span>)
+            {
+                launching = <span class="n">2</span>;
+                <span class="t">Screens</span>::push(launchId);
+            }
+            <span class="k">return</span>;
+        }
+
+        <span class="k">if</span> (<span class="t">Input</span>::pressed(<span class="s">&quot;menu&quot;</span>))
+        {
+            guideOpen = !guideOpen;
+            whoosh.play(<span class="n">0.35f</span>, -<span class="n">0.6f</span>, guideOpen ? <span class="n">1.2f</span> : <span class="n">0.9f</span>);
+        }
+        <span class="k">if</span> (guideOpen)
+        {
+            <span class="k">if</span> (<span class="t">Input</span>::repeated(<span class="s">&quot;down&quot;</span>) &amp;&amp; guideRow + <span class="n">1</span> &lt; <span class="k">int</span>(guideRows.length())) { guideRow++; move.play(<span class="n">0.4f</span>); }
+            <span class="k">if</span> (<span class="t">Input</span>::repeated(<span class="s">&quot;up&quot;</span>) &amp;&amp; guideRow &gt; <span class="n">0</span>) { guideRow--; move.play(<span class="n">0.4f</span>); }
+            <span class="k">if</span> (<span class="t">Input</span>::pressed(<span class="s">&quot;cancel&quot;</span>) || <span class="t">Input</span>::pressed(<span class="s">&quot;left&quot;</span>)) { guideOpen = <span class="k">false</span>; back.play(<span class="n">0.4f</span>); }
+            <span class="k">if</span> (<span class="t">Input</span>::pressed(<span class="s">&quot;accept&quot;</span>))
+            {
+                yes.play(<span class="n">0.5f</span>);
+                guideOpen = <span class="k">false</span>;
+                <span class="k">if</span> (guideRow == <span class="n">1</span>) <span class="t">Screens</span>::home();
+                <span class="k">else</span> <span class="k">if</span> (guideRow == <span class="n">2</span>) <span class="t">Screens</span>::push(<span class="s">&quot;settings&quot;</span>);
+                <span class="k">else</span> <span class="k">if</span> (guideRow == <span class="n">3</span>) <span class="t">Screens</span>::replace(<span class="s">&quot;home&quot;</span>);
+            }
+            <span class="k">return</span>;
+        }
+
+        <span class="k">int</span> beforeRow = row, beforeTile = tile, beforeCard = card, beforeButton = button;
+        <span class="k">if</span> (<span class="t">Input</span>::repeated(<span class="s">&quot;down&quot;</span>) &amp;&amp; row &lt; <span class="n">1</span>) row++;
+        <span class="k">if</span> (<span class="t">Input</span>::repeated(<span class="s">&quot;up&quot;</span>) &amp;&amp; row &gt; -<span class="n">1</span>) row--;
+        <span class="k">int</span> dx = (<span class="t">Input</span>::repeated(<span class="s">&quot;right&quot;</span>) ? <span class="n">1</span> : <span class="n">0</span>) - (<span class="t">Input</span>::repeated(<span class="s">&quot;left&quot;</span>) ? <span class="n">1</span> : <span class="n">0</span>);
+        <span class="k">if</span> (row == <span class="n">0</span>) tile = <span class="k">int</span>(clamp(<span class="k">float</span>(tile + dx), <span class="n">0</span>, <span class="k">float</span>(tiles.length() - <span class="n">1</span>)));
+        <span class="k">else</span> <span class="k">if</span> (row == <span class="n">1</span>) card = <span class="k">int</span>(clamp(<span class="k">float</span>(card + dx), <span class="n">0</span>, <span class="k">float</span>(cards.length() - <span class="n">1</span>)));
+        <span class="k">else</span> button = <span class="k">int</span>(clamp(<span class="k">float</span>(button + dx), <span class="n">0</span>, <span class="k">float</span>(buttons.length() - <span class="n">1</span>)));
+        <span class="k">if</span> (row != beforeRow || tile != beforeTile || card != beforeCard || button != beforeButton) focusChanged();
+        <span class="k">if</span> (<span class="t">Input</span>::pressed(<span class="s">&quot;cancel&quot;</span>)) { back.play(<span class="n">0.4f</span>); <span class="t">Screens</span>::pop(); }
+
+        <span class="k">if</span> (<span class="t">Input</span>::pressed(<span class="s">&quot;accept&quot;</span>))
+        {
+            <span class="k">if</span> (row == <span class="n">0</span>)
+                launch(tiles[<span class="k">uint</span>(tile)].id, tiles[<span class="k">uint</span>(tile)].art, <span class="t">Vec2</span>(tileX(tile), <span class="t">RowBottom</span> - <span class="t">Large</span>), <span class="t">Vec2</span>(<span class="t">Large</span>, <span class="t">Large</span>));
+            <span class="k">else</span> <span class="k">if</span> (row == <span class="n">1</span>)
+                launch(cards[<span class="k">uint</span>(card)].open, cards[<span class="k">uint</span>(card)].art.length() == <span class="n">1</span> ? cards[<span class="k">uint</span>(card)].art[<span class="n">0</span>] : <span class="k">null</span>, <span class="t">Vec2</span>(<span class="n">64</span> + <span class="k">float</span>(card) * (<span class="t">CardWide</span> + <span class="t">Gap</span>), <span class="t">CardTop</span>), <span class="t">Vec2</span>(<span class="t">CardWide</span>, <span class="t">CardHigh</span>));
+            <span class="k">else</span> <span class="k">if</span> (button == <span class="n">3</span>)
+                launch(<span class="s">&quot;settings&quot;</span>, <span class="k">null</span>, <span class="t">Vec2</span>(<span class="n">640</span>, <span class="n">60</span>), <span class="t">Vec2</span>(<span class="n">10</span>, <span class="n">10</span>));
+            <span class="k">else</span> <span class="k">if</span> (button == <span class="n">1</span>)
+                launch(<span class="s">&quot;machines&quot;</span>, tiles[<span class="n">10</span>].art, <span class="t">Vec2</span>(<span class="n">640</span>, <span class="n">60</span>), <span class="t">Vec2</span>(<span class="n">10</span>, <span class="n">10</span>));
+            <span class="k">else</span>
+                launch(<span class="s">&quot;main&quot;</span>, <span class="k">null</span>, <span class="t">Vec2</span>(<span class="n">640</span>, <span class="n">60</span>), <span class="t">Vec2</span>(<span class="n">10</span>, <span class="n">10</span>));
+        }
+    }
+
+    <span class="c">// --- Drawing ---</span>
+
+    <span class="c">// Folds of light: each a wide band that sweeps down and across in an S, shaded from its dark side to its lit one,</span>
+    <span class="c">// with a fine bright rim where it turns to the light. They drift, slowly, by noise.</span>
+    <span class="c">// Kept from frame to frame, so that drawing the ribbons makes nothing new: the points along a ribbon, which way is</span>
+    <span class="c">// across it at each, its band&#x27;s corners, rim and strands, and what never changes, worked out once.</span>
+    <span class="k">array</span>&lt;<span class="t">Vec2</span>&gt; along, across, bandPoints, rim, strand, bandUvs;
+    <span class="k">array</span>&lt;<span class="k">uint</span>&gt; bandTriangles;
+    <span class="k">array</span>&lt;<span class="k">array</span>&lt;<span class="t">Color</span>&gt;&gt; bandColors;
+    <span class="k">uint</span> <span class="t">Steps</span> = <span class="n">24</span>;
+
+    <span class="k">void</span> prepareRibbons()
+    {
+        along.resize(<span class="t">Steps</span>);
+        across.resize(<span class="t">Steps</span>);
+        bandPoints.resize(<span class="t">Steps</span> * <span class="n">2</span>);
+        bandUvs.resize(<span class="t">Steps</span> * <span class="n">2</span>);
+        rim.resize(<span class="t">Steps</span>);
+        strand.resize(<span class="t">Steps</span>);
+        <span class="k">for</span> (<span class="k">uint</span> k = <span class="n">1</span>; k &lt; <span class="t">Steps</span>; k++)
+        {
+            <span class="k">uint</span> q = k * <span class="n">2</span>;
+            bandTriangles.insertLast(q - <span class="n">2</span>); bandTriangles.insertLast(q - <span class="n">1</span>); bandTriangles.insertLast(q + <span class="n">1</span>);
+            bandTriangles.insertLast(q - <span class="n">2</span>); bandTriangles.insertLast(q + <span class="n">1</span>); bandTriangles.insertLast(q);
+        }
+        <span class="k">for</span> (<span class="k">uint</span> i = <span class="n">0</span>; i &lt; ribbons.length(); i++)
+        {
+            <span class="t">Color</span> k = ribbons[i].color;
+            <span class="k">array</span>&lt;<span class="t">Color</span>&gt; shade;
+            <span class="k">for</span> (<span class="k">uint</span> j = <span class="n">0</span>; j &lt; <span class="t">Steps</span>; j++)
+            {
+                shade.insertLast(<span class="t">Color</span>(k.r * <span class="n">0.45f</span>, k.g * <span class="n">0.45f</span>, k.b * <span class="n">0.45f</span>, <span class="n">0.85f</span>));
+                shade.insertLast(<span class="t">Color</span>(min(k.r * <span class="n">1.5f</span>, <span class="n">1</span>), min(k.g * <span class="n">1.5f</span>, <span class="n">1</span>), min(k.b * <span class="n">1.5f</span>, <span class="n">1</span>), <span class="n">0.85f</span>));
+            }
+            bandColors.insertLast(shade);
+        }
+    }
+
+    <span class="c">// Folds of light: each a wide band that sweeps down and across in an S, shaded from its dark side to its lit one,</span>
+    <span class="c">// with a fine bright rim where it turns to the light, strands that shimmer beside it, and a light that runs down it.</span>
+    <span class="k">void</span> ribbonsBehind(<span class="t">Canvas</span>@ c)
+    {
+        c.gradient(<span class="n">0</span>, <span class="n">0</span>, <span class="n">1280</span>, <span class="n">720</span>, <span class="t">Color</span>(<span class="n">0.05f</span>, <span class="n">0.17f</span>, <span class="n">0.06f</span>), <span class="t">Color</span>(<span class="n">0.02f</span>, <span class="n">0.08f</span>, <span class="n">0.03f</span>));
+        <span class="t">Curve</span> band;
+        <span class="k">for</span> (<span class="k">uint</span> i = <span class="n">0</span>; i &lt; ribbons.length(); i++)
+        {
+            <span class="t">Ribbon</span>@ r = ribbons[i];
+            <span class="k">float</span> t = time * r.speed + r.phase;
+            <span class="k">float</span> x0 = -<span class="n">260</span> + r.base * <span class="n">900</span> + noise(t, <span class="n">1</span>) * <span class="n">160</span> + sin(time * <span class="n">0.7f</span> + r.phase) * <span class="n">110</span>;
+            band.clear();
+            band.add(<span class="t">Vec2</span>(x0, -<span class="n">140</span>));
+            band.add(<span class="t">Vec2</span>(x0 + <span class="n">60</span> + noise(t, <span class="n">2</span>) * <span class="n">220</span>, <span class="n">330</span> + noise(t, <span class="n">3</span>) * <span class="n">140</span>));
+            band.add(<span class="t">Vec2</span>(x0 + <span class="n">640</span> * r.spread + noise(t, <span class="n">4</span>) * <span class="n">220</span>, <span class="n">300</span> + noise(t, <span class="n">5</span>) * <span class="n">140</span>));
+            band.add(<span class="t">Vec2</span>(x0 + <span class="n">820</span> * r.spread + noise(t, <span class="n">6</span>) * <span class="n">180</span>, <span class="n">880</span>));
+            <span class="k">for</span> (<span class="k">uint</span> k = <span class="n">0</span>; k &lt; <span class="t">Steps</span>; k++)
+            {
+                <span class="k">float</span> u = <span class="k">float</span>(k) / <span class="k">float</span>(<span class="t">Steps</span> - <span class="n">1</span>);
+                along[k] = band.at(u);
+                across[k] = band.slope(u).normalized().perpendicular();
+                <span class="c">// Wider in the middle of its sweep, as a fold seen side on.</span>
+                <span class="k">float</span> half = r.thickness * (<span class="n">0.55f</span> + <span class="n">0.45f</span> * sin(u * <span class="n">3.14159f</span>));
+                bandPoints[k * <span class="n">2</span>] = along[k] - across[k] * half;
+                rim[k] = along[k] + across[k] * half;
+                bandPoints[k * <span class="n">2</span> + <span class="n">1</span>] = rim[k];
+            }
+            c.mesh(<span class="k">null</span>, bandPoints, bandUvs, <span class="t">White</span>, bandTriangles, bandColors[i]);
+            c.blend = <span class="t">BlendAdd</span>;
+            c.polyline(rim, <span class="n">14</span>, fade(<span class="t">Color</span>(<span class="n">0.45f</span>, <span class="n">1</span>, <span class="n">0.5f</span>), <span class="n">0.08f</span>));
+            c.polyline(rim, <span class="n">5</span>, fade(<span class="t">Color</span>(<span class="n">0.6f</span>, <span class="n">1</span>, <span class="n">0.65f</span>), <span class="n">0.18f</span>));
+            c.blend = <span class="t">BlendAlpha</span>;
+            c.polyline(rim, <span class="n">2</span>, fade(<span class="t">Color</span>(<span class="n">0.92f</span>, <span class="n">1</span>, <span class="n">0.93f</span>), <span class="n">0.8f</span>));
+            <span class="c">// Fine strands beside the rim, each swaying at its own pace, so that the edge shimmers.</span>
+            <span class="k">for</span> (<span class="k">int</span> n = <span class="n">1</span>; n &lt;= <span class="n">2</span>; n++)
+            {
+                <span class="k">float</span> pace = time * (<span class="n">1.1f</span> + <span class="k">float</span>(n) * <span class="n">0.5f</span>) + <span class="k">float</span>(n) * <span class="n">2</span>;
+                <span class="k">for</span> (<span class="k">uint</span> k = <span class="n">0</span>; k &lt; <span class="t">Steps</span>; k++)
+                    strand[k] = rim[k] - across[k] * (<span class="k">float</span>(n) * <span class="n">18</span> + sin(<span class="k">float</span>(k) * <span class="n">0.4f</span> + pace) * <span class="n">10</span>);
+                c.polyline(strand, <span class="n">1.5f</span>, fade(<span class="t">Color</span>(<span class="n">0.8f</span>, <span class="n">1</span>, <span class="n">0.82f</span>), <span class="n">0.26f</span> - <span class="k">float</span>(n) * <span class="n">0.07f</span>));
+            }
+            <span class="c">// A light that runs down its rim, again and again.</span>
+            <span class="k">float</span> run = (time * <span class="n">0.35f</span> + r.phase * <span class="n">0.13f</span>) % <span class="n">1.4f</span> - <span class="n">0.2f</span>;
+            c.blend = <span class="t">BlendAdd</span>;
+            <span class="k">for</span> (<span class="k">uint</span> k = <span class="n">0</span>; k &lt; <span class="t">Steps</span>; k++)
+            {
+                <span class="k">float</span> d = abs(<span class="k">float</span>(k) / <span class="k">float</span>(<span class="t">Steps</span> - <span class="n">1</span>) - run);
+                <span class="k">if</span> (d &lt; <span class="n">0.12f</span>) c.glow(rim[k].x, rim[k].y, <span class="n">60</span>, fade(<span class="t">Color</span>(<span class="n">0.75f</span>, <span class="n">1</span>, <span class="n">0.8f</span>), <span class="n">0.4f</span> * (<span class="n">1</span> - d / <span class="n">0.12f</span>)));
+            }
+            c.blend = <span class="t">BlendAlpha</span>;
+        }
+    }
+
+    <span class="k">void</span> profile(<span class="t">Canvas</span>@ c, <span class="k">float</span> x, <span class="k">float</span> y)
+    {
+        <span class="k">float</span> r = <span class="n">26</span>;
+        c.circle(x + r, y + r + <span class="n">2</span>, r + <span class="n">3</span>, fade(<span class="t">Black</span>, <span class="n">0.4f</span>));
+        c.image(avatar, x, y, r * <span class="n">2</span>, r * <span class="n">2</span>);
+        c.ring(x + r, y + r, r + <span class="n">1.5f</span>, <span class="n">3</span>, <span class="t">Color</span>(<span class="n">0.4f</span>, <span class="n">0.9f</span>, <span class="n">0.5f</span>));
+        c.text(small, <span class="s">&quot;Player One&quot;</span>, x + r * <span class="n">2</span> + <span class="n">14</span>, y + <span class="n">4</span>, <span class="t">White</span>);
+        c.circle(x + r * <span class="n">2</span> + <span class="n">20</span>, y + <span class="n">40</span>, <span class="n">4</span>, <span class="t">Color</span>(<span class="n">0.4f</span>, <span class="n">0.95f</span>, <span class="n">0.5f</span>));
+        c.text(tiny, <span class="s">&quot;12 340&quot;</span>, x + r * <span class="n">2</span> + <span class="n">30</span>, y + <span class="n">31</span>, fade(<span class="t">White</span>, <span class="n">0.75f</span>));
+    }
+
+    <span class="k">void</span> glyph(<span class="t">Canvas</span>@ c, <span class="k">int</span> which, <span class="k">float</span> x, <span class="k">float</span> y, <span class="k">const</span> <span class="t">Color</span> &amp;<span class="k">in</span> k)
+    {
+        <span class="k">if</span> (which == <span class="n">0</span>)   <span class="c">// demos: four squares</span>
+        {
+            <span class="k">for</span> (<span class="k">int</span> i = <span class="n">0</span>; i &lt; <span class="n">4</span>; i++)
+                c.rect(x - <span class="n">9</span> + <span class="k">float</span>(i % <span class="n">2</span>) * <span class="n">10</span>, y - <span class="n">9</span> + <span class="k">float</span>(i / <span class="n">2</span>) * <span class="n">10</span>, <span class="n">8</span>, <span class="n">8</span>, k);
+        }
+        <span class="k">else</span> <span class="k">if</span> (which == <span class="n">1</span>)   <span class="c">// new: a star</span>
+        {
+            <span class="k">array</span>&lt;<span class="t">Vec2</span>&gt; star;
+            <span class="k">for</span> (<span class="k">int</span> i = <span class="n">0</span>; i &lt; <span class="n">10</span>; i++)
+                star.insertLast(<span class="t">Vec2</span>(x, y) + <span class="t">Vec2</span>(<span class="n">0</span>, i % <span class="n">2</span> == <span class="n">0</span> ? -<span class="n">11.0f</span> : -<span class="n">5.0f</span>).rotated(<span class="k">float</span>(i) * <span class="n">36</span>));
+            c.polygon(star, k);
+        }
+        <span class="k">else</span> <span class="k">if</span> (which == <span class="n">2</span>)   <span class="c">// search: a lens and its handle</span>
+        {
+            c.ring(x - <span class="n">2</span>, y - <span class="n">2</span>, <span class="n">7</span>, <span class="n">2.5f</span>, k);
+            c.line(x + <span class="n">3</span>, y + <span class="n">3</span>, x + <span class="n">9</span>, y + <span class="n">9</span>, <span class="n">3</span>, k);
+        }
+        <span class="k">else</span>   <span class="c">// settings: a cog</span>
+        {
+            c.ring(x, y, <span class="n">6</span>, <span class="n">3</span>, k);
+            <span class="k">for</span> (<span class="k">int</span> i = <span class="n">0</span>; i &lt; <span class="n">8</span>; i++)
+            {
+                <span class="t">Vec2</span> a = <span class="t">Vec2</span>(x, y) + <span class="t">Vec2</span>(<span class="n">8</span>, <span class="n">0</span>).rotated(<span class="k">float</span>(i) * <span class="n">45</span>);
+                <span class="t">Vec2</span> b = <span class="t">Vec2</span>(x, y) + <span class="t">Vec2</span>(<span class="n">11</span>, <span class="n">0</span>).rotated(<span class="k">float</span>(i) * <span class="n">45</span>);
+                c.line(a.x, a.y, b.x, b.y, <span class="n">3</span>, k);
+            }
+        }
+    }
+
+    <span class="k">void</span> topBar(<span class="t">Canvas</span>@ c)
+    {
+        profile(c, <span class="n">64</span>, <span class="n">30</span>);
+        <span class="c">// Round buttons in the middle, the one in focus ringed and named.</span>
+        <span class="k">for</span> (<span class="k">uint</span> i = <span class="n">0</span>; i &lt; buttons.length(); i++)
+        {
+            <span class="k">float</span> x = <span class="n">640</span> - <span class="n">1.5f</span> * <span class="n">62</span> + <span class="k">float</span>(i) * <span class="n">62</span>, y = <span class="n">56</span>;
+            <span class="k">bool</span> on = row == -<span class="n">1</span> &amp;&amp; <span class="k">int</span>(i) == button;
+            c.circle(x, y, <span class="n">23</span>, on ? <span class="t">Color</span>(<span class="n">0.12f</span>, <span class="n">0.35f</span>, <span class="n">0.16f</span>, <span class="n">0.95f</span>) : fade(<span class="t">Black</span>, <span class="n">0.35f</span>));
+            <span class="k">if</span> (on) c.ring(x, y, <span class="n">25</span>, <span class="n">3</span>, <span class="t">Color</span>(<span class="n">0.45f</span>, <span class="n">1</span>, <span class="n">0.55f</span>));
+            glyph(c, <span class="k">int</span>(i), x, y, on ? <span class="t">White</span> : fade(<span class="t">White</span>, <span class="n">0.75f</span>));
+        }
+        <span class="k">if</span> (row == -<span class="n">1</span>) c.text(small, buttons[<span class="k">uint</span>(button)], <span class="n">640</span>, <span class="n">92</span>, <span class="t">White</span>, <span class="t">AlignCenter</span>);
+        <span class="c">// Status and the time, on the right.</span>
+        <span class="t">Color</span> k = fade(<span class="t">White</span>, <span class="n">0.85f</span>);
+        <span class="k">string</span> clock = <span class="t">System</span>::clock(<span class="k">true</span>);
+        <span class="k">float</span> right = <span class="n">1216</span>;
+        <span class="k">if</span> (clock != <span class="s">&quot;&quot;</span>)
+        {
+            c.text(font, clock, right, <span class="n">42</span>, <span class="t">White</span>, <span class="t">AlignRight</span>);
+            right -= font.measure(clock).x + <span class="n">22</span>;
+        }
+        c.roundRect(right - <span class="n">30</span>, <span class="n">48</span>, <span class="n">26</span>, <span class="n">14</span>, <span class="n">3</span>, fade(<span class="t">White</span>, <span class="n">0.12f</span>));
+        c.rectLine(right - <span class="n">30</span>, <span class="n">48</span>, <span class="n">26</span>, <span class="n">14</span>, <span class="n">2</span>, k);
+        c.rect(right - <span class="n">4</span>, <span class="n">52</span>, <span class="n">3</span>, <span class="n">6</span>, k);
+        <span class="k">for</span> (<span class="k">int</span> i = <span class="n">0</span>; i &lt; <span class="n">3</span>; i++)
+            c.rect(right - <span class="n">27</span> + <span class="k">float</span>(i) * <span class="n">7</span>, <span class="n">51</span>, <span class="n">5</span>, <span class="n">8</span>, k);
+    }
+
+    <span class="k">void</span> drawTile(<span class="t">Canvas</span>@ c, <span class="t">Tile</span>@ t, <span class="k">float</span> x)
+    {
+        <span class="k">float</span> size = <span class="t">Small</span> + (<span class="t">Large</span> - <span class="t">Small</span>) * t.lift;
+        <span class="k">float</span> top = <span class="t">RowBottom</span> - size;
+        c.roundRect(x + <span class="n">4</span>, top + <span class="n">8</span>, size, size, <span class="n">6</span>, fade(<span class="t">Black</span>, <span class="n">0.35f</span>));
+        <span class="c">// A square from the middle of the picture.</span>
+        <span class="k">float</span> sw = t.art.width &gt; <span class="n">0</span> ? t.art.height : <span class="n">1</span>;
+        <span class="k">float</span> sx = t.art.width &gt; <span class="n">0</span> ? (t.art.width - sw) / <span class="n">2</span> : <span class="n">0</span>;
+        c.imagePart(t.art, x, top, size, size, sx, <span class="n">0</span>, sw, sw, <span class="t">White</span>);
+        <span class="k">if</span> (t.lift &gt; <span class="n">0.05f</span>)
+        {
+            <span class="k">float</span> band = <span class="n">46</span> * t.lift;
+            c.rect(x, top + size - band, size, band, fade(<span class="t">Color</span>(<span class="n">0.06f</span>, <span class="n">0.07f</span>, <span class="n">0.08f</span>), <span class="n">0.9f</span> * t.lift));
+            c.text(small, t.title, x + <span class="n">12</span>, top + size - band + <span class="n">12</span>, fade(<span class="t">White</span>, t.lift));
+            c.rectLine(x - <span class="n">3</span>, top - <span class="n">3</span>, size + <span class="n">6</span>, size + <span class="n">6</span>, <span class="n">3</span>, fade(<span class="t">Color</span>(<span class="n">0.45f</span>, <span class="n">1</span>, <span class="n">0.55f</span>), t.lift));
+        }
+    }
+
+    <span class="k">void</span> drawCard(<span class="t">Canvas</span>@ c, <span class="t">Card</span>@ k, <span class="k">float</span> x)
+    {
+        <span class="k">float</span> grow = k.lift * <span class="n">8</span>;
+        <span class="k">float</span> left = x - grow, top = <span class="t">CardTop</span> - grow, w = <span class="t">CardWide</span> + grow * <span class="n">2</span>, h = <span class="t">CardHigh</span> + grow * <span class="n">2</span>;
+        c.roundRect(left + <span class="n">4</span>, top + <span class="n">8</span>, w, h, <span class="n">6</span>, fade(<span class="t">Black</span>, <span class="n">0.35f</span>));
+        <span class="k">if</span> (k.art.length() == <span class="n">1</span>)
+            c.image(k.art[<span class="n">0</span>], left, top, w, h, <span class="t">White</span>);
+        <span class="k">else</span> <span class="k">if</span> (k.art.length() &gt; <span class="n">1</span>)
+        {
+            <span class="k">float</span> part = w / <span class="k">float</span>(k.art.length());
+            <span class="k">for</span> (<span class="k">uint</span> i = <span class="n">0</span>; i &lt; k.art.length(); i++)
+            {
+                <span class="t">Texture</span>@ a = k.art[i];
+                <span class="k">if</span> (a.width &gt; <span class="n">0</span>) c.imagePart(a, left + part * <span class="k">float</span>(i), top, part, h, a.width * <span class="n">0.35f</span>, <span class="n">0</span>, a.width * <span class="n">0.3f</span>, a.height, <span class="t">White</span>);
+            }
+        }
+        <span class="k">else</span>
+        {
+            c.gradient(left, top, w, h, <span class="t">Color</span>(<span class="n">0.08f</span>, <span class="n">0.14f</span>, <span class="n">0.2f</span>), <span class="t">Color</span>(<span class="n">0.04f</span>, <span class="n">0.06f</span>, <span class="n">0.1f</span>));
+            glyph(c, <span class="n">3</span>, left + w / <span class="n">2</span>, top + h / <span class="n">2</span> - <span class="n">14</span>, <span class="t">White</span>);
+        }
+        c.gradient(left, top + h * <span class="n">0.45f</span>, w, h * <span class="n">0.55f</span>, fade(<span class="t">Black</span>, <span class="n">0</span>), fade(<span class="t">Black</span>, <span class="n">0.75f</span>));
+        c.text(font, k.title, left + <span class="n">14</span>, top + h - <span class="n">58</span>, <span class="t">White</span>);
+        c.text(tiny, k.about, left + <span class="n">15</span>, top + h - <span class="n">28</span>, fade(<span class="t">White</span>, <span class="n">0.75f</span>));
+        <span class="k">if</span> (k.lift &gt; <span class="n">0.05f</span>)
+            c.rectLine(left - <span class="n">3</span>, top - <span class="n">3</span>, w + <span class="n">6</span>, h + <span class="n">6</span>, <span class="n">3</span>, fade(<span class="t">Color</span>(<span class="n">0.45f</span>, <span class="n">1</span>, <span class="n">0.55f</span>), k.lift));
+    }
+
+    <span class="k">void</span> draw(<span class="t">Canvas</span>@ c)
+    {
+        c.design(<span class="n">1280</span>, <span class="n">720</span>);
+        ribbonsBehind(c);
+
+        topBar(c);
+        <span class="k">if</span> (row == <span class="n">0</span>)
+        {
+            <span class="t">Tile</span>@ t = tiles[<span class="k">uint</span>(tile)];
+            c.text(huge, t.title, <span class="n">62</span>, <span class="n">168</span>, <span class="t">White</span>);
+            c.text(small, t.about == <span class="s">&quot;&quot;</span> ? t.kind : t.about + <span class="s">&quot;  ·  &quot;</span> + t.kind, <span class="n">65</span>, <span class="n">224</span>, fade(<span class="t">White</span>, <span class="n">0.8f</span>));
+        }
+
+        c.clip(<span class="n">0</span>, <span class="n">200</span>, <span class="n">1280</span>, <span class="n">290</span>);
+        <span class="k">for</span> (<span class="k">uint</span> i = <span class="n">0</span>; i &lt; tiles.length(); i++)
+        {
+            <span class="k">float</span> x = tileX(<span class="k">int</span>(i));
+            <span class="k">if</span> (x &gt; -<span class="t">Large</span> &amp;&amp; x &lt; <span class="n">1300</span>) drawTile(c, tiles[i], x);
+        }
+        c.noClip();
+        <span class="k">for</span> (<span class="k">uint</span> i = <span class="n">0</span>; i &lt; cards.length(); i++)
+            drawCard(c, cards[i], <span class="n">64</span> + <span class="k">float</span>(i) * (<span class="t">CardWide</span> + <span class="t">Gap</span>));
+
+        <span class="c">// Opening one: it grows to fill the screen, or shrinks back on return.</span>
+        <span class="k">float</span> grow = launching &gt;= <span class="n">0</span> ? smooth(min(launching, <span class="n">1</span>)) : coming &gt; <span class="n">0</span> ? smooth(coming) : <span class="n">0</span>;
+        <span class="k">if</span> (grow &gt; <span class="n">0</span>)
+        {
+            <span class="t">Vec2</span> at = launchFrom + (<span class="t">Vec2</span>(<span class="n">0</span>, <span class="n">0</span>) - launchFrom) * grow;
+            <span class="t">Vec2</span> size = launchSize + (<span class="t">Vec2</span>(<span class="n">1280</span>, <span class="n">720</span>) - launchSize) * grow;
+            <span class="k">if</span> (launchArt !<span class="k">is</span> <span class="k">null</span>) c.image(launchArt, at.x, at.y, size.x, size.y, <span class="t">White</span>);
+            <span class="k">else</span> c.rect(at.x, at.y, size.x, size.y, <span class="t">Color</span>(<span class="n">0.05f</span>, <span class="n">0.15f</span>, <span class="n">0.07f</span>));
+            c.rect(<span class="n">0</span>, <span class="n">0</span>, <span class="n">1280</span>, <span class="n">720</span>, fade(<span class="t">Black</span>, grow * <span class="n">0.6f</span>));
+        }
+
+        <span class="c">// The guide, over what is behind it, blurred.</span>
+        <span class="k">if</span> (guide &gt; <span class="n">0.01f</span>)
+        {
+            <span class="k">float</span> w = <span class="n">400</span>;
+            <span class="k">float</span> x = -w + w * smooth(guide);
+            c.rect(<span class="n">0</span>, <span class="n">0</span>, <span class="n">1280</span>, <span class="n">720</span>, fade(<span class="t">Black</span>, <span class="n">0.35f</span> * guide));
+            c.clip(<span class="n">0</span>, <span class="n">0</span>, x + w, <span class="n">720</span>);
+            c.blur(<span class="n">14</span>);
+            c.noClip();
+            c.rect(x, <span class="n">0</span>, w, <span class="n">720</span>, <span class="t">Color</span>(<span class="n">0.06f</span>, <span class="n">0.08f</span>, <span class="n">0.07f</span>, <span class="n">0.9f</span>));
+            c.rect(x + w - <span class="n">2</span>, <span class="n">0</span>, <span class="n">2</span>, <span class="n">720</span>, <span class="t">Color</span>(<span class="n">0.45f</span>, <span class="n">1</span>, <span class="n">0.55f</span>, <span class="n">0.6f</span>));
+            profile(c, x + <span class="n">36</span>, <span class="n">36</span>);
+            <span class="k">for</span> (<span class="k">uint</span> i = <span class="n">0</span>; i &lt; guideRows.length(); i++)
+            {
+                <span class="k">float</span> y = <span class="n">150</span> + <span class="k">float</span>(i) * <span class="n">64</span>;
+                <span class="k">bool</span> on = <span class="k">int</span>(i) == guideRow;
+                <span class="k">if</span> (on) c.roundRect(x + <span class="n">24</span>, y - <span class="n">10</span>, w - <span class="n">48</span>, <span class="n">52</span>, <span class="n">6</span>, <span class="t">Color</span>(<span class="n">0.45f</span>, <span class="n">1</span>, <span class="n">0.55f</span>, <span class="n">0.95f</span>));
+                <span class="k">string</span> words = guideRows[i] + (i == <span class="n">1</span> ? <span class="s">&quot;  (&quot;</span> + <span class="t">Screens</span>::count + <span class="s">&quot;)&quot;</span> : <span class="s">&quot;&quot;</span>);
+                c.text(font, words, x + <span class="n">48</span>, y, on ? <span class="t">Black</span> : <span class="t">White</span>);
+            }
+            c.text(small, <span class="s">&quot;Menu: close    Accept: choose&quot;</span>, x + <span class="n">48</span>, <span class="n">660</span>, fade(<span class="t">White</span>, <span class="n">0.5f</span>));
+        }
+        <span class="k">else</span>
+            c.text(tiny, <span class="s">&quot;Accept: open    Menu: guide    Cancel: back&quot;</span>, <span class="n">1216</span>, <span class="n">690</span>, fade(<span class="t">White</span>, <span class="n">0.55f</span>), <span class="t">AlignRight</span>);
+    }
+}
+</code></pre></details></div>
 <div data-find="system the window, the clipboard, and what a machine says of itself system"><h3 id="demo-system">System</h3><p>The window, the clipboard, and what a machine says of itself</p>
 <div class="shots"><img loading="lazy" src="screenshots/system.png" alt="System"></div>
 <details><summary><code>system/main.as</code> <span class="tag">76 lines</span></summary><pre><code><span class="c">// What a machine says about itself, and the window: full-screen, its title, waiting for the refresh, the pointer, the</span>

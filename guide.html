@@ -824,7 +824,8 @@ room.host(<span class="s">&quot;my game&quot;</span>, <span class="s">&quot;Sam&
 <span class="k">string</span> words = <span class="t">System</span>::language;           <span class="c">// &quot;en&quot;, &quot;ja&quot;: which words to show; System::locale is &quot;en-GB&quot;</span>
 <span class="k">uint</span> threads = <span class="t">System</span>::processors;
 <span class="t">System</span>::open(<span class="s">&quot;https://example.com&quot;</span>);       <span class="c">// in the browser, or a file in what opens it</span>
-<span class="k">int</span> left = <span class="t">System</span>::battery;                <span class="c">// 0 to 100, or -1 without one; System::charging</span></code></pre>
+<span class="k">int</span> left = <span class="t">System</span>::battery;                <span class="c">// 0 to 100, or -1 without one; System::charging</span>
+<span class="k">string</span> now = <span class="t">System</span>::clock(<span class="k">true</span>);          <span class="c">// &quot;4:55 pm&quot;, as the machine&#x27;s clock is set; System::hour and minute too</span></code></pre>
 <p>On Linux the clipboard needs wl-copy, xclip or xsel, and messages zenity, kdialog or xmessage. The System demo has them all.</p>
 <p>On Windows the window&#x27;s frame is dark when Windows&#x27; apps are set to look dark, and changes when they do. Windows 11 lets a game dress it to suit its look:</p>
 <pre><code><span class="t">Windows</span>::titleLook = <span class="t">TitleDark</span>;                     <span class="c">// or TitleLight; TitleSystem follows Windows, as it starts</span>
