@@ -4734,6 +4734,399 @@ summary { cursor: pointer; padding: 10px 16px; } details pre { border-width: 1px
     }
 }
 </code></pre></details></div>
+<div data-find="channels a console home of channels: cards on a polished floor channels"><h3 id="demo-channels">Channels</h3><p>A console home of channels: cards on a polished floor</p>
+<div class="shots"><img loading="lazy" src="screenshots/channels.png" alt="Channels"></div>
+<details><summary><code>channels/main.as</code> <span class="tag">390 lines</span></summary><pre><code><span class="c">// A console home of channels, in the style of its time: an orange sky fading to red with rings of dots in it, a</span>
+<span class="c">// polished silver floor that the cards stand on and are reflected in, ripples that spread across the floor from an</span>
+<span class="c">// emblem in the corner, and channels named at the top left, one above the other. Each channel is a row of cards that</span>
+<span class="c">// recede into the distance; the front one is chosen, and opens its demo.</span>
+
+<span class="c">// One of the bubbles in the sky: a soft disc with a ring and a dot at its middle, a ring alone, rings within rings,</span>
+<span class="c">// or a dot; where, how large, how faint, and its drift.</span>
+<span class="k">class</span> <span class="t">Bubble</span>
+{
+    <span class="t">Vec2</span> at;
+    <span class="k">float</span> size, alpha, seed;
+    <span class="k">int</span> kind;
+}
+
+<span class="k">class</span> <span class="t">Card</span>
+{
+    <span class="k">string</span> id, title, about;
+    <span class="t">Texture</span>@ art;
+}
+
+<span class="k">class</span> <span class="t">Lane</span>
+{
+    <span class="k">string</span> name;
+    <span class="k">array</span>&lt;<span class="t">Card</span>@&gt; cards;
+    <span class="k">int</span> focus = <span class="n">0</span>;
+    <span class="k">float</span> at = <span class="n">0</span>;       <span class="c">// where the row has slid to, following focus</span>
+}
+
+<span class="k">const</span> <span class="k">float</span> <span class="t">CardWide</span> = <span class="n">410</span>;
+<span class="k">const</span> <span class="k">float</span> <span class="t">CardHigh</span> = <span class="n">312</span>;
+
+<span class="k">class</span> <span class="t">ChannelsScreen</span> : <span class="t">Screen</span>
+{
+    <span class="t">Font</span>@ huge = <span class="t">Assets</span>::font(<span class="s">&quot;global:freesans.sfn&quot;</span>, <span class="n">40</span>);
+    <span class="t">Font</span>@ big = <span class="t">Assets</span>::font(<span class="s">&quot;global:freesans.sfn&quot;</span>, <span class="n">30</span>);
+    <span class="t">Font</span>@ font = <span class="t">Assets</span>::font(<span class="s">&quot;global:freesans.sfn&quot;</span>, <span class="n">24</span>);
+    <span class="t">Font</span>@ small = <span class="t">Assets</span>::font(<span class="s">&quot;global:freesans.sfn&quot;</span>, <span class="n">19</span>);
+    <span class="t">Font</span>@ tiny = <span class="t">Assets</span>::font(<span class="s">&quot;global:freesans.sfn&quot;</span>, <span class="n">16</span>);
+    <span class="t">Sound</span>@ move = <span class="t">Assets</span>::sound(<span class="s">&quot;global:sound/move.wav&quot;</span>);
+    <span class="t">Sound</span>@ slide = <span class="t">Assets</span>::sound(<span class="s">&quot;global:sound/whoosh.wav&quot;</span>);
+    <span class="t">Sound</span>@ yes = <span class="t">Assets</span>::sound(<span class="s">&quot;global:sound/accept.wav&quot;</span>);
+    <span class="t">Sound</span>@ back = <span class="t">Assets</span>::sound(<span class="s">&quot;global:sound/back.wav&quot;</span>);
+    <span class="t">Texture</span>@ avatar = <span class="t">Assets</span>::texture(<span class="s">&quot;global:picture/avatar.png&quot;</span>);
+    <span class="t">Texture</span>@ stage = <span class="t">Assets</span>::texture(<span class="s">&quot;asset:stage.png&quot;</span>);
+    <span class="t">Texture</span>@ stageGlow = <span class="t">Assets</span>::texture(<span class="s">&quot;asset:stage-glow.png&quot;</span>);
+    <span class="t">Texture</span>@ cardShape = <span class="t">Assets</span>::texture(<span class="s">&quot;asset:card.png&quot;</span>);   <span class="c">// white, with soft round corners</span>
+    <span class="k">array</span>&lt;<span class="t">Lane</span>@&gt; channels;
+    <span class="k">int</span> channel = <span class="n">2</span>;
+    <span class="k">float</span> channelAt = <span class="n">2</span>;  <span class="c">// follows channel, for the names and cards to slide</span>
+    <span class="k">float</span> launching = -<span class="n">1</span>;
+    <span class="k">float</span> coming = <span class="n">0</span>;
+    <span class="k">string</span> launchId;
+    <span class="t">Texture</span>@ launchArt;
+    <span class="k">float</span> time = <span class="n">0</span>;
+    <span class="k">array</span>&lt;<span class="t">Bubble</span>@&gt; bubbles;
+    <span class="k">array</span>&lt;<span class="k">float</span>&gt; rings;       <span class="c">// when each ripple began</span>
+    <span class="k">float</span> nextRing = <span class="n">0</span>;
+    <span class="k">float</span> <span class="t">RingLife</span> = <span class="n">4.5f</span>;
+
+    <span class="k">void</span> onEnter()
+    {
+        <span class="c">// The bubbles gather in clusters towards the corners and edges, many small and a few large.</span>
+        <span class="t">Random</span> r(<span class="n">11</span>);
+        <span class="k">array</span>&lt;<span class="t">Vec2</span>&gt; clusters = { <span class="t">Vec2</span>(<span class="n">380</span>, <span class="n">60</span>), <span class="t">Vec2</span>(<span class="n">1180</span>, <span class="n">170</span>), <span class="t">Vec2</span>(<span class="n">900</span>, <span class="n">250</span>), <span class="t">Vec2</span>(<span class="n">60</span>, <span class="n">250</span>), <span class="t">Vec2</span>(<span class="n">700</span>, <span class="n">20</span>), <span class="t">Vec2</span>(<span class="n">1240</span>, <span class="n">40</span>) };
+        <span class="k">array</span>&lt;<span class="k">float</span>&gt; spread = { <span class="n">150</span>, <span class="n">120</span>, <span class="n">120</span>, <span class="n">80</span>, <span class="n">120</span>, <span class="n">70</span> };
+        <span class="k">for</span> (<span class="k">uint</span> k = <span class="n">0</span>; k &lt; clusters.length(); k++)
+            <span class="k">for</span> (<span class="k">int</span> i = <span class="n">0</span>; i &lt; <span class="n">36</span>; i++)
+            {
+                <span class="t">Bubble</span> b;
+                b.at = clusters[k] + <span class="t">Vec2</span>(r.normal(<span class="n">0</span>, spread[k]), r.normal(<span class="n">0</span>, spread[k] * <span class="n">0.7f</span>));
+                <span class="k">float</span> big = r.random();
+                b.size = big &gt; <span class="n">0.9f</span> ? r.random(<span class="n">30</span>, <span class="n">44</span>) : big &gt; <span class="n">0.65f</span> ? r.random(<span class="n">14</span>, <span class="n">26</span>) : r.random(<span class="n">4</span>, <span class="n">12</span>);
+                b.alpha = r.random(<span class="n">0.2f</span>, <span class="n">0.55f</span>);
+                b.seed = r.random(<span class="n">0</span>, <span class="n">100</span>);
+                b.kind = b.size &gt; <span class="n">28</span> ? <span class="n">0</span> : r.randomInt(<span class="n">0</span>, <span class="n">3</span>);
+                bubbles.insertLast(b);
+            }
+
+        addChannel(<span class="s">&quot;Show&quot;</span>, { <span class="s">&quot;cracktro&quot;</span>, <span class="s">&quot;lights&quot;</span>, <span class="s">&quot;solids&quot;</span>, <span class="s">&quot;topple&quot;</span>, <span class="s">&quot;moves&quot;</span> });
+        addChannel(<span class="s">&quot;Games&quot;</span>, { <span class="s">&quot;shooter&quot;</span>, <span class="s">&quot;platformer&quot;</span>, <span class="s">&quot;quest&quot;</span>, <span class="s">&quot;skim&quot;</span>, <span class="s">&quot;guards&quot;</span> });
+        addChannel(<span class="s">&quot;Welcome&quot;</span>, { <span class="s">&quot;explore&quot;</span>, <span class="s">&quot;lens&quot;</span>, <span class="s">&quot;machines&quot;</span>, <span class="s">&quot;curves&quot;</span> });
+        addChannel(<span class="s">&quot;Worlds&quot;</span>, { <span class="s">&quot;forest&quot;</span>, <span class="s">&quot;water&quot;</span>, <span class="s">&quot;mist&quot;</span>, <span class="s">&quot;blocks&quot;</span> });
+        addChannel(<span class="s">&quot;System&quot;</span>, { <span class="s">&quot;settings&quot;</span>, <span class="s">&quot;main&quot;</span>, <span class="s">&quot;home&quot;</span>, <span class="s">&quot;hub&quot;</span> });
+    }
+
+    <span class="k">void</span> addChannel(<span class="k">const</span> <span class="k">string</span> &amp;<span class="k">in</span> name, <span class="k">const</span> <span class="k">array</span>&lt;<span class="k">string</span>&gt; &amp;<span class="k">in</span> ids)
+    {
+        <span class="t">Lane</span> ch;
+        ch.name = name;
+        <span class="k">for</span> (<span class="k">uint</span> i = <span class="n">0</span>; i &lt; ids.length(); i++)
+        {
+            <span class="t">Card</span> k;
+            k.id = ids[i];
+            k.title = ids[i];
+            <span class="k">if</span> (k.title[<span class="n">0</span>] &gt;= <span class="n">97</span> &amp;&amp; k.title[<span class="n">0</span>] &lt;= <span class="n">122</span>) k.title[<span class="n">0</span>] = k.title[<span class="n">0</span>] - <span class="n">32</span>;
+            k.about = <span class="s">&quot;&quot;</span>;
+            <span class="k">for</span> (<span class="k">uint</span> s = <span class="n">0</span>; s &lt; <span class="t">Screens</span>::count; s++)
+                <span class="k">if</span> (<span class="t">Screens</span>::id(s) == ids[i])
+                {
+                    k.title = <span class="t">Screens</span>::title(s);
+                    k.about = <span class="t">Screens</span>::description(s);
+                }
+            <span class="k">if</span> (ids[i] == <span class="s">&quot;main&quot;</span>) { k.title = <span class="s">&quot;Every demo&quot;</span>; k.about = <span class="t">Screens</span>::count + <span class="s">&quot; of them, of every kind&quot;</span>; }
+            @k.art = <span class="t">Assets</span>::texture(<span class="s">&quot;global:picture/demos/&quot;</span> + ids[i] + <span class="s">&quot;.jpg&quot;</span>);
+            ch.cards.insertLast(k);
+        }
+        channels.insertLast(ch);
+    }
+
+    <span class="k">void</span> onResume()
+    {
+        launching = -<span class="n">1</span>;
+        coming = <span class="n">1</span>;
+    }
+
+    <span class="k">void</span> update(<span class="k">float</span> dt)
+    {
+        time += dt;
+        coming = max(coming - dt * <span class="n">3</span>, <span class="n">0</span>);
+        <span class="k">if</span> (time &gt;= nextRing)
+        {
+            rings.insertLast(time);
+            nextRing = time + random(<span class="n">0.12f</span>, <span class="n">0.9f</span>);
+        }
+        <span class="k">while</span> (rings.length() &gt; <span class="n">0</span> &amp;&amp; time - rings[<span class="n">0</span>] &gt; <span class="t">RingLife</span>)
+            rings.removeAt(<span class="n">0</span>);
+        channelAt += (<span class="k">float</span>(channel) - channelAt) * clamp(dt * <span class="n">9</span>, <span class="n">0</span>, <span class="n">1</span>);
+        <span class="k">for</span> (<span class="k">uint</span> i = <span class="n">0</span>; i &lt; channels.length(); i++)
+            channels[i].at += (<span class="k">float</span>(channels[i].focus) - channels[i].at) * clamp(dt * <span class="n">9</span>, <span class="n">0</span>, <span class="n">1</span>);
+
+        <span class="k">if</span> (launching &gt;= <span class="n">0</span>)
+        {
+            launching += dt * <span class="n">2.6f</span>;
+            <span class="k">if</span> (launching &gt;= <span class="n">1</span>)
+            {
+                launching = <span class="n">2</span>;
+                <span class="t">Screens</span>::push(launchId);
+            }
+            <span class="k">return</span>;
+        }
+
+        <span class="t">Lane</span>@ ch = channels[<span class="k">uint</span>(channel)];
+        <span class="k">if</span> (<span class="t">Input</span>::repeated(<span class="s">&quot;right&quot;</span>) &amp;&amp; ch.focus + <span class="n">1</span> &lt; <span class="k">int</span>(ch.cards.length())) { ch.focus++; move.play(<span class="n">0.45f</span>); }
+        <span class="k">if</span> (<span class="t">Input</span>::repeated(<span class="s">&quot;left&quot;</span>) &amp;&amp; ch.focus &gt; <span class="n">0</span>) { ch.focus--; move.play(<span class="n">0.45f</span>); }
+        <span class="k">if</span> (<span class="t">Input</span>::repeated(<span class="s">&quot;down&quot;</span>) &amp;&amp; channel + <span class="n">1</span> &lt; <span class="k">int</span>(channels.length())) { channel++; slide.play(<span class="n">0.35f</span>, <span class="n">0</span>, <span class="n">1.3f</span>); }
+        <span class="k">if</span> (<span class="t">Input</span>::repeated(<span class="s">&quot;up&quot;</span>) &amp;&amp; channel &gt; <span class="n">0</span>) { channel--; slide.play(<span class="n">0.35f</span>, <span class="n">0</span>, <span class="n">1.1f</span>); }
+        <span class="k">if</span> (<span class="t">Input</span>::pressed(<span class="s">&quot;cancel&quot;</span>)) { back.play(<span class="n">0.4f</span>); <span class="t">Screens</span>::pop(); }
+        <span class="k">if</span> (<span class="t">Input</span>::pressed(<span class="s">&quot;accept&quot;</span>))
+        {
+            <span class="t">Card</span>@ k = ch.cards[<span class="k">uint</span>(ch.focus)];
+            yes.play(<span class="n">0.6f</span>);
+            <span class="t">Input</span>::rumble(<span class="n">0.25f</span>, <span class="n">0.12f</span>);
+            launchId = k.id;
+            @launchArt = k.art;
+            launching = <span class="n">0</span>;
+        }
+    }
+
+    <span class="c">// --- Drawing ---</span>
+
+    <span class="c">// Orange glowing in the middle, deep red towards the edges, a touch of violet in the far corner, and bubbles.</span>
+    <span class="k">void</span> sky(<span class="t">Canvas</span>@ c)
+    {
+        c.rect(<span class="n">0</span>, <span class="n">0</span>, <span class="n">1280</span>, <span class="n">720</span>, <span class="t">Color</span>(<span class="n">0.45f</span>, <span class="n">0.08f</span>, <span class="n">0.03f</span>));
+        c.blend = <span class="t">BlendAdd</span>;
+        c.glow(<span class="n">700</span>, <span class="n">300</span>, <span class="n">760</span>, fade(<span class="t">Color</span>(<span class="n">0.85f</span>, <span class="n">0.32f</span>, <span class="n">0.02f</span>), <span class="n">0.9f</span>));
+        c.glow(<span class="n">740</span>, <span class="n">280</span>, <span class="n">420</span>, fade(<span class="t">Color</span>(<span class="n">1</span>, <span class="n">0.6f</span>, <span class="n">0.1f</span>), <span class="n">0.55f</span>));
+        c.glow(<span class="n">1280</span>, <span class="n">0</span>, <span class="n">420</span>, fade(<span class="t">Color</span>(<span class="n">0.35f</span>, <span class="n">0.15f</span>, <span class="n">0.45f</span>), <span class="n">0.5f</span>));
+        c.blend = <span class="t">BlendAlpha</span>;
+        <span class="k">for</span> (<span class="k">uint</span> i = <span class="n">0</span>; i &lt; bubbles.length(); i++)
+        {
+            <span class="t">Bubble</span>@ b = bubbles[i];
+            <span class="t">Vec2</span> at = b.at + <span class="t">Vec2</span>(sin(time * <span class="n">0.15f</span> + b.seed) * <span class="n">10</span>, cos(time * <span class="n">0.12f</span> + b.seed * <span class="n">1.3f</span>) * <span class="n">8</span>);
+            <span class="k">float</span> a = b.alpha * (<span class="n">0.85f</span> + <span class="n">0.15f</span> * sin(time * <span class="n">0.5f</span> + b.seed));
+            <span class="t">Color</span> tint = <span class="t">Color</span>(<span class="n">1</span>, <span class="n">0.93f</span>, <span class="n">0.85f</span>);
+            <span class="k">if</span> (b.kind == <span class="n">0</span>)
+            {
+                c.circle(at.x, at.y, b.size, fade(tint, <span class="n">0.35f</span> * a));
+                c.ring(at.x, at.y, b.size, <span class="n">1.5f</span>, fade(tint, <span class="n">0.7f</span> * a));
+                c.ring(at.x, at.y, b.size + <span class="n">4</span>, <span class="n">1</span>, fade(tint, <span class="n">0.3f</span> * a));
+                c.circle(at.x, at.y, max(<span class="n">2.0f</span>, b.size * <span class="n">0.1f</span>), fade(<span class="t">Color</span>(<span class="n">0.4f</span>, <span class="n">0.1f</span>, <span class="n">0.05f</span>), <span class="n">0.8f</span> * a));
+            }
+            <span class="k">else</span> <span class="k">if</span> (b.kind == <span class="n">1</span>)
+                c.ring(at.x, at.y, b.size, max(<span class="n">1.5f</span>, b.size * <span class="n">0.22f</span>), fade(tint, <span class="n">0.6f</span> * a));
+            <span class="k">else</span> <span class="k">if</span> (b.kind == <span class="n">2</span>)
+            {
+                c.ring(at.x, at.y, b.size, <span class="n">1.5f</span>, fade(tint, <span class="n">0.55f</span> * a));
+                c.ring(at.x, at.y, b.size * <span class="n">0.6f</span>, <span class="n">1.5f</span>, fade(tint, <span class="n">0.45f</span> * a));
+                c.circle(at.x, at.y, b.size * <span class="n">0.3f</span>, fade(tint, <span class="n">0.35f</span> * a));
+            }
+            <span class="k">else</span>
+                c.circle(at.x, at.y, b.size * <span class="n">0.6f</span>, fade(tint, <span class="n">0.5f</span> * a));
+        }
+    }
+
+    <span class="c">// The floor: the stage from the Xperience skin (see asset/CREDITS.txt), tinted grey as the skin tints it, raised</span>
+    <span class="c">// so that its far edge meets the foot of the cards, with its soft glow along that edge.</span>
+    <span class="k">void</span> floor(<span class="t">Canvas</span>@ c)
+    {
+        c.image(stage, <span class="n">0</span>, <span class="n">322</span>, <span class="n">1280</span>, <span class="n">398</span>, <span class="t">Color</span>(<span class="n">0.553f</span>, <span class="n">0.553f</span>, <span class="n">0.553f</span>));
+        c.image(stageGlow, <span class="n">0</span>, <span class="n">322</span>, <span class="n">1280</span>, <span class="n">398</span>, <span class="t">White</span>);
+    }
+
+    <span class="c">// Rings that spread out across the floor from the emblem, flattened as the floor is, fading as they go; and the</span>
+    <span class="c">// emblem: a glossy green orb in a polished silver rim, with a bold N of our own.</span>
+    <span class="k">void</span> ripplesAndEmblem(<span class="t">Canvas</span>@ c)
+    {
+        <span class="k">float</span> x = <span class="n">1150</span>, y = <span class="n">666</span>;
+        <span class="c">// Rings one at a time, at moments of their own, each spreading and fading.</span>
+        <span class="k">for</span> (<span class="k">uint</span> i = <span class="n">0</span>; i &lt; rings.length(); i++)
+        {
+            <span class="k">float</span> age = time - rings[i];
+            <span class="k">float</span> a = <span class="n">1</span> - age / <span class="t">RingLife</span>;
+            <span class="k">float</span> r = <span class="n">26</span> + age * <span class="n">70</span>;
+            c.ellipseLine(x, y, r, r * <span class="n">0.25f</span>, <span class="n">1.3f</span>, fade(<span class="t">White</span>, <span class="n">0.6f</span> * a * a));
+        }
+        c.ellipse(x, y + <span class="n">12</span>, <span class="n">40</span>, <span class="n">10</span>, fade(<span class="t">Black</span>, <span class="n">0.3f</span>));
+        <span class="c">// The rim: silver, lighter above, darker below.</span>
+        <span class="c">// The rim: silver, fading softly away at its outside edge.</span>
+        c.glow(x, y - <span class="n">16</span>, <span class="n">50</span>, fade(<span class="t">Color</span>(<span class="n">0.95f</span>, <span class="n">0.96f</span>, <span class="n">0.98f</span>), <span class="n">0.75f</span>));
+        c.glow(x, y - <span class="n">16</span>, <span class="n">40</span>, fade(<span class="t">Color</span>(<span class="n">0.95f</span>, <span class="n">0.96f</span>, <span class="n">0.98f</span>), <span class="n">0.7f</span>));
+        c.circle(x, y - <span class="n">16</span>, <span class="n">31</span>, fade(<span class="t">Color</span>(<span class="n">0.9f</span>, <span class="n">0.91f</span>, <span class="n">0.94f</span>), <span class="n">0.85f</span>));
+        c.circle(x, y - <span class="n">15</span>, <span class="n">28</span>, <span class="t">Color</span>(<span class="n">0.6f</span>, <span class="n">0.61f</span>, <span class="n">0.65f</span>));
+        <span class="c">// The orb, lit from above.</span>
+        c.circle(x, y - <span class="n">16</span>, <span class="n">26</span>, <span class="t">Color</span>(<span class="n">0.18f</span>, <span class="n">0.5f</span>, <span class="n">0.08f</span>));
+        c.circle(x, y - <span class="n">18</span>, <span class="n">23</span>, <span class="t">Color</span>(<span class="n">0.32f</span>, <span class="n">0.72f</span>, <span class="n">0.12f</span>));
+        c.blend = <span class="t">BlendAdd</span>;
+        c.glow(x, y - <span class="n">10</span>, <span class="n">22</span>, fade(<span class="t">Color</span>(<span class="n">0.5f</span>, <span class="n">1</span>, <span class="n">0.3f</span>), <span class="n">0.5f</span>));
+        c.blend = <span class="t">BlendAlpha</span>;
+        <span class="c">// A bold N: two uprights and a slant, slightly rounded at the ends.</span>
+        <span class="t">Color</span> w(<span class="n">1</span>, <span class="n">1</span>, <span class="n">1</span>, <span class="n">0.96f</span>);
+        c.roundRect(x - <span class="n">13</span>, y - <span class="n">30</span>, <span class="n">7</span>, <span class="n">27</span>, <span class="n">2</span>, w);
+        c.roundRect(x + <span class="n">6</span>, y - <span class="n">30</span>, <span class="n">7</span>, <span class="n">27</span>, <span class="n">2</span>, w);
+        <span class="k">array</span>&lt;<span class="t">Vec2</span>&gt; slant = { <span class="t">Vec2</span>(x - <span class="n">13</span>, y - <span class="n">30</span>), <span class="t">Vec2</span>(x - <span class="n">6</span>, y - <span class="n">30</span>), <span class="t">Vec2</span>(x + <span class="n">13</span>, y - <span class="n">3</span>), <span class="t">Vec2</span>(x + <span class="n">6</span>, y - <span class="n">3</span>) };
+        c.polygon(slant, w);
+        <span class="c">// The shine across its top.</span>
+        c.ellipse(x - <span class="n">4</span>, y - <span class="n">30</span>, <span class="n">15</span>, <span class="n">7</span>, fade(<span class="t">White</span>, <span class="n">0.4f</span>));
+    }
+
+    <span class="c">// A card: a picture across its top, lime below it with its words; where, and how large.</span>
+    <span class="c">// Four corners, kept, for drawing a part of a card with a colour at its top and another at its bottom.</span>
+    <span class="k">array</span>&lt;<span class="t">Vec2</span>&gt; corners(<span class="n">4</span>), cornerUvs(<span class="n">4</span>);
+    <span class="k">array</span>&lt;<span class="t">Color</span>&gt; cornerColors(<span class="n">4</span>);
+    <span class="k">array</span>&lt;<span class="k">uint</span>&gt; twoTriangles = { <span class="n">0</span>, <span class="n">1</span>, <span class="n">2</span>, <span class="n">0</span>, <span class="n">2</span>, <span class="n">3</span> };
+
+    <span class="k">void</span> part(<span class="t">Canvas</span>@ c, <span class="t">Texture</span>@ art, <span class="k">float</span> x, <span class="k">float</span> y, <span class="k">float</span> w, <span class="k">float</span> h, <span class="k">const</span> <span class="t">Color</span> &amp;<span class="k">in</span> top, <span class="k">const</span> <span class="t">Color</span> &amp;<span class="k">in</span> bottom, <span class="k">float</span> v0 = <span class="n">0</span>, <span class="k">float</span> v1 = <span class="n">1</span>)
+    {
+        corners[<span class="n">0</span>] = <span class="t">Vec2</span>(x, y); corners[<span class="n">1</span>] = <span class="t">Vec2</span>(x + w, y); corners[<span class="n">2</span>] = <span class="t">Vec2</span>(x + w, y + h); corners[<span class="n">3</span>] = <span class="t">Vec2</span>(x, y + h);
+        cornerUvs[<span class="n">0</span>] = <span class="t">Vec2</span>(<span class="n">0</span>, v0); cornerUvs[<span class="n">1</span>] = <span class="t">Vec2</span>(<span class="n">1</span>, v0); cornerUvs[<span class="n">2</span>] = <span class="t">Vec2</span>(<span class="n">1</span>, v1); cornerUvs[<span class="n">3</span>] = <span class="t">Vec2</span>(<span class="n">0</span>, v1);
+        cornerColors[<span class="n">0</span>] = top; cornerColors[<span class="n">1</span>] = top; cornerColors[<span class="n">2</span>] = bottom; cornerColors[<span class="n">3</span>] = bottom;
+        c.mesh(art, corners, cornerUvs, <span class="t">White</span>, twoTriangles, cornerColors);
+    }
+
+    <span class="c">// How solid a card is at a height through it, 0 its top and 1 its bottom, between how solid its top and bottom are.</span>
+    <span class="k">float</span> through(<span class="k">float</span> t, <span class="k">float</span> top, <span class="k">float</span> bottom) { <span class="k">return</span> top + (bottom - top) * t; }
+
+    <span class="c">// A card at its size: bright lime, lighter at its top, in a shape with soft round corners; bubbles faint across it as</span>
+    <span class="c">// in the sky; a light bevel along its top; its demo&#x27;s picture in its upper part, and its name at the bottom left.</span>
+    <span class="k">void</span> card(<span class="t">Canvas</span>@ c, <span class="t">Card</span>@ k, <span class="k">float</span> x, <span class="k">float</span> y, <span class="k">float</span> s, <span class="k">float</span> top, <span class="k">float</span> bottom, <span class="k">bool</span> words, <span class="k">bool</span> front)
+    {
+        <span class="k">float</span> w = <span class="t">CardWide</span> * s, h = <span class="t">CardHigh</span> * s;
+        part(c, cardShape, x, y, w, h, fade(<span class="t">Color</span>(<span class="n">0.84f</span>, <span class="n">0.94f</span>, <span class="n">0.3f</span>), top), fade(<span class="t">Color</span>(<span class="n">0.36f</span>, <span class="n">0.62f</span>, <span class="n">0.06f</span>), bottom));
+        <span class="c">// Bubbles across it, faint, as light through a pattern.</span>
+        c.clip(x + <span class="n">4</span> * s, y + <span class="n">4</span> * s, w - <span class="n">8</span> * s, h - <span class="n">8</span> * s);
+        <span class="k">for</span> (<span class="k">uint</span> i = <span class="n">0</span>; i &lt; <span class="n">14</span>; i++)
+        {
+            <span class="k">float</span> bx = x + w * ((<span class="k">float</span>(i) * <span class="n">0.37f</span> + <span class="n">0.05f</span>) % <span class="n">1.0f</span>), by = y + h * ((<span class="k">float</span>(i) * <span class="n">0.61f</span> + <span class="n">0.2f</span>) % <span class="n">1.0f</span>);
+            <span class="k">float</span> r = (<span class="n">6</span> + <span class="k">float</span>(i % <span class="n">5</span>) * <span class="n">7</span>) * s;
+            c.ring(bx, by, r, <span class="n">1.5f</span> * s, fade(<span class="t">White</span>, <span class="n">0.13f</span> * top));
+            <span class="k">if</span> (i % <span class="n">3</span> == <span class="n">0</span>) c.circle(bx, by, r * <span class="n">0.5f</span>, fade(<span class="t">White</span>, <span class="n">0.08f</span> * top));
+        }
+        c.noClip();
+        <span class="c">// A soft bevel: light along the top, a little shade along the bottom.</span>
+        c.rect(x + <span class="n">8</span> * s, y + <span class="n">2</span> * s, w - <span class="n">16</span> * s, <span class="n">2</span> * s, fade(<span class="t">White</span>, <span class="n">0.5f</span> * top));
+        part(c, cardShape, x, y + h * <span class="n">0.82f</span>, w, h * <span class="n">0.18f</span>, fade(<span class="t">Black</span>, <span class="n">0</span>), fade(<span class="t">Black</span>, <span class="n">0.18f</span> * bottom));
+        <span class="c">// Its picture, set into the upper part.</span>
+        <span class="k">float</span> inset = <span class="n">14</span> * s, pictureHigh = h * <span class="n">0.56f</span>;
+        <span class="k">if</span> (k.art.width &gt; <span class="n">0</span>)
+        {
+            c.rect(x + inset - <span class="n">2</span> * s, y + inset - <span class="n">2</span> * s, w - inset * <span class="n">2</span> + <span class="n">4</span> * s, pictureHigh - inset + <span class="n">4</span> * s, fade(<span class="t">White</span>, <span class="n">0.35f</span> * top));
+            part(c, k.art, x + inset, y + inset, w - inset * <span class="n">2</span>, pictureHigh - inset, fade(<span class="t">White</span>, top), fade(<span class="t">White</span>, top), <span class="n">0.2f</span>, <span class="n">0.8f</span>);
+        }
+        <span class="k">if</span> (words &amp;&amp; s &gt; <span class="n">0.5f</span>)
+        {
+            c.push();
+            c.translate(x + <span class="n">16</span> * s, y + pictureHigh + <span class="n">12</span> * s);
+            c.scale(s, s);
+            c.text(big, k.title, <span class="n">0</span>, <span class="n">0</span>, fade(<span class="t">White</span>, top));
+            <span class="k">if</span> (front) c.paragraph(small, k.about, <span class="n">1</span>, <span class="n">42</span>, <span class="t">CardWide</span> - <span class="n">32</span>, fade(<span class="t">White</span>, <span class="n">0.9f</span> * top));
+            c.pop();
+        }
+    }
+
+    <span class="c">// Where each card stands: the chosen at the front, the rest side by side to its right, each smaller than the one</span>
+    <span class="c">// before, all centred on nearly the same line; those before it slide away to the left.</span>
+    <span class="k">void</span> slot(<span class="k">float</span> place, <span class="k">float</span> &amp;<span class="k">out</span> x, <span class="k">float</span> &amp;<span class="k">out</span> y, <span class="k">float</span> &amp;<span class="k">out</span> s)
+    {
+        <span class="k">if</span> (place &lt; <span class="n">0</span>)
+        {
+            s = <span class="n">1</span>;
+            x = <span class="n">96</span> + place * (<span class="t">CardWide</span> + <span class="n">40</span>);
+            y = <span class="n">348</span> - <span class="t">CardHigh</span> * <span class="n">0.5f</span>;
+            <span class="k">return</span>;
+        }
+        s = <span class="n">1</span> / (<span class="n">1</span> + place * <span class="n">0.355f</span>);
+        x = <span class="n">96</span>;
+        <span class="k">for</span> (<span class="k">float</span> p = <span class="n">0</span>; p &lt; place; p += <span class="n">1</span>)
+            x += (<span class="t">CardWide</span> / (<span class="n">1</span> + p * <span class="n">0.355f</span>) + <span class="n">3</span>) * min(<span class="n">1.0f</span>, place - p);
+        y = <span class="n">348</span> - <span class="n">5</span> * min(place, <span class="n">3.0f</span>) - <span class="t">CardHigh</span> * s * <span class="n">0.5f</span>;
+    }
+
+    <span class="k">void</span> row(<span class="t">Canvas</span>@ c, <span class="t">Lane</span>@ ch, <span class="k">float</span> offsetY, <span class="k">float</span> alpha)
+    {
+        <span class="c">// From the back to the front, so the nearer cover the further.</span>
+        <span class="k">for</span> (<span class="k">int</span> i = <span class="k">int</span>(ch.cards.length()) - <span class="n">1</span>; i &gt;= <span class="n">0</span>; i--)
+        {
+            <span class="k">float</span> place = <span class="k">float</span>(i) - ch.at;
+            <span class="k">if</span> (place &gt; <span class="n">4.5f</span>) <span class="k">continue</span>;
+            <span class="k">float</span> x, y, s;
+            slot(place, x, y, s);
+            <span class="k">if</span> (x &gt; <span class="n">1300</span>) <span class="k">continue</span>;
+            <span class="k">float</span> a = alpha * (place &lt; <span class="n">0</span> ? max(<span class="n">0.0f</span>, <span class="n">1</span> + place * <span class="n">1.5f</span>) : <span class="n">1</span>);
+            <span class="k">if</span> (a &lt;= <span class="n">0.01f</span>) <span class="k">continue</span>;
+            y += offsetY;
+            <span class="k">bool</span> front = abs(place) &lt; <span class="n">0.5f</span>;
+            <span class="c">// Its reflection in the floor: a short grey glow under it, faintly green, gone a third of its height down.</span>
+            <span class="k">float</span> bottom = y + <span class="t">CardHigh</span> * s;
+            part(c, <span class="k">null</span>, x, bottom + <span class="n">3</span>, <span class="t">CardWide</span> * s, <span class="t">CardHigh</span> * s * <span class="n">0.34f</span>, <span class="t">Color</span>(<span class="n">0.82f</span>, <span class="n">0.86f</span>, <span class="n">0.78f</span>, <span class="n">0.42f</span> * a), <span class="t">Color</span>(<span class="n">0.75f</span>, <span class="n">0.76f</span>, <span class="n">0.76f</span>, <span class="n">0</span>));
+            card(c, ch.cards[<span class="k">uint</span>(i)], x, y, s, a, a, <span class="k">true</span>, front);
+        }
+    }
+
+    <span class="k">void</span> draw(<span class="t">Canvas</span>@ c)
+    {
+        c.design(<span class="n">1280</span>, <span class="n">720</span>);
+        sky(c);
+        floor(c);
+
+        <span class="c">// Channels named at the top left: the one chosen large, those before it above, smaller and fainter.</span>
+        <span class="k">for</span> (<span class="k">uint</span> i = <span class="n">0</span>; i &lt; channels.length(); i++)
+        {
+            <span class="k">float</span> place = <span class="k">float</span>(i) - channelAt;
+            <span class="k">if</span> (place &gt; <span class="n">0.6f</span>) <span class="k">continue</span>;
+            <span class="k">float</span> y = <span class="n">104</span> + place * <span class="n">34</span> - (place &lt; -<span class="n">0.5f</span> ? <span class="n">10</span> : -<span class="n">10</span> * place);   <span class="c">// a gap between the names above and the chosen</span>
+            <span class="k">if</span> (y &lt; -<span class="n">10</span>) <span class="k">continue</span>;
+            <span class="k">float</span> near = <span class="n">1</span> - min(abs(place), <span class="n">1.0f</span>);
+            <span class="k">if</span> (near &gt; <span class="n">0.5f</span>) c.text(huge, channels[i].name, <span class="n">62</span>, y - <span class="n">12</span>, fade(<span class="t">White</span>, near));
+            <span class="k">else</span> c.text(small, channels[i].name, <span class="n">64</span>, y + <span class="n">4</span>, fade(<span class="t">White</span>, <span class="n">0.6f</span> + <span class="n">0.2f</span> * near));
+        }
+
+        <span class="c">// The row of the channel chosen, and the next sliding in or out as the channel changes.</span>
+        <span class="k">for</span> (<span class="k">uint</span> i = <span class="n">0</span>; i &lt; channels.length(); i++)
+        {
+            <span class="k">float</span> place = <span class="k">float</span>(i) - channelAt;
+            <span class="k">if</span> (abs(place) &gt; <span class="n">1</span>) <span class="k">continue</span>;
+            row(c, channels[i], place * <span class="n">420</span>, <span class="n">1</span> - abs(place));
+        }
+
+        <span class="c">// The reflections fade into the polish further down; the emblem and its ripples are on top of that.</span>
+        ripplesAndEmblem(c);
+
+        <span class="t">Lane</span>@ ch = channels[<span class="k">uint</span>(channel)];
+        c.text(small, (ch.focus + <span class="n">1</span>) + <span class="s">&quot; of &quot;</span> + ch.cards.length(), <span class="n">98</span>, <span class="n">512</span>, fade(<span class="t">Color</span>(<span class="n">0.15f</span>, <span class="n">0.15f</span>, <span class="n">0.17f</span>), <span class="n">0.85f</span>));
+
+        <span class="c">// Who is here, at the top right.</span>
+        c.text(font, <span class="s">&quot;Player One&quot;</span>, <span class="n">1150</span>, <span class="n">30</span>, <span class="t">White</span>, <span class="t">AlignRight</span>);
+        c.text(small, <span class="s">&quot;12 340&quot;</span>, <span class="n">1150</span>, <span class="n">60</span>, fade(<span class="t">White</span>, <span class="n">0.85f</span>), <span class="t">AlignRight</span>);
+        c.image(avatar, <span class="n">1164</span>, <span class="n">30</span>, <span class="n">48</span>, <span class="n">48</span>);
+        c.ring(<span class="n">1188</span>, <span class="n">54</span>, <span class="n">25</span>, <span class="n">2</span>, fade(<span class="t">White</span>, <span class="n">0.75f</span>));
+
+        <span class="c">// What the buttons do.</span>
+        c.circle(<span class="n">78</span>, <span class="n">668</span>, <span class="n">11</span>, <span class="t">Color</span>(<span class="n">0.3f</span>, <span class="n">0.75f</span>, <span class="n">0.15f</span>));
+        c.text(tiny, <span class="s">&quot;A&quot;</span>, <span class="n">78</span>, <span class="n">659</span>, <span class="t">White</span>, <span class="t">AlignCenter</span>);
+        c.text(small, <span class="s">&quot;Select&quot;</span>, <span class="n">98</span>, <span class="n">657</span>, <span class="t">Color</span>(<span class="n">0.2f</span>, <span class="n">0.2f</span>, <span class="n">0.25f</span>));
+        c.circle(<span class="n">198</span>, <span class="n">668</span>, <span class="n">11</span>, <span class="t">Color</span>(<span class="n">0.85f</span>, <span class="n">0.2f</span>, <span class="n">0.15f</span>));
+        c.text(tiny, <span class="s">&quot;B&quot;</span>, <span class="n">198</span>, <span class="n">659</span>, <span class="t">White</span>, <span class="t">AlignCenter</span>);
+        c.text(small, <span class="s">&quot;Back&quot;</span>, <span class="n">218</span>, <span class="n">657</span>, <span class="t">Color</span>(<span class="n">0.2f</span>, <span class="n">0.2f</span>, <span class="n">0.25f</span>));
+
+        <span class="k">float</span> grow = launching &gt;= <span class="n">0</span> ? smooth(min(launching, <span class="n">1</span>)) : coming &gt; <span class="n">0</span> ? smooth(coming) : <span class="n">0</span>;
+        <span class="k">if</span> (grow &gt; <span class="n">0</span>)
+        {
+            <span class="t">Vec2</span> from(<span class="n">96</span>, <span class="n">348</span> - <span class="t">CardHigh</span> * <span class="n">0.5f</span>), size(<span class="t">CardWide</span>, <span class="t">CardHigh</span>);
+            <span class="t">Vec2</span> at = from * (<span class="n">1</span> - grow);
+            <span class="t">Vec2</span> big = size + (<span class="t">Vec2</span>(<span class="n">1280</span>, <span class="n">720</span>) - size) * grow;
+            <span class="k">if</span> (launchArt !<span class="k">is</span> <span class="k">null</span> &amp;&amp; launchArt.width &gt; <span class="n">0</span>) c.image(launchArt, at.x, at.y, big.x, big.y, <span class="t">White</span>);
+            <span class="k">else</span> c.rect(at.x, at.y, big.x, big.y, <span class="t">Color</span>(<span class="n">0.45f</span>, <span class="n">0.72f</span>, <span class="n">0.12f</span>));
+            c.rect(<span class="n">0</span>, <span class="n">0</span>, <span class="n">1280</span>, <span class="n">720</span>, fade(<span class="t">Black</span>, grow * <span class="n">0.6f</span>));
+        }
+    }
+}
+</code></pre></details></div>
 <div data-find="system the window, the clipboard, and what a machine says of itself system"><h3 id="demo-system">System</h3><p>The window, the clipboard, and what a machine says of itself</p>
 <div class="shots"><img loading="lazy" src="screenshots/system.png" alt="System"></div>
 <details><summary><code>system/main.as</code> <span class="tag">76 lines</span></summary><pre><code><span class="c">// What a machine says about itself, and the window: full-screen, its title, waiting for the refresh, the pointer, the</span>
