@@ -103,7 +103,30 @@ summary { cursor: pointer; padding: 10px 16px; } details pre { border-width: 1px
 <p>one blend mode goes to the GPU together, so sort by image where you can.</p>
 <p><code>rich</code> draws a paragraph with some of it marked: <code>[color=orange]</code>, <code>[b]</code>, <code>[u]</code> and <code>[s]</code>, each ended with <code>[/color]</code>, <code>[/b]</code>,</p>
 <p><code>[/u]</code> or <code>[/s]</code>, and <code>[[</code> for a bracket itself. Colours are names (white, black, red, green, blue, yellow, orange, pink, purple,</p>
-<p>cyan, gray) or <code>#rrggbb</code>. It wraps as <code>paragraph</code> does, and <code>richHeight</code> says how tall it will be.</p>
+<p>cyan, gray) or <code>#rrggbb</code>. It wraps as <code>paragraph</code> does, and <code>richHeight</code> says how tall it will be. Both take an alignment, and</p>
+<p><code>AlignJustify</code> spreads each line but the last of a paragraph to fill the width, as a book&#x27;s are.</p>
+<h3 id="fonts-drawn-in-pixels">Fonts drawn in pixels</h3>
+<p><code>Assets::font</code> reads SSFN fonts, sharp at any size, and BMFont <code>.fnt</code> files too, with their one picture beside them, as BMFont,</p>
+<p>Hiero and Littera write them: the size is a line&#x27;s height, and 0 is as it was drawn. <code>Assets::imageFont</code> reads a picture of letters side by side with a column of one colour between each, given in the order they come:</p>
+<pre><code><span class="t">Font</span>@ pixel = <span class="t">Assets</span>::imageFont(<span class="s">&quot;global:font/pixel.png&quot;</span>, <span class="s">&quot; ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789.,!?:-+=\&#x27;()/%&quot;</span>, <span class="n">21</span>);
+<span class="t">Font</span>@ chunky = <span class="t">Assets</span>::font(<span class="s">&quot;global:font/chunky.fnt&quot;</span>, <span class="n">36</span>);
+
+c.filter = <span class="t">FilterNearest</span>;                          <span class="c">// pixels stay square</span>
+c.paragraph(pixel, <span class="s">&quot;SPREAD TO FILL ITS WIDTH.&quot;</span>, <span class="n">50</span>, <span class="n">500</span>, <span class="n">560</span>, <span class="t">White</span>, <span class="t">AlignJustify</span>);
+c.filter = <span class="t">FilterLinear</span>;</code></pre>
+<p>Their own colours are kept and tinted by the text&#x27;s, so white shows them as they are. Both are in <code>global:font</code>, made by</p>
+<p><code>engine/tools/make_pixel_fonts.py</code>. The cook tool leaves pictures in a folder called <code>font</code> or <code>fonts</code> as they are, so that they</p>
+<p>stay sharp and image fonts can be read pixel by pixel.</p>
+<h3 id="sprite-batches">Sprite batches</h3>
+<p>A <code>Batch</code> keeps many sprites of one picture from frame to frame and draws them all at once: a crowd, bullets, a starfield, a map of tiles. Each has a place, a size, a turn about its middle, a part of the picture and a colour, and is changed by its number:</p>
+<pre><code><span class="t">Batch</span>@ stars = <span class="t">Batch</span>(<span class="t">Assets</span>::texture(<span class="s">&quot;global:picture/sprite-wisp.png&quot;</span>));
+<span class="k">for</span> (<span class="k">uint</span> i = <span class="n">0</span>; i &lt; <span class="n">1500</span>; i++)
+    stars.addFrame(<span class="n">4</span>, <span class="n">2</span>, i % <span class="n">8</span>, random(<span class="n">0</span>, <span class="n">1280</span>), random(<span class="n">0</span>, <span class="n">720</span>), <span class="n">16</span>, <span class="n">16</span>, <span class="t">Color</span>(<span class="n">1</span>, <span class="n">1</span>, <span class="n">1</span>, <span class="n">0.3f</span>));
+
+stars.move(<span class="n">7</span>, x, y, degrees);                      <span class="c">// in update()</span>
+stars.frame(<span class="n">7</span>, <span class="n">4</span>, <span class="n">2</span>, frame);
+c.batch(stars);                                    <span class="c">// in draw(): all of them, moved and tinted if asked</span></code></pre>
+<p>The Curves and Batches demo moves fifteen hundred every frame, at 60 frames a second on the original Xbox.</p>
 <h3 id="polygons-paths-meshes-and-masks">Polygons, paths, meshes and masks</h3>
 <p><code>polygon</code> fills up to 256 corners, either way round and concave too, as long as its sides don&#x27;t cross; <code>polygonLine</code> is its</p>
 <p>outline and <code>polyline</code> lines through points, both mitred where they turn and bevelled where that would be sharp. <code>ellipse</code> and</p>
@@ -244,9 +267,15 @@ crate.occluder = <span class="k">true</span>;                             <span 
 <span class="t">Scene</span>::spring(bob, <span class="k">null</span>, bob.position, hook, <span class="n">2</span>, <span class="n">0.2f</span>);     <span class="c">// bounces twice a second, settling slowly</span>
 <span class="t">Scene</span>::slider(lift, <span class="k">null</span>, lift.position, <span class="t">Vec2</span>(<span class="n">0</span>, <span class="n">1</span>), -<span class="n">200</span>, <span class="n">0</span>);   <span class="c">// along a line, between two places</span>
 <span class="t">Scene</span>::drag(rock, mouse);                                  <span class="c">// pulled softly, as a hand would; dragTo moves it on</span>
+<span class="t">Scene</span>::wheel(wheel, buggy, <span class="t">Vec2</span>(<span class="n">0</span>, <span class="n">1</span>), <span class="n">4</span>, <span class="n">0.7f</span>);           <span class="c">// turns freely, sprung up and down: four bounces a second</span>
+<span class="t">Scene</span>::pulley(lift, weight, top1, top2, lift.position, weight.position);   <span class="c">// over two fixed places: one up, one down</span>
+<span class="t">Scene</span>::gear(big, small, <span class="n">2</span>);                                <span class="c">// small turns twice as far, the other way</span>
+<span class="t">Scene</span>::friction(puck, <span class="k">null</span>, <span class="n">1</span>);                            <span class="c">// the ground seen from above: slows it, as hard as its weight</span>
+<span class="t">Scene</span>::follow(cart, balloon, <span class="n">3</span>);                           <span class="c">// pushed to where it is now from cart, wherever cart goes</span>
 <span class="t">Scene</span>::unjoin(rock);                                       <span class="c">// every joint it is in</span></code></pre>
+<p><code>Scene::motor</code> drives wheels as it does hinges. <code>followTarget</code> says where from the first the second is pushed to now.</p>
 <p><code>Scene::contact(a, b, at, normal, impulse)</code> says whether two touched in the last step, where, which way and how hard: for a knock</p>
-<p>as loud as the hit, or sparks where it was. The Contraptions demo has a car on hills, a lamp on a spring, a weight on a rope, a block on a rail, a door, and platforms that balls come up through.</p>
+<p>as loud as the hit, or sparks where it was. The Contraptions demo has a car on hills, a lamp on a spring, a weight on a rope, a block on a rail, a door, and platforms that balls come up through; the Machines demo a buggy on sprung wheels that a balloon follows, a lift on a pulley that rocks weigh down, and a train of gears.</p>
 <h2 id="three-dimensions">Three dimensions</h2>
 <p>The same entities can be in space: x right, y up, z towards you, in metres. <code>Space::spawn</code> puts one there, and behaviours, parents, groups, <code>onHit</code> and <code>lifetime</code> work as they do on the plane.</p>
 <pre><code><span class="t">Model</span>@ robot = <span class="t">Assets</span>::model(<span class="s">&quot;global:model/robot.glb&quot;</span>);
@@ -581,7 +610,7 @@ look.load(<span class="s">&quot;asset:film.cube&quot;</span>);      <span class=
 <div class="scroll"><table><tr><th>What</th><th>Formats</th></tr>
 <tr><td>Images</td><td>PNG, JPEG, TGA, BMP and GIF, up to 2048 pixels a side</td></tr>
 <tr><td>Sounds</td><td>WAV and Ogg Vorbis; the cook tool makes MP3 and FLAC into these, and short sounds into ADPCM</td></tr>
-<tr><td>Fonts</td><td>SSFN</td></tr>
+<tr><td>Fonts</td><td>SSFN, BMFont (.fnt) and image fonts</td></tr>
 <tr><td>Models</td><td>glTF 2.0 (<code>.glb</code>, <code>.gltf</code>), FBX, OBJ, STL and PLY. Pictures in them up to 4096 pixels a side, made smaller if need be</td></tr>
 </table></div>
 <h2 id="sound">Sound</h2>
@@ -671,6 +700,16 @@ film.play();
 <p>On the plane, give it <code>Vec2</code>s with <code>add</code> and ask <code>at2</code> and <code>direction2</code>. <code>nearest</code> says how far along it a place is closest.</p>
 <p><code>noise(x, y, z)</code> is smooth randomness, -1 to 1, with hills and dips about a unit apart and the same at the same place every time:</p>
 <p>scale the place for bigger or smaller ones, and move through <code>z</code> for noise that changes over time. <code>fractalNoise</code> adds finer layers, for land, clouds and fire; <code>noiseSeed</code> picks another pattern.</p>
+<p>A <code>Curve</code> is a Bezier curve, as drawing programs make: it starts at its first control point, ends at its last, and is pulled towards those between without passing through them. It is asked for by <code>t</code>, from 0 to 1:</p>
+<pre><code><span class="k">array</span>&lt;<span class="t">Vec2</span>&gt; controls = { <span class="t">Vec2</span>(<span class="n">80</span>, <span class="n">400</span>), <span class="t">Vec2</span>(<span class="n">140</span>, <span class="n">130</span>), <span class="t">Vec2</span>(<span class="n">380</span>, <span class="n">120</span>), <span class="t">Vec2</span>(<span class="n">580</span>, <span class="n">380</span>) };
+<span class="t">Curve</span>@ road = <span class="t">Curve</span>(controls);
+c.polyline(road.points(<span class="n">64</span>), <span class="n">6</span>, <span class="t">Gray</span>);              <span class="c">// 64 places along it, to draw</span>
+<span class="t">Vec2</span> at = road.at(t), heading = road.slope(t).normalized();
+<span class="t">Curve</span>@ middle = road.part(<span class="n">0.4f</span>, <span class="n">0.6f</span>);             <span class="c">// a curve of its own</span></code></pre>
+<p><code>triangulate</code> cuts a polygon, concave too, into triangles, three corner indices each, for <code>Canvas.mesh</code> or convex pieces for</p>
+<p>physics; <code>isConvex</code> says whether it bulges out at every corner. A <code>Vec2</code> has <code>length</code>, <code>normalized</code>, <code>distance</code>, <code>angle</code>,</p>
+<p><code>rotated</code>, <code>perpendicular</code> and <code>cross</code>. <code>toLinear</code> and <code>toGamma</code> turn a colour into the light it stands for and back, to mix lights</p>
+<p>as they really would.</p>
 <h2 id="coroutines-and-tweens">Coroutines and tweens</h2>
 <p>A coroutine is a function that can wait:</p>
 <pre><code><span class="k">void</span> onEnter() { start(<span class="t">Coroutine</span>(<span class="k">this</span>.intro)); }
@@ -821,6 +860,25 @@ j.<span class="k">set</span>(<span class="s">&quot;score&quot;</span>, <span cla
 <p><code>md5</code>, <code>sha1</code> and <code>sha256</code>, fingerprints as hex digits; <code>base64</code> and <code>unbase64</code>, <code>hex</code> and <code>unhex</code>, to carry bytes as text.</p>
 <pre><code><span class="k">string</span> packed = <span class="t">Data</span>::base64(<span class="t">Data</span>::compress(level.write()));   <span class="c">// small enough to share as a code</span>
 <span class="k">string</span> sum = <span class="t">Data</span>::sha256(<span class="t">Assets</span>::read(<span class="s">&quot;asset:level.json&quot;</span>));  <span class="c">// has it changed?</span></code></pre>
+<p><code>gzip</code> and <code>gunzip</code> make and read <code>.gz</code> files; <code>deflate</code> and <code>inflate</code> are the same with nothing round it, as some servers and</p>
+<p>formats want; <code>crc32</code> is the check that zip, gzip and PNG files keep.</p>
+<p><code>Packed</code> lays numbers and text out in bytes as a file format or another program wants them, and reads them back in the same</p>
+<p>order: bytes, 16, 32 and 64-bit whole numbers, floats, doubles, text that ends in a zero or fills so many bytes. It is little-endian unless <code>bigEndian</code> is set. <code>whole</code> is false if more was read than there was.</p>
+<pre><code><span class="t">Packed</span> header(<span class="t">Assets</span>::read(<span class="s">&quot;asset:level.bin&quot;</span>));
+<span class="k">uint</span> magic = header.readU32();
+<span class="k">int</span> width = header.readI16(), height = header.readI16();
+<span class="k">string</span> name = header.readFixed(<span class="n">16</span>);</code></pre>
+<p>A <code>Zip</code> reads a zip file&#x27;s files, or puts some together to make one: a level pack, a player&#x27;s mod, a save with its pictures.</p>
+<p><code>Assets::pixelsFrom</code> turns a picture&#x27;s bytes, from a zip or anywhere else, into <code>Pixels</code>:</p>
+<pre><code><span class="t">Zip</span> pack(<span class="t">Assets</span>::read(<span class="s">&quot;own:mod.zip&quot;</span>));
+<span class="k">for</span> (<span class="k">uint</span> i = <span class="n">0</span>; i &lt; pack.count; i++)
+    <span class="k">if</span> (pack.name(i).findLast(<span class="s">&quot;.png&quot;</span>) &gt; <span class="n">0</span>)
+        pictures.insertLast(<span class="t">Assets</span>::pixelsFrom(pack.read(pack.name(i))));
+
+<span class="t">Zip</span> <span class="k">out</span>;
+<span class="k">out</span>.add(<span class="s">&quot;level.json&quot;</span>, level.write());
+<span class="k">out</span>.add(<span class="s">&quot;shot.png&quot;</span>, <span class="t">App</span>::screenshot().png());
+<span class="k">string</span> file = <span class="k">out</span>.bytes;                           <span class="c">// any zip program opens it</span></code></pre>
 <h3 id="random-numbers-from-a-seed">Random numbers from a seed</h3>
 <p><code>random()</code> and <code>randomInt</code> share one generator. A <code>Random</code> is one of a script&#x27;s own: the same seed gives the same numbers in the</p>
 <p>same order on every machine, for a world made from a number, a replay, or the same deal twice. <code>normal(mean, deviation)</code> is mostly near the mean and seldom far from it, in a bell curve; <code>randomNormal</code> is the same from the shared one. <code>state</code> is where it has got to, as text to keep in a save and give back.</p>

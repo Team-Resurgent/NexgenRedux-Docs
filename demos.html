@@ -413,6 +413,143 @@ summary { cursor: pointer; padding: 10px 16px; } details pre { border-width: 1px
     }
 }
 </code></pre></details></div>
+<div data-find="curves and batches bezier curves, triangulating, sprite batches and pixel fonts curves"><h3 id="demo-curves">Curves and Batches</h3><p>Bezier curves, triangulating, sprite batches and pixel fonts</p>
+<div class="shots"><img loading="lazy" src="screenshots/curves.png" alt="Curves and Batches"></div>
+<details><summary><code>curves/main.as</code> <span class="tag">134 lines</span></summary><pre><code><span class="c">// Bezier curves that the player bends, a polygon cut into triangles as it changes shape, fifteen hundred wisps drawn</span>
+<span class="c">// in one batch, and fonts drawn beforehand in pixels: an image font, and a BMFont with its own colours, justified.</span>
+
+<span class="k">class</span> <span class="t">CurvesScreen</span> : <span class="t">Screen</span>
+{
+    <span class="t">Font</span>@ font = <span class="t">Assets</span>::font(<span class="s">&quot;global:freesans.sfn&quot;</span>, <span class="n">20</span>);
+    <span class="t">Font</span>@ title = <span class="t">Assets</span>::font(<span class="s">&quot;global:font/chunky.fnt&quot;</span>, <span class="n">36</span>);
+    <span class="t">Font</span>@ pixel = <span class="t">Assets</span>::imageFont(<span class="s">&quot;global:font/pixel.png&quot;</span>, <span class="s">&quot; ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789.,!?:-+=\&#x27;()/%&quot;</span>, <span class="n">21</span>);
+    <span class="t">Texture</span>@ wisp = <span class="t">Assets</span>::texture(<span class="s">&quot;global:picture/sprite-wisp.png&quot;</span>);
+    <span class="t">Batch</span>@ wisps;
+    <span class="k">array</span>&lt;<span class="t">Vec2</span>&gt; drift;
+    <span class="t">Curve</span>@ curve;
+    <span class="k">int</span> picked = -<span class="n">1</span>;
+    <span class="k">int</span> nearest = <span class="n">0</span>;
+    <span class="t">Vec2</span> cursor(<span class="n">380</span>, <span class="n">120</span>);
+    <span class="t">Vec2</span> lastMouse;
+    <span class="k">float</span> t = <span class="n">0</span>;
+    <span class="k">float</span> time = <span class="n">0</span>;
+    <span class="k">array</span>&lt;<span class="t">Vec2</span>&gt; blob;
+    <span class="k">array</span>&lt;<span class="k">uint</span>&gt; triangles;
+
+    <span class="k">void</span> onEnter()
+    {
+        <span class="k">array</span>&lt;<span class="t">Vec2</span>&gt; points = { <span class="t">Vec2</span>(<span class="n">80</span>, <span class="n">400</span>), <span class="t">Vec2</span>(<span class="n">140</span>, <span class="n">130</span>), <span class="t">Vec2</span>(<span class="n">380</span>, <span class="n">120</span>), <span class="t">Vec2</span>(<span class="n">330</span>, <span class="n">420</span>), <span class="t">Vec2</span>(<span class="n">580</span>, <span class="n">380</span>) };
+        @curve = <span class="t">Curve</span>(points);
+
+        <span class="c">// The wisps: one batch, each its own place, size, frame and colour.</span>
+        @wisps = <span class="t">Batch</span>(wisp);
+        <span class="k">for</span> (<span class="k">uint</span> i = <span class="n">0</span>; i &lt; <span class="n">1500</span>; i++)
+        {
+            <span class="k">float</span> size = random(<span class="n">10</span>, <span class="n">34</span>);
+            wisps.addFrame(<span class="n">4</span>, <span class="n">2</span>, randomInt(<span class="n">0</span>, <span class="n">7</span>), random(<span class="n">0</span>, <span class="n">1280</span>), random(<span class="n">0</span>, <span class="n">720</span>), size, size, fade(hsv(random(<span class="n">0.5f</span>, <span class="n">0.8f</span>), <span class="n">0.6f</span>, <span class="n">1</span>), random(<span class="n">0.06f</span>, <span class="n">0.3f</span>)));
+            drift.insertLast(<span class="t">Vec2</span>(random(-<span class="n">20</span>, <span class="n">20</span>), random(-<span class="n">50</span>, -<span class="n">15</span>)));
+        }
+    }
+
+    <span class="k">void</span> update(<span class="k">float</span> dt)
+    {
+        time += dt;
+        cursor += <span class="t">Input</span>::move * <span class="n">500</span> * dt;
+        <span class="t">Vec2</span> mouse = <span class="t">Input</span>::mouse;
+        <span class="k">if</span> (<span class="t">Input</span>::hasMouse &amp;&amp; mouse != lastMouse) cursor = mouse;
+        lastMouse = mouse;
+        cursor = <span class="t">Vec2</span>(clamp(cursor.x, <span class="n">40</span>, <span class="n">620</span>), clamp(cursor.y, <span class="n">90</span>, <span class="n">450</span>));
+
+        <span class="c">// The control point nearest the pointer is the one that moves, while fire or the mouse holds it.</span>
+        nearest = <span class="n">0</span>;
+        <span class="k">for</span> (<span class="k">uint</span> i = <span class="n">1</span>; i &lt; curve.count; i++)
+            <span class="k">if</span> (curve.point(i).distance(cursor) &lt; curve.point(nearest).distance(cursor)) nearest = <span class="k">int</span>(i);
+        <span class="k">bool</span> holding = <span class="t">Input</span>::held(<span class="s">&quot;fire&quot;</span>) || (<span class="t">Input</span>::hasMouse &amp;&amp; <span class="t">Input</span>::mouseDown(<span class="n">0</span>));
+        <span class="k">if</span> (holding &amp;&amp; picked &lt; <span class="n">0</span> &amp;&amp; curve.point(nearest).distance(cursor) &lt; <span class="n">40</span>) picked = nearest;
+        <span class="k">if</span> (!holding) picked = -<span class="n">1</span>;
+        <span class="k">if</span> (picked &gt;= <span class="n">0</span>) curve.setPoint(picked, cursor);
+        <span class="k">if</span> (<span class="t">Input</span>::pressed(<span class="s">&quot;accept&quot;</span>) &amp;&amp; curve.count &lt; <span class="n">8</span>) curve.insert(nearest + <span class="n">1</span>, cursor);
+        <span class="k">if</span> (<span class="t">Input</span>::pressed(<span class="s">&quot;alternate&quot;</span>) &amp;&amp; curve.count &gt; <span class="n">2</span>) curve.remove(nearest);
+        <span class="k">if</span> (<span class="t">Input</span>::pressed(<span class="s">&quot;cancel&quot;</span>)) <span class="t">Screens</span>::replace(<span class="s">&quot;curves&quot;</span>);
+        t += dt * <span class="n">0.25f</span>;
+        <span class="k">if</span> (t &gt; <span class="n">1</span>) t -= <span class="n">1</span>;
+
+        <span class="c">// A blob whose corners come and go with noise: concave, and cut into triangles again each frame.</span>
+        blob.resize(<span class="n">0</span>);
+        <span class="k">for</span> (<span class="k">int</span> i = <span class="n">0</span>; i &lt; <span class="n">18</span>; i++)
+        {
+            <span class="k">float</span> a = <span class="k">float</span>(i) * <span class="n">20</span>;
+            <span class="k">float</span> r = <span class="n">120</span> + noise(<span class="k">float</span>(i) * <span class="n">0.7f</span>, time * <span class="n">0.6f</span>) * <span class="n">70</span> + (i % <span class="n">2</span> == <span class="n">0</span> ? <span class="n">0</span> : -<span class="n">40</span>);
+            blob.insertLast(<span class="t">Vec2</span>(<span class="n">960</span>, <span class="n">270</span>) + <span class="t">Vec2</span>(r, <span class="n">0</span>).rotated(a + time * <span class="n">10</span>));
+        }
+        triangles = triangulate(blob);
+
+        <span class="c">// The wisps rise, turn, flicker through their frames and come round again.</span>
+        <span class="k">for</span> (<span class="k">uint</span> i = <span class="n">0</span>; i &lt; wisps.count; i++)
+        {
+            <span class="t">Vec2</span> p = wisps.place(i) + drift[i] * dt;
+            <span class="k">if</span> (p.y &lt; -<span class="n">40</span>) p = <span class="t">Vec2</span>(random(<span class="n">0</span>, <span class="n">1280</span>), <span class="n">740</span>);
+            wisps.move(i, p.x, p.y, time * <span class="n">40</span> + <span class="k">float</span>(i));
+            wisps.frame(i, <span class="n">4</span>, <span class="n">2</span>, <span class="k">uint</span>(time * <span class="n">10</span> + <span class="k">float</span>(i)) % <span class="n">8</span>);
+        }
+    }
+
+    <span class="k">void</span> draw(<span class="t">Canvas</span>@ c)
+    {
+        c.design(<span class="n">1280</span>, <span class="n">720</span>);
+        c.gradient(<span class="n">0</span>, <span class="n">0</span>, <span class="n">1280</span>, <span class="n">720</span>, <span class="t">Color</span>(<span class="n">0.08f</span>, <span class="n">0.1f</span>, <span class="n">0.2f</span>), <span class="t">Color</span>(<span class="n">0.02f</span>, <span class="n">0.02f</span>, <span class="n">0.06f</span>));
+        c.blend = <span class="t">BlendAdd</span>;
+        c.batch(wisps);
+        c.blend = <span class="t">BlendAlpha</span>;
+
+        c.filter = <span class="t">FilterNearest</span>;
+        c.text(title, <span class="s">&quot;CURVES AND BATCHES&quot;</span>, <span class="n">40</span>, <span class="n">24</span>, <span class="t">White</span>);
+        c.filter = <span class="t">FilterLinear</span>;
+
+        <span class="c">// The curve: its control points and the lines between them, the curve itself, part of it, and a dot along it.</span>
+        c.roundRect(<span class="n">30</span>, <span class="n">80</span>, <span class="n">600</span>, <span class="n">380</span>, <span class="n">12</span>, <span class="t">Color</span>(<span class="n">0</span>, <span class="n">0</span>, <span class="n">0</span>, <span class="n">0.35f</span>));
+        <span class="k">for</span> (<span class="k">uint</span> i = <span class="n">0</span>; i + <span class="n">1</span> &lt; curve.count; i++)
+            c.line(curve.point(i).x, curve.point(i).y, curve.point(i + <span class="n">1</span>).x, curve.point(i + <span class="n">1</span>).y, <span class="n">1.5f</span>, fade(<span class="t">White</span>, <span class="n">0.3f</span>));
+        c.polyline(curve.points(<span class="n">64</span>), <span class="n">5</span>, <span class="t">Color</span>(<span class="n">0.4f</span>, <span class="n">0.85f</span>, <span class="n">1</span>));
+        c.polyline(curve.part(<span class="n">0.4f</span>, <span class="n">0.6f</span>).points(<span class="n">16</span>), <span class="n">9</span>, <span class="t">Color</span>(<span class="n">1</span>, <span class="n">0.75f</span>, <span class="n">0.3f</span>));
+        <span class="k">for</span> (<span class="k">uint</span> i = <span class="n">0</span>; i &lt; curve.count; i++)
+        {
+            <span class="t">Vec2</span> p = curve.point(i);
+            c.circle(p.x, p.y, <span class="k">int</span>(i) == picked ? <span class="n">11</span> : <span class="n">8</span>, <span class="k">int</span>(i) == nearest ? <span class="t">Yellow</span> : <span class="t">White</span>);
+        }
+        <span class="t">Vec2</span> dot = curve.at(t);
+        <span class="t">Vec2</span> ahead = dot + curve.slope(t).normalized() * <span class="n">34</span>;
+        c.line(dot.x, dot.y, ahead.x, ahead.y, <span class="n">3</span>, <span class="t">Color</span>(<span class="n">1</span>, <span class="n">0.4f</span>, <span class="n">0.5f</span>));
+        c.circle(dot.x, dot.y, <span class="n">7</span>, <span class="t">Color</span>(<span class="n">1</span>, <span class="n">0.4f</span>, <span class="n">0.5f</span>));
+        c.ring(cursor.x, cursor.y, <span class="n">14</span>, <span class="n">2</span>, <span class="t">Yellow</span>);
+        c.text(font, <span class="s">&quot;Degree &quot;</span> + curve.degree + <span class="s">&quot;, &quot;</span> + <span class="k">int</span>(curve.length()) + <span class="s">&quot; long&quot;</span>, <span class="n">46</span>, <span class="n">430</span>, fade(<span class="t">White</span>, <span class="n">0.7f</span>));
+
+        <span class="c">// The blob, each of its triangles a colour of its own.</span>
+        c.roundRect(<span class="n">650</span>, <span class="n">80</span>, <span class="n">600</span>, <span class="n">380</span>, <span class="n">12</span>, <span class="t">Color</span>(<span class="n">0</span>, <span class="n">0</span>, <span class="n">0</span>, <span class="n">0.35f</span>));
+        <span class="k">for</span> (<span class="k">uint</span> i = <span class="n">0</span>; i &lt; triangles.length(); i += <span class="n">3</span>)
+        {
+            <span class="t">Color</span> k = hsv(<span class="n">0.08f</span> + <span class="k">float</span>(i) / <span class="k">float</span>(triangles.length()) * <span class="n">0.25f</span>, <span class="n">0.7f</span>, <span class="n">0.95f</span>);
+            c.triangle(blob[triangles[i]], blob[triangles[i + <span class="n">1</span>]], blob[triangles[i + <span class="n">2</span>]], k, k, k);
+        }
+        <span class="k">for</span> (<span class="k">uint</span> i = <span class="n">0</span>; i &lt; triangles.length(); i += <span class="n">3</span>)
+        {
+            <span class="k">array</span>&lt;<span class="t">Vec2</span>&gt; edge = { blob[triangles[i]], blob[triangles[i + <span class="n">1</span>]], blob[triangles[i + <span class="n">2</span>]] };
+            c.polygonLine(edge, <span class="n">1</span>, <span class="t">Color</span>(<span class="n">0.2f</span>, <span class="n">0.1f</span>, <span class="n">0.1f</span>, <span class="n">0.5f</span>));
+        }
+        c.polygonLine(blob, <span class="n">3</span>, <span class="t">White</span>);
+        c.text(font, (triangles.length() / <span class="n">3</span>) + <span class="s">&quot; triangles&quot;</span> + (isConvex(blob) ? <span class="s">&quot;, convex&quot;</span> : <span class="s">&quot;, not convex&quot;</span>), <span class="n">666</span>, <span class="n">430</span>, fade(<span class="t">White</span>, <span class="n">0.7f</span>));
+
+        <span class="c">// Text in the two pixel fonts, justified to fill its width.</span>
+        c.roundRect(<span class="n">30</span>, <span class="n">480</span>, <span class="n">1220</span>, <span class="n">190</span>, <span class="n">12</span>, <span class="t">Color</span>(<span class="n">0</span>, <span class="n">0</span>, <span class="n">0</span>, <span class="n">0.35f</span>));
+        c.filter = <span class="t">FilterNearest</span>;
+        c.paragraph(pixel, <span class="s">&quot;AN IMAGE FONT: ITS LETTERS SIDE BY SIDE IN ONE PICTURE. EACH LINE OF THIS IS SPREAD TO FILL ITS WIDTH, AS A BOOK&#x27;S ARE, BUT THE LAST.&quot;</span>, <span class="n">50</span>, <span class="n">500</span>, <span class="n">560</span>, <span class="t">Color</span>(<span class="n">0.7f</span>, <span class="n">0.95f</span>, <span class="n">0.8f</span>), <span class="t">AlignJustify</span>);
+        c.rich(title, <span class="s">&quot;A [u]BMFONT[/u] WITH ITS OWN COLOURS AND SHADOW, JUSTIFIED AS WELL, OVER THREE LINES OF IT.&quot;</span>, <span class="n">670</span>, <span class="n">500</span>, <span class="n">560</span>, <span class="t">White</span>, <span class="t">AlignJustify</span>);
+        c.filter = <span class="t">FilterLinear</span>;
+        c.text(font, <span class="s">&quot;Fire: hold and bend    Accept: add a point    Alternate: take one away    Cancel: again&quot;</span>, <span class="n">640</span>, <span class="n">690</span>, <span class="t">Yellow</span>, <span class="t">AlignCenter</span>);
+        c.text(font, wisps.count + <span class="s">&quot; wisps in one batch, &quot;</span> + <span class="k">int</span>(<span class="t">App</span>::fps + <span class="n">0.5f</span>) + <span class="s">&quot; frames a second&quot;</span>, <span class="n">1240</span>, <span class="n">24</span>, fade(<span class="t">White</span>, <span class="n">0.7f</span>), <span class="t">AlignRight</span>);
+    }
+}
+</code></pre></details></div>
 <div data-find="text scalable fonts, wrapping, rich text and letter effects text"><h3 id="demo-text">Text</h3><p>Scalable fonts, wrapping, rich text and letter effects</p>
 <div class="shots"><img loading="lazy" src="screenshots/text.png" alt="Text"></div>
 <details><summary><code>text/main.as</code> <span class="tag">100 lines</span></summary><pre><code><span class="c">// Text: one scalable font at several sizes, alignment, wrapping, marked-up text and effects letter by letter.</span>
@@ -7401,6 +7538,305 @@ summary { cursor: pointer; padding: 10px 16px; } details pre { border-width: 1px
 
         c.ring(cursor.x, cursor.y, held <span class="k">is</span> <span class="k">null</span> ? <span class="n">12</span> : <span class="n">8</span>, <span class="n">3</span>, held <span class="k">is</span> <span class="k">null</span> ? <span class="t">White</span> : <span class="t">Yellow</span>);
         c.text(font, <span class="s">&quot;Left, right: drive    Accept: rock    Fire: pick up    Cancel: again    C: shapes&quot;</span>, <span class="n">640</span>, <span class="n">16</span>, <span class="t">Yellow</span>, <span class="t">AlignCenter</span>);
+    }
+}
+</code></pre></details></div>
+<div data-find="machines sprung wheels, a pulley lift, gears and a balloon that follows machines"><h3 id="demo-machines">Machines</h3><p>Sprung wheels, a pulley lift, gears and a balloon that follows</p>
+<div class="shots"><img loading="lazy" src="screenshots/machines.png" alt="Machines"></div>
+<details><summary><code>machines/main.as</code> <span class="tag">296 lines</span></summary><pre><code><span class="c">// More joints: a buggy on sprung wheels, which a balloon follows; a lift of two platforms on a pulley, which rocks</span>
+<span class="c">// weigh down; and a train of gears, the first turned by a motor, each of the others by the one before.</span>
+
+<span class="k">class</span> <span class="t">Gear</span>
+{
+    <span class="t">Entity</span>@ body;
+    <span class="k">float</span> radius;
+    <span class="k">int</span> teeth;
+    <span class="t">Color</span> color;
+}
+
+<span class="k">class</span> <span class="t">MachinesScreen</span> : <span class="t">Screen</span>
+{
+    <span class="t">Font</span>@ font = <span class="t">Assets</span>::font(<span class="s">&quot;global:freesans.sfn&quot;</span>, <span class="n">22</span>);
+    <span class="t">Font</span>@ title = <span class="t">Assets</span>::font(<span class="s">&quot;global:font/chunky.fnt&quot;</span>, <span class="n">36</span>);
+    <span class="t">Sound</span>@ pop = <span class="t">Assets</span>::sound(<span class="s">&quot;global:sound/pop.wav&quot;</span>);
+    <span class="k">array</span>&lt;<span class="t">Vec2</span>&gt; ground;
+    <span class="t">Entity</span>@ buggy;
+    <span class="t">Entity</span>@ back;
+    <span class="t">Entity</span>@ front;
+    <span class="t">Entity</span>@ balloon;
+    <span class="t">Entity</span>@ left;
+    <span class="t">Entity</span>@ right;
+    <span class="t">Entity</span>@ held;
+    <span class="k">array</span>&lt;<span class="t">Gear</span>@&gt; gears;
+    <span class="k">array</span>&lt;<span class="t">Entity</span>@&gt; rocks;
+    <span class="k">array</span>&lt;<span class="k">array</span>&lt;<span class="t">Vec2</span>&gt;&gt; rockShapes;
+    <span class="t">Vec2</span> cursor(<span class="n">640</span>, <span class="n">200</span>);
+    <span class="t">Vec2</span> lastMouse;
+    <span class="k">float</span> motor = <span class="n">60</span>;
+
+    <span class="k">void</span> onEnter()
+    {
+        <span class="t">Scene</span>::gravity = <span class="t">Vec2</span>(<span class="n">0</span>, <span class="n">1000</span>);
+
+        <span class="c">// Bumpy ground, walled at each end.</span>
+        ground.insertLast(<span class="t">Vec2</span>(<span class="n">0</span>, <span class="n">100</span>));
+        <span class="k">for</span> (<span class="k">int</span> i = <span class="n">0</span>; i &lt;= <span class="n">40</span>; i++)
+        {
+            <span class="k">float</span> x = <span class="k">float</span>(i) * <span class="n">20</span>;
+            <span class="k">float</span> bumps = i &gt; <span class="n">3</span> &amp;&amp; i &lt; <span class="n">37</span> ? (i % <span class="n">6</span> &lt; <span class="n">2</span> ? -<span class="n">10</span> : <span class="n">0</span>) + sin(x * <span class="n">0.05f</span>) * <span class="n">6</span> : <span class="n">0</span>;
+            ground.insertLast(<span class="t">Vec2</span>(x, <span class="n">640</span> + bumps));
+        }
+        ground.insertLast(<span class="t">Vec2</span>(<span class="n">1280</span>, <span class="n">640</span>));
+        ground.insertLast(<span class="t">Vec2</span>(<span class="n">1280</span>, <span class="n">100</span>));
+        <span class="t">Entity</span>@ land = <span class="t">Scene</span>::spawn(<span class="t">Vec2</span>(<span class="n">0</span>, <span class="n">0</span>));
+        land.chain(ground);
+
+        <span class="c">// The buggy: a light body on two wheels, each sprung on an upright line through it.</span>
+        @buggy = <span class="t">Scene</span>::spawn(<span class="t">Vec2</span>(<span class="n">200</span>, <span class="n">560</span>));
+        <span class="k">array</span>&lt;<span class="t">Vec2</span>&gt; shell = { <span class="t">Vec2</span>(-<span class="n">55</span>, <span class="n">6</span>), <span class="t">Vec2</span>(-<span class="n">50</span>, -<span class="n">10</span>), <span class="t">Vec2</span>(-<span class="n">14</span>, -<span class="n">12</span>), <span class="t">Vec2</span>(<span class="n">0</span>, -<span class="n">28</span>), <span class="t">Vec2</span>(<span class="n">30</span>, -<span class="n">28</span>), <span class="t">Vec2</span>(<span class="n">44</span>, -<span class="n">10</span>), <span class="t">Vec2</span>(<span class="n">58</span>, -<span class="n">4</span>), <span class="t">Vec2</span>(<span class="n">58</span>, <span class="n">6</span>) };
+        buggy.polygon(shell);
+        buggy.gravity = <span class="n">1</span>;
+        buggy.mass = <span class="n">2</span>;
+        @back = wheel(<span class="n">200</span> - <span class="n">38</span>, <span class="n">598</span>);
+        @front = wheel(<span class="n">200</span> + <span class="n">40</span>, <span class="n">598</span>);
+        <span class="t">Scene</span>::wheel(back, buggy, <span class="t">Vec2</span>(<span class="n">0</span>, <span class="n">1</span>), <span class="n">3.5f</span>, <span class="n">0.5f</span>);
+        <span class="t">Scene</span>::wheel(front, buggy, <span class="t">Vec2</span>(<span class="n">0</span>, <span class="n">1</span>), <span class="n">3.5f</span>, <span class="n">0.5f</span>);
+
+        <span class="c">// A balloon that floats where it is now, above the buggy, wherever it goes.</span>
+        @balloon = <span class="t">Scene</span>::spawn(<span class="t">Vec2</span>(<span class="n">190</span>, <span class="n">420</span>));
+        balloon.circle(<span class="n">22</span>);
+        balloon.mass = <span class="n">0.2f</span>;
+        balloon.gravity = <span class="n">0</span>;
+        <span class="t">Scene</span>::follow(buggy, balloon, <span class="n">3</span>, <span class="n">0.2f</span>);
+
+        <span class="c">// The lift: two platforms on a pulley, each kept upright on its line.</span>
+        @left = platform(<span class="n">900</span>, <span class="n">400</span>);
+        @right = platform(<span class="n">1130</span>, <span class="n">400</span>);
+        <span class="t">Scene</span>::pulley(left, right, <span class="t">Vec2</span>(<span class="n">900</span>, <span class="n">90</span>), <span class="t">Vec2</span>(<span class="n">1130</span>, <span class="n">90</span>), left.position, right.position, <span class="n">1</span>);
+
+        <span class="c">// The gears, each the size its teeth make it, meshing with the last.</span>
+        gear(<span class="n">470</span>, <span class="n">230</span>, <span class="n">18</span>, <span class="t">Color</span>(<span class="n">0.85f</span>, <span class="n">0.65f</span>, <span class="n">0.3f</span>));
+        gear(<span class="n">0</span>, <span class="n">0</span>, <span class="n">12</span>, <span class="t">Color</span>(<span class="n">0.6f</span>, <span class="n">0.75f</span>, <span class="n">0.85f</span>));
+        gear(<span class="n">0</span>, <span class="n">0</span>, <span class="n">8</span>, <span class="t">Color</span>(<span class="n">0.85f</span>, <span class="n">0.45f</span>, <span class="n">0.4f</span>));
+        gear(<span class="n">0</span>, <span class="n">0</span>, <span class="n">14</span>, <span class="t">Color</span>(<span class="n">0.6f</span>, <span class="n">0.8f</span>, <span class="n">0.5f</span>));
+        <span class="t">Scene</span>::hinge(gears[<span class="n">0</span>].body, <span class="k">null</span>, gears[<span class="n">0</span>].body.position, <span class="n">0</span>, <span class="n">0</span>, motor, 1e6f);
+    }
+
+    <span class="t">Entity</span>@ wheel(<span class="k">float</span> x, <span class="k">float</span> y)
+    {
+        <span class="t">Entity</span>@ e = <span class="t">Scene</span>::spawn(<span class="t">Vec2</span>(x, y));
+        e.circle(<span class="n">16</span>);
+        e.gravity = <span class="n">1</span>;
+        e.mass = <span class="n">0.5f</span>;
+        e.friction = <span class="n">1.3f</span>;
+        <span class="k">return</span> e;
+    }
+
+    <span class="t">Entity</span>@ platform(<span class="k">float</span> x, <span class="k">float</span> y)
+    {
+        <span class="t">Entity</span>@ p = <span class="t">Scene</span>::spawn(<span class="t">Vec2</span>(x, y));
+        p.box(<span class="n">150</span>, <span class="n">14</span>);
+        p.gravity = <span class="n">1</span>;
+        p.mass = <span class="n">2</span>;
+        p.friction = <span class="n">0.9f</span>;
+        <span class="t">Scene</span>::slider(p, <span class="k">null</span>, p.position, <span class="t">Vec2</span>(<span class="n">0</span>, <span class="n">1</span>), -<span class="n">260</span>, <span class="n">200</span>);
+        <span class="k">return</span> p;
+    }
+
+    <span class="k">void</span> gear(<span class="k">float</span> x, <span class="k">float</span> y, <span class="k">int</span> teeth, <span class="k">const</span> <span class="t">Color</span> &amp;<span class="k">in</span> color)
+    {
+        <span class="c">// 14 units from one tooth to the next, along the circle where they mesh.</span>
+        <span class="k">float</span> radius = <span class="k">float</span>(teeth) * <span class="n">14</span> / <span class="n">6.28318f</span>;
+        <span class="k">if</span> (gears.length() &gt; <span class="n">0</span>)
+        {
+            <span class="t">Gear</span>@ last = gears[gears.length() - <span class="n">1</span>];
+            <span class="k">float</span> turn = gears.length() % <span class="n">2</span> == <span class="n">1</span> ? <span class="n">0.0f</span> : <span class="n">75.0f</span>;
+            <span class="t">Vec2</span> way = <span class="t">Vec2</span>(<span class="n">1</span>, <span class="n">0</span>).rotated(turn - <span class="n">20</span>);
+            <span class="t">Vec2</span> at = last.body.position + way * (last.radius + radius);
+            x = at.x;
+            y = at.y;
+        }
+        <span class="t">Gear</span> g;
+        @g.body = <span class="t">Scene</span>::spawn(<span class="t">Vec2</span>(x, y));
+        g.body.circle(radius - <span class="n">6</span>);
+        g.body.mass = <span class="n">1</span>;
+        g.body.gravity = <span class="n">0</span>;
+        g.radius = radius;
+        g.teeth = teeth;
+        g.color = color;
+        <span class="k">if</span> (gears.length() &gt; <span class="n">0</span>)
+        {
+            <span class="t">Gear</span>@ last = gears[gears.length() - <span class="n">1</span>];
+            <span class="t">Scene</span>::hinge(g.body, <span class="k">null</span>, g.body.position);
+            <span class="c">// Turned the other way, as many times as fewer teeth it has; half a tooth round, so the teeth meet gaps.</span>
+            g.body.rotation = <span class="n">180.0f</span> / <span class="k">float</span>(teeth);
+            <span class="t">Scene</span>::gear(last.body, g.body, <span class="k">float</span>(last.teeth) / <span class="k">float</span>(teeth));
+        }
+        gears.insertLast(g);
+    }
+
+    <span class="k">void</span> drop(<span class="k">const</span> <span class="t">Vec2</span> &amp;<span class="k">in</span> at)
+    {
+        <span class="k">array</span>&lt;<span class="t">Vec2</span>&gt; corners;
+        <span class="k">int</span> count = randomInt(<span class="n">4</span>, <span class="n">6</span>);
+        <span class="k">float</span> size = random(<span class="n">14</span>, <span class="n">22</span>);
+        <span class="k">for</span> (<span class="k">int</span> i = <span class="n">0</span>; i &lt; count; i++)
+        {
+            <span class="k">float</span> a = <span class="k">float</span>(i) * <span class="n">6.28318f</span> / <span class="k">float</span>(count) + random(-<span class="n">0.2f</span>, <span class="n">0.2f</span>);
+            corners.insertLast(<span class="t">Vec2</span>(cos(a), sin(a)) * size * random(<span class="n">0.8f</span>, <span class="n">1.15f</span>));
+        }
+        <span class="t">Entity</span>@ rock = <span class="t">Scene</span>::spawn(at);
+        rock.polygon(corners);
+        rock.gravity = <span class="n">1</span>;
+        rock.mass = <span class="n">1</span>;
+        rock.friction = <span class="n">0.8f</span>;
+        rocks.insertLast(rock);
+        rockShapes.insertLast(corners);
+    }
+
+    <span class="k">void</span> update(<span class="k">float</span> dt)
+    {
+        cursor += <span class="t">Input</span>::move * <span class="n">600</span> * dt;
+        <span class="t">Vec2</span> mouse = <span class="t">Input</span>::mouse;
+        <span class="k">if</span> (<span class="t">Input</span>::hasMouse &amp;&amp; mouse != lastMouse) cursor = mouse;
+        lastMouse = mouse;
+        cursor = <span class="t">Vec2</span>(clamp(cursor.x, <span class="n">20</span>, <span class="n">1260</span>), clamp(cursor.y, <span class="n">20</span>, <span class="n">700</span>));
+
+        <span class="k">float</span> drive = held <span class="k">is</span> <span class="k">null</span> ? <span class="t">Input</span>::move.x : <span class="n">0</span>;
+        <span class="t">Scene</span>::motor(back, drive * <span class="n">900</span>, drive != <span class="n">0</span> ? 2e4f : 4e3f);
+        <span class="t">Scene</span>::motor(front, drive * <span class="n">900</span>, drive != <span class="n">0</span> ? 2e4f : 4e3f);
+
+        <span class="c">// Up and down speed the gears up and slow them.</span>
+        <span class="k">if</span> (<span class="t">Input</span>::repeated(<span class="s">&quot;up&quot;</span>)) motor = min(motor + <span class="n">30</span>, <span class="n">240</span>);
+        <span class="k">if</span> (<span class="t">Input</span>::repeated(<span class="s">&quot;down&quot;</span>)) motor = max(motor - <span class="n">30</span>, -<span class="n">240</span>);
+        <span class="t">Scene</span>::motor(gears[<span class="n">0</span>].body, motor, 1e6f);
+
+        <span class="k">if</span> (<span class="t">Input</span>::repeated(<span class="s">&quot;accept&quot;</span>) &amp;&amp; rocks.length() &lt; <span class="n">40</span>)
+        {
+            pop.play(<span class="n">0.4f</span>, (cursor.x - <span class="n">640</span>) / <span class="n">640</span>, random(<span class="n">0.8f</span>, <span class="n">1.3f</span>));
+            drop(cursor);
+        }
+
+        <span class="k">if</span> (<span class="t">Input</span>::pressed(<span class="s">&quot;fire&quot;</span>) || (<span class="t">Input</span>::hasMouse &amp;&amp; <span class="t">Input</span>::mouseDown(<span class="n">0</span>) &amp;&amp; held <span class="k">is</span> <span class="k">null</span>))
+        {
+            <span class="k">array</span>&lt;<span class="t">Entity</span>@&gt;@ under = <span class="t">Scene</span>::within(cursor, <span class="n">4</span>);
+            <span class="k">for</span> (<span class="k">uint</span> i = <span class="n">0</span>; i &lt; under.length() &amp;&amp; held <span class="k">is</span> <span class="k">null</span>; i++)
+                <span class="k">if</span> (rocks.findByRef(under[i]) &gt;= <span class="n">0</span>)
+                {
+                    @held = under[i];
+                    <span class="t">Scene</span>::drag(held, cursor, <span class="n">8</span>);
+                }
+        }
+        <span class="k">else</span> <span class="k">if</span> (held !<span class="k">is</span> <span class="k">null</span> &amp;&amp; (<span class="t">Input</span>::released(<span class="s">&quot;fire&quot;</span>) || (<span class="t">Input</span>::hasMouse &amp;&amp; !<span class="t">Input</span>::mouseDown(<span class="n">0</span>) &amp;&amp; !<span class="t">Input</span>::held(<span class="s">&quot;fire&quot;</span>))))
+        {
+            <span class="t">Scene</span>::unjoin(held);
+            @held = <span class="k">null</span>;
+        }
+        <span class="k">if</span> (held !<span class="k">is</span> <span class="k">null</span>) <span class="t">Scene</span>::dragTo(held, cursor);
+
+        <span class="k">if</span> (<span class="t">Input</span>::pressed(<span class="s">&quot;cancel&quot;</span>)) <span class="t">Screens</span>::replace(<span class="s">&quot;machines&quot;</span>);
+        <span class="k">bool</span> shapes = <span class="t">Input</span>::padTriggers(<span class="n">0</span>).x &gt; <span class="n">0.5f</span> || <span class="t">Input</span>::key(<span class="s">&quot;C&quot;</span>);
+        <span class="k">if</span> (shapes &amp;&amp; !wasShapes) <span class="t">Scene</span>::showShapes = !<span class="t">Scene</span>::showShapes;
+        wasShapes = shapes;
+    }
+    <span class="k">bool</span> wasShapes = <span class="k">false</span>;
+
+    <span class="k">void</span> drawGear(<span class="t">Canvas</span>@ c, <span class="t">Gear</span>@ g)
+    {
+        <span class="k">array</span>&lt;<span class="t">Vec2</span>&gt; outline;
+        <span class="k">for</span> (<span class="k">int</span> i = <span class="n">0</span>; i &lt; g.teeth; i++)
+        {
+            <span class="k">float</span> a = <span class="n">360.0f</span> * <span class="k">float</span>(i) / <span class="k">float</span>(g.teeth);
+            <span class="k">float</span> step = <span class="n">360.0f</span> / <span class="k">float</span>(g.teeth);
+            outline.insertLast(<span class="t">Vec2</span>(g.radius - <span class="n">5</span>, <span class="n">0</span>).rotated(a));
+            outline.insertLast(<span class="t">Vec2</span>(g.radius + <span class="n">5</span>, <span class="n">0</span>).rotated(a + step * <span class="n">0.2f</span>));
+            outline.insertLast(<span class="t">Vec2</span>(g.radius + <span class="n">5</span>, <span class="n">0</span>).rotated(a + step * <span class="n">0.45f</span>));
+            outline.insertLast(<span class="t">Vec2</span>(g.radius - <span class="n">5</span>, <span class="n">0</span>).rotated(a + step * <span class="n">0.65f</span>));
+        }
+        c.push();
+        c.translate(g.body.position.x, g.body.position.y);
+        c.rotate(g.body.rotation);
+        c.polygon(outline, g.color);
+        c.polygonLine(outline, <span class="n">2</span>, <span class="t">Color</span>(g.color.r * <span class="n">0.5f</span>, g.color.g * <span class="n">0.5f</span>, g.color.b * <span class="n">0.5f</span>));
+        c.circle(<span class="n">0</span>, <span class="n">0</span>, g.radius * <span class="n">0.45f</span>, <span class="t">Color</span>(g.color.r * <span class="n">0.75f</span>, g.color.g * <span class="n">0.75f</span>, g.color.b * <span class="n">0.75f</span>));
+        c.line(-g.radius * <span class="n">0.45f</span>, <span class="n">0</span>, g.radius * <span class="n">0.45f</span>, <span class="n">0</span>, <span class="n">4</span>, <span class="t">Color</span>(g.color.r * <span class="n">0.5f</span>, g.color.g * <span class="n">0.5f</span>, g.color.b * <span class="n">0.5f</span>));
+        c.circle(<span class="n">0</span>, <span class="n">0</span>, <span class="n">5</span>, <span class="t">Gray</span>);
+        c.pop();
+    }
+
+    <span class="k">void</span> drawWheel(<span class="t">Canvas</span>@ c, <span class="t">Entity</span>@ w)
+    {
+        <span class="c">// Its spring, from the body above it.</span>
+        <span class="t">Vec2</span> top = <span class="t">Vec2</span>(w.position.x, buggy.position.y - <span class="n">6</span>);
+        c.line(top.x, top.y, w.position.x, w.position.y, <span class="n">5</span>, <span class="t">Color</span>(<span class="n">0.55f</span>, <span class="n">0.55f</span>, <span class="n">0.6f</span>));
+        c.push();
+        c.translate(w.position.x, w.position.y);
+        c.rotate(w.rotation);
+        c.circle(<span class="n">0</span>, <span class="n">0</span>, <span class="n">16</span>, <span class="t">Color</span>(<span class="n">0.13f</span>, <span class="n">0.13f</span>, <span class="n">0.16f</span>));
+        c.circle(<span class="n">0</span>, <span class="n">0</span>, <span class="n">8</span>, <span class="t">Color</span>(<span class="n">0.55f</span>, <span class="n">0.55f</span>, <span class="n">0.6f</span>));
+        c.rect(-<span class="n">2</span>, -<span class="n">14</span>, <span class="n">4</span>, <span class="n">28</span>, <span class="t">Color</span>(<span class="n">0.35f</span>, <span class="n">0.35f</span>, <span class="n">0.4f</span>));
+        c.pop();
+    }
+
+    <span class="k">void</span> draw(<span class="t">Canvas</span>@ c)
+    {
+        c.design(<span class="n">1280</span>, <span class="n">720</span>);
+        c.gradient(<span class="n">0</span>, <span class="n">0</span>, <span class="n">1280</span>, <span class="n">720</span>, <span class="t">Color</span>(<span class="n">0.2f</span>, <span class="n">0.18f</span>, <span class="n">0.3f</span>), <span class="t">Color</span>(<span class="n">0.08f</span>, <span class="n">0.07f</span>, <span class="n">0.12f</span>));
+
+        <span class="k">array</span>&lt;<span class="t">Vec2</span>&gt; land;
+        <span class="k">for</span> (<span class="k">uint</span> i = <span class="n">1</span>; i + <span class="n">1</span> &lt; ground.length(); i++)
+            land.insertLast(ground[i]);
+        land.insertLast(<span class="t">Vec2</span>(<span class="n">1280</span>, <span class="n">720</span>));
+        land.insertLast(<span class="t">Vec2</span>(<span class="n">0</span>, <span class="n">720</span>));
+        c.polygon(land, <span class="t">Color</span>(<span class="n">0.28f</span>, <span class="n">0.22f</span>, <span class="n">0.2f</span>));
+        c.polyline(land, <span class="n">4</span>, <span class="t">Color</span>(<span class="n">0.5f</span>, <span class="n">0.38f</span>, <span class="n">0.3f</span>));
+
+        <span class="k">for</span> (<span class="k">uint</span> i = <span class="n">0</span>; i &lt; gears.length(); i++)
+            drawGear(c, gears[i]);
+
+        <span class="c">// The lift&#x27;s ropes over its two wheels, and the beam they hang from.</span>
+        c.rect(<span class="n">860</span>, <span class="n">70</span>, <span class="n">310</span>, <span class="n">10</span>, <span class="t">Color</span>(<span class="n">0.4f</span>, <span class="n">0.4f</span>, <span class="n">0.48f</span>));
+        c.line(<span class="n">900</span>, <span class="n">90</span>, <span class="n">1130</span>, <span class="n">90</span>, <span class="n">2</span>, <span class="t">Color</span>(<span class="n">0.8f</span>, <span class="n">0.75f</span>, <span class="n">0.6f</span>));
+        c.line(<span class="n">900</span>, <span class="n">90</span>, left.position.x, left.position.y, <span class="n">2</span>, <span class="t">Color</span>(<span class="n">0.8f</span>, <span class="n">0.75f</span>, <span class="n">0.6f</span>));
+        c.line(<span class="n">1130</span>, <span class="n">90</span>, right.position.x, right.position.y, <span class="n">2</span>, <span class="t">Color</span>(<span class="n">0.8f</span>, <span class="n">0.75f</span>, <span class="n">0.6f</span>));
+        c.circle(<span class="n">900</span>, <span class="n">90</span>, <span class="n">10</span>, <span class="t">Gray</span>);
+        c.circle(<span class="n">1130</span>, <span class="n">90</span>, <span class="n">10</span>, <span class="t">Gray</span>);
+        c.rect(left.position.x - <span class="n">75</span>, left.position.y - <span class="n">7</span>, <span class="n">150</span>, <span class="n">14</span>, <span class="t">Color</span>(<span class="n">0.45f</span>, <span class="n">0.6f</span>, <span class="n">0.8f</span>));
+        c.rect(right.position.x - <span class="n">75</span>, right.position.y - <span class="n">7</span>, <span class="n">150</span>, <span class="n">14</span>, <span class="t">Color</span>(<span class="n">0.45f</span>, <span class="n">0.6f</span>, <span class="n">0.8f</span>));
+
+        <span class="c">// The balloon on its string.</span>
+        c.line(buggy.position.x - <span class="n">10</span>, buggy.position.y - <span class="n">20</span>, balloon.position.x, balloon.position.y + <span class="n">22</span>, <span class="n">1.5f</span>, fade(<span class="t">White</span>, <span class="n">0.6f</span>));
+        c.ellipse(balloon.position.x, balloon.position.y, <span class="n">20</span>, <span class="n">24</span>, <span class="t">Color</span>(<span class="n">0.95f</span>, <span class="n">0.35f</span>, <span class="n">0.45f</span>));
+        c.ellipse(balloon.position.x - <span class="n">6</span>, balloon.position.y - <span class="n">8</span>, <span class="n">5</span>, <span class="n">7</span>, fade(<span class="t">White</span>, <span class="n">0.5f</span>));
+
+        drawWheel(c, back);
+        drawWheel(c, front);
+        c.push();
+        c.translate(buggy.position.x, buggy.position.y);
+        c.rotate(buggy.rotation);
+        <span class="k">array</span>&lt;<span class="t">Vec2</span>&gt; shell = { <span class="t">Vec2</span>(-<span class="n">55</span>, <span class="n">6</span>), <span class="t">Vec2</span>(-<span class="n">50</span>, -<span class="n">10</span>), <span class="t">Vec2</span>(-<span class="n">14</span>, -<span class="n">12</span>), <span class="t">Vec2</span>(<span class="n">0</span>, -<span class="n">28</span>), <span class="t">Vec2</span>(<span class="n">30</span>, -<span class="n">28</span>), <span class="t">Vec2</span>(<span class="n">44</span>, -<span class="n">10</span>), <span class="t">Vec2</span>(<span class="n">58</span>, -<span class="n">4</span>), <span class="t">Vec2</span>(<span class="n">58</span>, <span class="n">6</span>) };
+        c.polygon(shell, <span class="t">Color</span>(<span class="n">0.95f</span>, <span class="n">0.7f</span>, <span class="n">0.2f</span>));
+        <span class="k">array</span>&lt;<span class="t">Vec2</span>&gt; window = { <span class="t">Vec2</span>(<span class="n">3</span>, -<span class="n">12</span>), <span class="t">Vec2</span>(<span class="n">3</span>, -<span class="n">24</span>), <span class="t">Vec2</span>(<span class="n">27</span>, -<span class="n">24</span>), <span class="t">Vec2</span>(<span class="n">38</span>, -<span class="n">12</span>) };
+        c.polygon(window, <span class="t">Color</span>(<span class="n">0.6f</span>, <span class="n">0.8f</span>, <span class="n">0.95f</span>, <span class="n">0.85f</span>));
+        c.pop();
+
+        <span class="k">for</span> (<span class="k">uint</span> i = <span class="n">0</span>; i &lt; rocks.length(); i++)
+        {
+            c.push();
+            c.translate(rocks[i].position.x, rocks[i].position.y);
+            c.rotate(rocks[i].rotation);
+            c.polygon(rockShapes[i], <span class="t">Color</span>(<span class="n">0.6f</span>, <span class="n">0.58f</span>, <span class="n">0.55f</span>));
+            c.polygonLine(rockShapes[i], <span class="n">2</span>, <span class="t">Color</span>(<span class="n">0.35f</span>, <span class="n">0.33f</span>, <span class="n">0.32f</span>));
+            c.pop();
+        }
+        <span class="t">Scene</span>::draw(c);
+
+        c.filter = <span class="t">FilterNearest</span>;
+        c.text(title, <span class="s">&quot;MACHINES&quot;</span>, <span class="n">40</span>, <span class="n">30</span>, <span class="t">White</span>);
+        c.filter = <span class="t">FilterLinear</span>;
+        c.text(font, <span class="s">&quot;Gears: &quot;</span> + <span class="k">int</span>(motor) + <span class="s">&quot; degrees a second&quot;</span>, <span class="n">40</span>, <span class="n">82</span>, fade(<span class="t">White</span>, <span class="n">0.7f</span>));
+        c.ring(cursor.x, cursor.y, held <span class="k">is</span> <span class="k">null</span> ? <span class="n">12</span> : <span class="n">8</span>, <span class="n">3</span>, held <span class="k">is</span> <span class="k">null</span> ? <span class="t">White</span> : <span class="t">Yellow</span>);
+        c.text(font, <span class="s">&quot;Left, right: drive    Up, down: gears    Accept: rock    Fire: pick up    Cancel: again&quot;</span>, <span class="n">640</span>, <span class="n">690</span>, <span class="t">Yellow</span>, <span class="t">AlignCenter</span>);
     }
 }
 </code></pre></details></div>
