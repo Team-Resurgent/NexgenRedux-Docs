@@ -826,6 +826,18 @@ room.host(<span class="s">&quot;my game&quot;</span>, <span class="s">&quot;Sam&
 <span class="t">System</span>::open(<span class="s">&quot;https://example.com&quot;</span>);       <span class="c">// in the browser, or a file in what opens it</span>
 <span class="k">int</span> left = <span class="t">System</span>::battery;                <span class="c">// 0 to 100, or -1 without one; System::charging</span></code></pre>
 <p>On Linux the clipboard needs wl-copy, xclip or xsel, and messages zenity, kdialog or xmessage. The System demo has them all.</p>
+<p>On Windows the window&#x27;s frame is dark when Windows&#x27; apps are set to look dark, and changes when they do. Windows 11 lets a game dress it to suit its look:</p>
+<pre><code><span class="t">Windows</span>::titleLook = <span class="t">TitleDark</span>;                     <span class="c">// or TitleLight; TitleSystem follows Windows, as it starts</span>
+<span class="k">if</span> (<span class="t">Windows</span>::titleColors)                           <span class="c">// Windows 11: colours, border and corners</span>
+{
+    <span class="t">Windows</span>::titleColor = <span class="t">Color</span>(<span class="n">0.16f</span>, <span class="n">0.1f</span>, <span class="n">0.22f</span>);  <span class="c">// the title bar; anything see-through puts back the system&#x27;s</span>
+    <span class="t">Windows</span>::titleTextColor = <span class="t">Color</span>(<span class="n">1</span>, <span class="n">0.7f</span>, <span class="n">0.25f</span>);
+    <span class="t">Windows</span>::borderColor = <span class="t">Color</span>(<span class="n">1</span>, <span class="n">0.5f</span>, <span class="n">0.2f</span>);      <span class="c">// or Windows::noBorder = true</span>
+    <span class="t">Windows</span>::corners = <span class="t">CornersSquare</span>;                 <span class="c">// CornersRound, CornersSmall, CornersSystem</span>
+}
+<span class="k">if</span> (<span class="t">Windows</span>::backdrops)                             <span class="c">// Windows 11 from its 2022 update</span>
+    <span class="t">Windows</span>::backdrop = <span class="t">BackdropMica</span>;               <span class="c">// BackdropAcrylic, BackdropTabbed, BackdropNone</span></code></pre>
+<p>What a Windows can&#x27;t do is left as it is, and nothing goes wrong asking; elsewhere they do nothing.</p>
 <h2 id="what-only-an-xbox-can-do">What only an Xbox can do</h2>
 <p><code>Xbox::available</code> is true on an original Xbox. Its temperatures, fan, light, tray, drives and files are there, as are ways out:</p>
 <pre><code><span class="k">if</span> (<span class="t">Xbox</span>::available)
